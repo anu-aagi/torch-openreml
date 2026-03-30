@@ -84,43 +84,46 @@ def build_fn(theta):
 # Generic AI step
 # -----------------------------
 def ai_step(y, X, theta):
+  
     n = y.shape[0]
     Sigma, dSigma = build_fn(theta)
-
-    Sigma = Sigma + 1e-6 * torch.eye(n)
-    L = torch.linalg.cholesky(Sigma)
-
-    y_vec = y.unsqueeze(-1)
-
-    Sinv_y = torch.cholesky_solve(y_vec, L)
-    Sinv_X = torch.cholesky_solve(X, L)
-
-    Xt = X.T
-    beta = torch.linalg.solve(Xt @ Sinv_X, Xt @ Sinv_y)
-
-    r = y_vec - X @ beta
-    Sinv_r = torch.cholesky_solve(r, L)
-
-    # score
-    score = []
-    for dS in dSigma:
-        s = 0.5 * (
-            (Sinv_r.T @ (dS @ Sinv_r)) -
-            torch.trace(torch.cholesky_solve(dS, L))
-        )
-        score.append(s.squeeze())
-    score = torch.stack(score)
-
-    # AI matrix
-    m = len(dSigma)
-    AI = torch.zeros(m, m)
-
-    for i in range(m):
-        for j in range(m):
-            tmp = torch.cholesky_solve(dSigma[j], L)
-            AI[i, j] = 0.5 * torch.trace(
-                torch.cholesky_solve(dSigma[i] @ tmp, L)
+      
+    with torch.no_grad():
+    
+        Sigma = Sigma + 1e-6 * torch.eye(n)
+        L = torch.linalg.cholesky(Sigma)
+    
+        y_vec = y.unsqueeze(-1)
+    
+        Sinv_y = torch.cholesky_solve(y_vec, L)
+        Sinv_X = torch.cholesky_solve(X, L)
+    
+        Xt = X.T
+        beta = torch.linalg.solve(Xt @ Sinv_X, Xt @ Sinv_y)
+    
+        r = y_vec - X @ beta
+        Sinv_r = torch.cholesky_solve(r, L)
+    
+        # score
+        score = []
+        for dS in dSigma:
+            s = 0.5 * (
+                (Sinv_r.T @ (dS @ Sinv_r)) -
+                torch.trace(torch.cholesky_solve(dS, L))
             )
+            score.append(s.squeeze())
+        score = torch.stack(score)
+    
+        # AI matrix
+        m = len(dSigma)
+        AI = torch.zeros(m, m)
+    
+        for i in range(m):
+            for j in range(m):
+                tmp = torch.cholesky_solve(dSigma[j], L)
+                AI[i, j] = 0.5 * torch.trace(
+                    torch.cholesky_solve(dSigma[i] @ tmp, L)
+                )
 
     return beta.squeeze(), score, AI
 
