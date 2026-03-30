@@ -45,7 +45,7 @@ where both covariance structures are parameterized by $\theta$.
 The marginal covariance of $y$ is:
 
 
-$$\mathrm{Cov}(y) = Z G(\theta) Z^\top + R(\theta).$$
+$$V = Z G(\theta) Z^\top + R(\theta).$$
 
 
 ## Status
