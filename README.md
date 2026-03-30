@@ -23,32 +23,30 @@ This library separates **computation** from **interface**:
 
 The library assumes the standard linear mixed-effects model:
 
-\[
-y = X\beta + Zb + \varepsilon
-\]
+
+$$y = X\beta + Zb + \varepsilon$$
 
 where:
 
-- \( y \in \mathbb{R}^n \): response vector  
-- \( X \in \mathbb{R}^{n \times p} \): fixed-effects design matrix  
-- \( \beta \in \mathbb{R}^p \): fixed-effects coefficients  
-- \( Z \in \mathbb{R}^{n \times q} \): random-effects design matrix  
-- \( b \in \mathbb{R}^q \): random effects  
-- \( \varepsilon \in \mathbb{R}^n \): residual errors  
+- $y \in \mathbb{R}^n$: response vector  
+- $X \in \mathbb{R}^{n \times p}$: fixed-effects design matrix  
+- $\beta \in \mathbb{R}^p$: fixed-effects coefficients  
+- $Z \in \mathbb{R}^{n \times q}$: random-effects design matrix  
+- $b \in \mathbb{R}^q$: random effects  
+- $\varepsilon \in \mathbb{R}^n$: residual errors  
 
 ### Distributional Assumptions
 
-\[
-b \sim \mathcal{N}(0, G(\theta)), \quad \varepsilon \sim \mathcal{N}(0, R(\theta))
-\]
 
-where both covariance structures are parameterized by \( \theta \).
+$$b \sim \mathcal{N}(0, G(\theta)), \quad \varepsilon \sim \mathcal{N}(0, R(\theta))$$
 
-The marginal covariance of \( y \) is:
+where both covariance structures are parameterized by $\theta$.
 
-\[
-\mathrm{Var}(y) = Z G(\theta) Z^\top + R(\theta).
-\]
+The marginal covariance of $y$ is:
+
+
+$$\mathrm{Cov}(y) = Z G(\theta) Z^\top + R(\theta).$$
+
 
 ## Status
 
