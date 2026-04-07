@@ -1,0 +1,620 @@
+---
+title: "OpenREML Technical Documentation"
+format: pdf
+keep-tex: true
+bibliography: ref.bib
+toc: true
+number-sections: true
+include-in-header: 
+  text: |
+    \DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+---
+
+# Gaussian linear mixed model formulation
+
+Consider the linear mixed model
+\begin{equation}
+\symbf{Y} = \symbf{X}\symbf{\beta} + \symbf{Z}\symbf{b} + \symbf{\varepsilon},
+\end{equation}
+where:
+
+
+- $\symbf{Y} \in \mathbb{R}^{n \times 1}$ is the response vector,
+- $\symbf{X} \in \mathbb{R}^{n \times p}$ is the fixed-effects design matrix,
+- $\symbf{\beta} \in \mathbb{R}^{p \times 1}$ is the vector of fixed-effect coefficients,
+- $\symbf{Z} \in \mathbb{R}^{n \times q}$ is the random-effects design matrix,
+- $\symbf{b} \in \mathbb{R}^{q \times 1}$ is the vector of random effects,
+- $\symbf{\varepsilon} \in \mathbb{R}^{n \times 1}$ is the vector of residual errors.
+
+
+We assume
+\begin{equation}
+\symbf{b} \sim \mathcal{N}(\mathbf{0}, \symbf{G}), \quad
+\symbf{\varepsilon} \sim \mathcal{N}(\mathbf{0}, \symbf{R}), \quad
+\symbf{b} \perp \symbf{\varepsilon},
+\end{equation}
+where $\symbf{G} \in \mathbb{R}^{q \times q}$ and $\symbf{R} \in \mathbb{R}^{n \times n}$ are covariance matrices.
+
+Let $\symbf{\theta}$ denote the collection of variance components that parameterise $\symbf{G}$ and $\symbf{R}$, i.e.,
+\begin{equation}
+\symbf{G} = \symbf{G}(\symbf{\theta}), \quad
+\symbf{R} = \symbf{R}(\symbf{\theta}).
+\end{equation}
+
+Under these assumptions, the marginal distribution of $\symbf{Y}$ is given by
+\begin{equation}
+\symbf{Y} \sim \mathcal{N}\left(\symbf{X}\symbf{\beta},\; \symbf{\Sigma}(\symbf{\theta})\right),
+\end{equation}
+where
+\begin{equation}
+\symbf{\Sigma}(\symbf{\theta}) = \symbf{Z}\symbf{G}(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta}).
+\end{equation}
+
+# BLUE
+
+Given $\symbf{\theta}$, the Best Linear Unbiased Estimator (BLUE) of $\symbf{\beta}$ is the linear unbiased estimator that minimises the variance among all such estimators. Under the linear mixed model with covariance matrix $\symbf{\Sigma}(\symbf{\theta})$, the BLUE of $\symbf{\beta}$ is given by
+\begin{equation}
+\widehat{\symbf{\beta}}(\symbf{\theta})
+=
+\left(\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{X}\right)^{-1}
+\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{Y}.
+\end{equation}
+
+This estimator is the generalised least squares (GLS) estimator of $\symbf{\beta}$.
+
+# ML Estimation
+
+Maximum likelihood (ML) estimation jointly estimates the fixed effects $\symbf{\beta}$ and variance components $\symbf{\theta}$ by maximising the marginal likelihood of the observed data. After integrating out the random effects $\symbf{b}$ from the joint model, the marginal distribution of $\symbf{Y}$ is
+\begin{equation}
+\symbf{Y} \sim \mathcal{N}\!\left(\symbf{X}\symbf{\beta},\; \symbf{\Sigma}(\symbf{\theta})\right),
+\end{equation}
+where $\symbf{\Sigma}(\symbf{\theta}) = \symbf{Z}\symbf{G}(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta})$. The corresponding log-likelihood is given by
+\begin{equation}
+\ell(\symbf{\beta}, \symbf{\theta})
+=
+-\frac{1}{2}\left[
+n\log(2\pi)
++ \log\left|\symbf{\Sigma}(\symbf{\theta})\right|
++ (\symbf{Y} - \symbf{X}\symbf{\beta})^\top
+\symbf{\Sigma}(\symbf{\theta})^{-1}
+(\symbf{Y} - \symbf{X}\symbf{\beta})
+\right].
+\end{equation}
+
+For fixed $\symbf{\theta}$, the log-likelihood is quadratic in $\symbf{\beta}$, and the maximiser can be obtained in closed form by setting $\partial \ell / \partial \symbf{\beta} = \symbf{0}$. This yields the generalised least squares (GLS) estimator
+\begin{equation}
+\widehat{\symbf{\beta}}(\symbf{\theta})
+=
+\left(
+\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{X}
+\right)^{-1}
+\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{Y}.
+\end{equation}
+Substituting this expression back into the log-likelihood eliminates $\symbf{\beta}$ and produces the profile log-likelihood
+\begin{equation}
+\ell_p(\symbf{\theta})
+=
+-\frac{1}{2}\left[
+n\log(2\pi)
++ \log\left|\symbf{\Sigma}(\symbf{\theta})\right|
++ \symbf{Y}^\top \symbf{P}(\symbf{\theta})\, \symbf{Y}
+\right],
+\end{equation}
+where
+\begin{equation}
+\symbf{P}(\symbf{\theta})
+=
+\symbf{\Sigma}(\symbf{\theta})^{-1}
+-
+\symbf{\Sigma}(\symbf{\theta})^{-1}\symbf{X}
+\left(
+\symbf{X}^\top\symbf{\Sigma}(\symbf{\theta})^{-1}\symbf{X}
+\right)^{-1}
+\symbf{X}^\top\symbf{\Sigma}(\symbf{\theta})^{-1}
+\end{equation}
+is the residual projection matrix. The resulting optimisation problem depends only on $\symbf{\theta}$.
+
+Since $\ell_p(\symbf{\theta})$ is nonlinear in $\symbf{\theta}$ and does not admit a closed-form maximiser, numerical optimisation methods are required. These methods rely on the score vector and a curvature approximation. Differentiating the profile log-likelihood with respect to a variance component $\theta_k$ gives
+\begin{equation}
+\frac{\partial \ell_p}{\partial \theta_k}
+=
+-\frac{1}{2}\left[
+\operatorname{tr}\!\left(
+\symbf{\Sigma}^{-1}\frac{\partial \symbf{\Sigma}}{\partial \theta_k}
+\right)
+-
+\symbf{Y}^\top \symbf{P}
+\frac{\partial \symbf{\Sigma}}{\partial \theta_k}
+\symbf{P}\,\symbf{Y}
+\right],
+\end{equation}
+where the identity
+$\partial \log|\symbf{\Sigma}|/\partial \theta_k
+=
+\operatorname{tr}(\symbf{\Sigma}^{-1}\partial \symbf{\Sigma}/\partial \theta_k)$
+has been used, together with
+$\partial \symbf{P}/\partial \theta_k
+=
+-\symbf{P}(\partial \symbf{\Sigma}/\partial \theta_k)\symbf{P}$.
+
+A common curvature approximation is given by the Fisher information matrix, whose $(k,j)$ entry is
+\begin{equation}
+\mathcal{I}_{kj}(\symbf{\theta})
+=
+\frac{1}{2}\operatorname{tr}\!\left(
+\symbf{\Sigma}^{-1}\frac{\partial\symbf{\Sigma}}{\partial\theta_k}
+\symbf{\Sigma}^{-1}\frac{\partial\symbf{\Sigma}}{\partial\theta_j}
+\right).
+\end{equation}
+Starting from an initial value $\symbf{\theta}^{(0)}$, the Fisher scoring iteration updates $\symbf{\theta}$ according to
+\begin{equation}
+\symbf{\theta}^{(t+1)}
+=
+\symbf{\theta}^{(t)}
++
+\mathcal{I}\!\left(\symbf{\theta}^{(t)}\right)^{-1}
+\symbf{s}\!\left(\symbf{\theta}^{(t)}\right),
+\end{equation}
+where $\symbf{s}(\symbf{\theta})$ denotes the score vector. In practice, variance components are typically reparameterised (e.g.\ on a logarithmic scale) to ensure positivity during optimisation. Iterations are continued until convergence, for example when
+$\|\symbf{\theta}^{(t+1)} - \symbf{\theta}^{(t)}\| < \varepsilon$
+for a prescribed tolerance $\varepsilon > 0$.
+
+Upon convergence, the ML estimate of $\symbf{\theta}$ is
+$\widehat{\symbf{\theta}}_{ML}$, and the ML estimate of $\symbf{\beta}_{ML}$ is
+recovered analytically as
+\begin{equation}
+    \widehat{\symbf{\beta}}_{ML}
+    = \widehat{\symbf{\beta}}\!\left(\widehat{\symbf{\theta}}_{ML}\right)
+    =
+    \left(
+        \symbf{X}^\top
+        \symbf{\Sigma}(\widehat{\symbf{\theta}}_{ML})^{-1}
+        \symbf{X}
+    \right)^{-1}
+    \symbf{X}^\top
+    \symbf{\Sigma}(\widehat{\symbf{\theta}}_{ML})^{-1}
+    \symbf{Y}.
+\end{equation}
+
+
+\noindent\textbf{Remark.}
+ML treats $\symbf{\beta}$ and $\symbf{\theta}$ symmetrically in the
+likelihood and is therefore consistent as $n \to \infty$. However,
+in finite samples ML underestimates variance components because it
+does not account for the degrees of freedom consumed by estimating
+$\symbf{\beta}$. This bias motivates restricted maximum likelihood
+(REML), which maximises a likelihood formed from residual contrasts
+that are orthogonal to the column space of $\symbf{X}$, thereby
+adjusting for the estimation of fixed effects when recovering
+$\symbf{\theta}$.
+
+# REML Estimation
+
+Restricted maximum likelihood (REML) constructs a likelihood based on linear combinations of $\symbf{Y}$ that are free of $\symbf{\beta}$. Let $\symbf{A}$ be an $(n-p)\times n$ matrix satisfying $\symbf{A}\symbf{X}=\symbf{0}$ and $rank(\symbf{A})=n-p$. Then
+\begin{equation}
+\symbf{AY} \sim \mathcal{N}\big(\symbf{0},\; \symbf{A}\symbf{\Sigma}(\symbf{\theta})\symbf{A}^\top\big),
+\end{equation}
+and the corresponding log-likelihood is
+\begin{equation}
+\ell_R(\symbf{\theta})
+=
+-\frac{1}{2}\left[
+(n-p)\log(2\pi)
++ \log\big|\symbf{A}\symbf{\Sigma}(\symbf{\theta})\symbf{A}^\top\big|
++ (\symbf{AY})^\top \big(\symbf{A}\symbf{\Sigma}(\symbf{\theta})\symbf{A}^\top\big)^{-1} (\symbf{AY})
+\right].
+\end{equation}
+
+Using standard matrix identities, this expression can be rewritten as
+\begin{equation}
+\ell_R(\symbf{\theta})
+=
+-\frac{1}{2}\left[
+\log\big|\symbf{\Sigma}(\symbf{\theta})\big|
++ \log\big|\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{X}\big|
++ \symbf{Y}^\top \symbf{P}(\symbf{\theta}) \symbf{Y}
+\right]
++ C,
+\end{equation}
+where
+\begin{equation}
+\symbf{P}(\symbf{\theta})
+=
+\symbf{\Sigma}(\symbf{\theta})^{-1}
+-
+\symbf{\Sigma}(\symbf{\theta})^{-1}\symbf{X}
+\left(
+\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1}\symbf{X}
+\right)^{-1}
+\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1},
+\end{equation}
+and $C$ is a constant independent of $\symbf{\theta}$. Since additive constants do not affect maximisation with respect to $\symbf{\theta}$, the REML log-likelihood is taken to be the above expression up to an additive constant.
+
+## Score Function
+
+Let $\theta_k$ denote the $k$-th component of $\symbf{\theta}$, and define
+\begin{equation}
+\dot{\symbf{\Sigma}}_k
+=
+\frac{\partial \symbf{\Sigma}(\symbf{\theta})}{\partial \theta_k}.
+\end{equation}
+Starting from
+\begin{equation}
+\ell_R(\symbf{\theta})
+=
+-\frac{1}{2}\left[
+\log|\symbf{\Sigma}|
++ \log\big|\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big|
++ \symbf{Y}^\top \symbf{P}\symbf{Y}
+\right]
++ C,
+\end{equation}
+we differentiate each term with respect to $\theta_k$.
+
+\subsubsection*{Derivative of $\log|\symbf{\Sigma}|$}
+\begin{equation}
+\frac{\partial}{\partial \theta_k}\log|\symbf{\Sigma}|
+=
+\operatorname{tr}\!\big(\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k\big).
+\end{equation}
+
+\subsubsection*{Derivative of $\log|\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}|$}
+Set $\symbf{M} = \symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}$. Then
+\begin{equation}
+\frac{\partial}{\partial \theta_k}\log|\symbf{M}|
+=
+\operatorname{tr}\!\big(\symbf{M}^{-1} \dot{\symbf{M}}_k\big),
+\end{equation}
+where
+\begin{equation}
+\dot{\symbf{M}}_k
+=
+\frac{\partial}{\partial \theta_k}
+\big(\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big)
+=
+-\,\symbf{X}^\top \symbf{\Sigma}^{-1}
+\dot{\symbf{\Sigma}}_k
+\symbf{\Sigma}^{-1}\symbf{X}.
+\end{equation}
+Hence,
+\begin{equation}
+\frac{\partial}{\partial \theta_k}
+\log\big|\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big|
+=
+-\,\operatorname{tr}\!\Big(
+\big(\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big)^{-1}
+\symbf{X}^\top \symbf{\Sigma}^{-1}
+\dot{\symbf{\Sigma}}_k
+\symbf{\Sigma}^{-1}\symbf{X}
+\Big).
+\end{equation}
+
+### Derivative of $\symbf{Y}^\top \symbf{P}\symbf{Y}$
+
+\begin{equation}
+\frac{\partial}{\partial \theta_k}
+\big(\symbf{Y}^\top \symbf{P}\symbf{Y}\big)
+=
+\symbf{Y}^\top
+\frac{\partial \symbf{P}}{\partial \theta_k}
+\symbf{Y}.
+\end{equation}
+Using
+\begin{equation}
+\frac{\partial \symbf{P}}{\partial \theta_k}
+=
+-\,\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P},
+\end{equation}
+we obtain
+\begin{equation}
+\frac{\partial}{\partial \theta_k}
+\big(\symbf{Y}^\top \symbf{P}\symbf{Y}\big)
+=
+-\,\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\symbf{Y}.
+\end{equation}
+
+### Compact Form
+
+Combining the three components and noting that $C$ does not depend on $\symbf{\theta}$, the score function is
+\begin{equation}
+S_k(\symbf{\theta})
+=
+\frac{\partial \ell_R(\symbf{\theta})}{\partial \theta_k}
+=
+-\frac{1}{2}
+\left[
+\operatorname{tr}\!\big(\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k\big)
+-
+\operatorname{tr}\!\Big(
+\big(\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big)^{-1}
+\symbf{X}^\top \symbf{\Sigma}^{-1}
+\dot{\symbf{\Sigma}}_k
+\symbf{\Sigma}^{-1}\symbf{X}
+\Big)
+-
+\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\symbf{Y}
+\right].
+\end{equation}
+
+To obtain a more compact form, recall the identity
+\begin{equation}
+\symbf{P}
+=
+\symbf{\Sigma}^{-1}
+-
+\symbf{\Sigma}^{-1}\symbf{X}
+\left(
+\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}
+\right)^{-1}
+\symbf{X}^\top \symbf{\Sigma}^{-1}.
+\end{equation}
+Hence,
+\begin{equation}
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+=
+\operatorname{tr}\!\big(\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k\big)
+-
+\operatorname{tr}\!\Big(
+\symbf{\Sigma}^{-1}\symbf{X}
+\left(
+\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}
+\right)^{-1}
+\symbf{X}^\top \symbf{\Sigma}^{-1}
+\dot{\symbf{\Sigma}}_k
+\Big).
+\end{equation}
+Using the cyclic property of the trace, $\operatorname{tr}(\symbf{D}\symbf{A}\symbf{B}\symbf{C})
+=
+\operatorname{tr}(\symbf{A}\symbf{B}\symbf{C}\symbf{D})$, the second term becomes
+\begin{equation}
+\operatorname{tr}\!\Big(
+\symbf{\Sigma}^{-1}\symbf{X}
+\left(
+\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}
+\right)^{-1}
+\symbf{X}^\top \symbf{\Sigma}^{-1}
+\dot{\symbf{\Sigma}}_k
+\Big)
+=
+\operatorname{tr}\!\Big(
+\left(
+\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}
+\right)^{-1}
+\symbf{X}^\top \symbf{\Sigma}^{-1}
+\dot{\symbf{\Sigma}}_k
+\symbf{\Sigma}^{-1}\symbf{X}
+\Big).
+\end{equation}
+Therefore,
+\begin{equation}
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+=
+\operatorname{tr}\!\big(\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k\big)
+-
+\operatorname{tr}\!\Big(
+\big(\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big)^{-1}
+\symbf{X}^\top \symbf{\Sigma}^{-1}
+\dot{\symbf{\Sigma}}_k
+\symbf{\Sigma}^{-1}\symbf{X}
+\Big).
+\end{equation}
+Substituting this identity into the previous expression for $S_k(\symbf{\theta})$ yields
+\begin{equation}
+S_k(\symbf{\theta})
+=
+\frac{1}{2}
+\left[
+\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\symbf{Y}
+-
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+\right].
+\end{equation}
+
+## Average Information Matrix
+
+The score function for $\theta_k$ is
+\begin{equation}
+S_k(\symbf{\theta})
+=
+\frac{1}{2}
+\left[
+\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\symbf{Y}
+-
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+\right],
+\end{equation}
+where
+\begin{equation}
+\dot{\symbf{\Sigma}}_k
+=
+\frac{\partial \symbf{\Sigma}(\symbf{\theta})}{\partial \theta_k}.
+\end{equation}
+
+### Observed Information
+
+Differentiating $S_k$ with respect to $\theta_j$ gives
+\begin{equation}
+-\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j}
+=
+-\frac{1}{2}
+\left[
+\symbf{Y}^\top
+\frac{\partial}{\partial \theta_j}
+\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\big)
+\symbf{Y}
+-
+\frac{\partial}{\partial \theta_j}
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+\right].
+\end{equation}
+
+For the quadratic term, using the product rule and $\partial \symbf{P}/\partial \theta_j = -\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}$, we obtain
+\begin{equation}
+\frac{\partial}{\partial \theta_j}
+\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\big)
+=
+-\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}
+-
+\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}
++
+\symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P}.
+\end{equation}
+
+For the trace term,
+\begin{equation}
+\frac{\partial}{\partial \theta_j}
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+=
+-\,\operatorname{tr}\!\big(
+\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k
+\big)
++
+\operatorname{tr}\!\big(
+\symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}
+\big).
+\end{equation}
+
+Putting everything together yields the observed information:
+\begin{equation}
+\mathcal{J}_{kj}(\symbf{\theta}) = -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j}
+=
+\symbf{Y}^\top
+\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}
+\symbf{Y}
+-\frac{1}{2}
+\operatorname{tr}\!\big(
+\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k
+\big)
++\frac{1}{2}
+\operatorname{tr}\!\big(
+\symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}
+\big)
+- \frac{1}{2} \symbf{Y}^\top \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P}\symbf{Y}.
+\end{equation}
+
+### Expected Information
+
+We now derive the expected Fisher information matrix by taking expectations of the negative second derivatives. Recall that under the model, $\mathbb{E}[\mathbf{Y}] = \mathbf{X}\symbf{\beta}$. However, a fundamental property of the projection matrix $\mathbf{P}$ is that $\mathbf{P}\mathbf{X} = \mathbf{0}$, which implies $\mathbf{P}\mathbf{Y} = \mathbf{P}(\mathbf{Y} - \mathbf{X}\symbf{\beta})$. Consequently, when computing expectations of expressions involving $\mathbf{P}$, we may without loss of generality treat $\mathbf{Y}$ as centered at zero. We therefore take $\mathbb{E}[\mathbf{Y}] = \mathbf{0}$ and $\mathbb{E}[\mathbf{Y}\mathbf{Y}^\top] = \symbf{\Sigma}$ for the remainder of this derivation.
+
+The observed information matrix is given by
+\begin{equation}
+-\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j}
+=
+\underbrace{\mathbf{Y}^\top \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \mathbf{Y}}_{T_1}
+-\frac12 \underbrace{\operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\,\dot{\symbf{\Sigma}}_k \big)}_{T_2}
++\frac12 \underbrace{\operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)}_{T_3}
+- \frac12 \underbrace{\mathbf{Y}^\top \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P}\mathbf{Y}}_{T_4}.
+\end{equation}
+We evaluate the expectation of each term in turn.
+
+#### Expectation of $T_1$
+
+The quantity $T_1$ is a quadratic form in $\mathbf{Y}$. For a zero-mean random vector with covariance $\symbf{\Sigma}$, the identity $\mathbb{E}[\mathbf{Y}^\top \mathbf{A} \mathbf{Y}] = \operatorname{tr}(\mathbf{A} \symbf{\Sigma})$ holds for any conformable matrix $\mathbf{A}$. Applying this with $\mathbf{A} = \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}$ yields
+\begin{equation}
+\mathbb{E}[T_1] = \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \, \symbf{\Sigma} \big).
+\end{equation}
+A key identity satisfied by $\mathbf{P}$ is $\mathbf{P}\symbf{\Sigma}\mathbf{P} = \mathbf{P}$, which can be verified by direct substitution of the definition $\mathbf{P} = \symbf{\Sigma}^{-1} - \symbf{\Sigma}^{-1}\mathbf{X}(\mathbf{X}^\top\symbf{\Sigma}^{-1}\mathbf{X})^{-1}\mathbf{X}^\top\symbf{\Sigma}^{-1}$. Using the cyclic property of the trace,
+\begin{align}
+\mathbb{E}[T_1] &= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\, (\mathbf{P}\symbf{\Sigma}) \big) \\
+&= \operatorname{tr}\!\big( \dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\symbf{\Sigma}\mathbf{P} \big) \quad \text{(cyclic permutation)} \\
+&= \operatorname{tr}\!\big( \dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \big) \quad \text{(since $\mathbf{P}\symbf{\Sigma}\mathbf{P} = \mathbf{P}$)} \\
+&= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big) \quad \text{(cyclic permutation again)}.
+\end{align}
+Thus
+\begin{equation}
+\mathbb{E}[T_1] = \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\end{equation}
+
+#### Expectation of $T_2$
+
+The term $T_2$ contains no random quantities; it is a deterministic function of the parameters. Hence
+\begin{equation}
+\mathbb{E}[T_2] = \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\,\dot{\symbf{\Sigma}}_k \big).
+\end{equation}
+
+#### Expectation of $T_3$
+
+Similarly, $T_3$ is non-random, giving
+\begin{equation}
+\mathbb{E}[T_3] = \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
+\end{equation}
+
+#### Expectation of $T_4$
+
+The term $T_4$ is again a quadratic form. Applying the same identity as for $T_1$,
+\begin{equation}
+\mathbb{E}[T_4] = \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P} \, \symbf{\Sigma} \big).
+\end{equation}
+Using the cyclic property followed by $\mathbf{P}\symbf{\Sigma}\mathbf{P} = \mathbf{P}$,
+\begin{align}
+\mathbb{E}[T_4] &= \operatorname{tr}\!\big( \ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P} \symbf{\Sigma} \mathbf{P} \big) \\
+&= \operatorname{tr}\!\big( \ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P} \big) \\
+&= \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
+\end{align}
+
+#### Combining the expectations
+
+Assembling the four components,
+\begin{align}
+\mathbb{E}\!\left[ -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j} \right]
+&= \mathbb{E}[T_1] - \frac12 \mathbb{E}[T_2] + \frac12 \mathbb{E}[T_3] - \frac12 \mathbb{E}[T_4] \\[4pt]
+&= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big)
+- \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\,\dot{\symbf{\Sigma}}_k \big) \\
+&\quad + \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)
+- \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
+\end{align}
+The two terms involving the second derivatives $\ddot{\symbf{\Sigma}}_{kj}$ cancel identically. Moreover, the trace is symmetric in its matrix arguments, so
+\begin{equation}
+\operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\,\dot{\symbf{\Sigma}}_k \big)
+= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\end{equation}
+Substituting this into the expression above,
+\begin{align}
+\mathbb{E}\!\left[ -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j} \right]
+&= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big)
+- \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big) \\[4pt]
+&= \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\end{align}
+
+This final expression defines the $(k,j)$-th entry of the REML Fisher information matrix,
+\begin{equation}
+\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\end{equation}
+
+### Definition of the Average Information
+
+The expected information (Fisher information) is
+\begin{equation}
+\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\end{equation}
+The observed information is denoted $\mathcal{J}_{kj}(\symbf{\theta})$, and the \emph{average information} matrix is defined as
+\begin{equation}
+\mathcal{A}_{kj}(\symbf{\theta}) = \frac12 \Big( \mathcal{I}_{kj}(\symbf{\theta}) + \mathcal{J}_{kj}(\symbf{\theta}) \Big).
+\end{equation}
+
+Substituting the expressions and simplifying, the trace terms cancel, yielding
+\begin{align}
+\mathcal{A}_{kj} &= \frac12 \mathbf{Y}^\top \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \mathbf{Y} \\
+&\quad + \frac14 \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)
+- \frac14 \mathbf{Y}^\top \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P}\mathbf{Y}.
+\end{align}
+
+\subsubsection*{Simplification for Linear Variance Component Models}
+In the common case where $\symbf{\Sigma}(\symbf{\theta}) = \sum_{t=1}^p \theta_t \mathbf{V}_t$ with known matrices $\mathbf{V}_t$, the second derivatives vanish: $\ddot{\symbf{\Sigma}}_{kj} = \mathbf{0}$ for all $k,j$. The average information matrix then reduces to
+\begin{equation}
+\boxed{
+\mathcal{A}_{kj} = \frac12 \,\mathbf{Y}^\top \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \mathbf{Y}
+}.
+\end{equation}
+
+This is the form commonly used in the AI-REML algorithm [@gilmour1995average], where the average information matrix is computed directly from the data without requiring second derivatives. The algorithm proceeds by iteratively solving
+
+\begin{equation}
+\symbf{\theta}^{(t+1)} = \symbf{\theta}^{(t)} + \big( \mathcal{A}(\symbf{\theta}^{(t)}) \big)^{-1} \mathbf{S}(\symbf{\theta}^{(t)}).
+\end{equation}
+
+# Computation of REML
+
+\clearpage
+
+# References
