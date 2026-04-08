@@ -107,60 +107,65 @@ y = torch.tensor(df["yield"].values, dtype=torch.float32)
 # Model
 # -----------------------------
 class MixedModel(nn.Module):
-    def __init__(self, rep_dim):
+    def __init__(self):
         super().__init__()
-        self.beta = nn.Linear(rep_dim, 1, bias=False)
 
         self.log_sigma_gen = nn.Parameter(torch.tensor(0.0))
         self.log_sigma_rb = nn.Parameter(torch.tensor(0.0))
         self.log_sigma2 = nn.Parameter(torch.tensor(0.0))
 
-    def forward(self, rep_X, Z_gen, Z_rb):
-        n = rep_X.size(0)
-
-        mu = self.beta(rep_X).squeeze(-1)
-
+    def forward(self, Z_gen, Z_rb):
         sigma_gen = torch.exp(self.log_sigma_gen)
         sigma_rb = torch.exp(self.log_sigma_rb)
         sigma2 = torch.exp(self.log_sigma2)
 
-        Sigma = (
+        V = (
             sigma_gen * (Z_gen @ Z_gen.T) +
             sigma_rb * (Z_rb @ Z_rb.T) +
-            sigma2 * torch.eye(n, device=rep_X.device)
+            sigma2 * torch.eye(Z_gen.shape[0])
         )
 
-        return mu, Sigma
+        return V
 
 
-def gaussian_nll(y, mu, Sigma):
-    n = y.size(0)
-    eye = torch.eye(n, device=Sigma.device)
+def reml_nll(y, X, V):
+    n = y.shape[0]
 
-    Sigma = Sigma + 1e-6 * eye
-    L = torch.linalg.cholesky(Sigma)
+    V = V + 1e-6 * torch.eye(n)
+    L = torch.linalg.cholesky(V)
 
-    y_centered = (y - mu).unsqueeze(-1)
-    sol = torch.cholesky_solve(y_centered, L)
+    y = y.unsqueeze(-1)
 
-    quad = y_centered.T @ sol
-    logdet = 2.0 * torch.sum(torch.log(torch.diag(L)))
+    Vinv_y = torch.cholesky_solve(y, L)
+    Vinv_X = torch.cholesky_solve(X, L)
 
-    nll = 0.5 * (quad + logdet + n * torch.log(torch.tensor(2 * torch.pi)))
+    Xt_Vinv_X = X.T @ Vinv_X
+    Lx = torch.linalg.cholesky(Xt_Vinv_X)
+
+    Xt_Vinv_y = X.T @ Vinv_y
+
+    term1 = y.T @ Vinv_y
+    term2 = Xt_Vinv_y.T @ torch.cholesky_solve(Xt_Vinv_y, Lx)
+    quad = term1 - term2
+
+    logdet_V = 2.0 * torch.sum(torch.log(torch.diag(L)))
+    logdet_X = 2.0 * torch.sum(torch.log(torch.diag(Lx)))
+
+    nll = 0.5 * (quad + logdet_V + logdet_X)
     return nll.squeeze()
 
 
 # -----------------------------
 # Train
 # -----------------------------
-model = MixedModel(rep_dim=rep_X.shape[1])
-optimizer = torch.optim.Adam(model.parameters(), lr=0.05)
+model = MixedModel()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
 for epoch in range(2000):
     optimizer.zero_grad()
 
-    mu, Sigma = model(rep_X, Z_gen, Z_rb)
-    loss = gaussian_nll(y, mu, Sigma)
+    V = model(Z_gen, Z_rb)
+    loss = reml_nll(y, rep_X, V)
 
     loss.backward()
     optimizer.step()

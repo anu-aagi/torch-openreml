@@ -8,97 +8,254 @@ class REML:
         self.jacobian_func = torch.func.jacrev(map_theta_to_v)
     
     @staticmethod
+    def get_device(*args):
+        if len(args) == 0:
+            return "cpu"
+          
+        device = args[0].device
+        for i, t in enumerate(args):
+            if t.device != device:
+                raise ValueError(f"Device mismatch at arg {i}: {t.device} != {device}")
+        
+        return device
+    
+    @staticmethod
     def map_z_g_r_to_v(z, g, r):
         return z @ g @ z.T + r
       
-    @staticmethod
-    def blue(y, x, v):
-        pass
+    def blue(self, y, x, theta):
+        device = REML.get_device(y, x, theta)
+        
+        n = y.shape[0]
+        v = self.map_theta_to_v(theta)
+        
+        v = v + 1e-6 * torch.eye(n, device=device)
+        l = torch.linalg.cholesky(v)
+    
+        y_mat = y.unsqueeze(-1)
+    
+        sinv_y = torch.cholesky_solve(y_mat, l)
+        sinv_x = torch.cholesky_solve(x, l)
+    
+        xt = x.T
+        xt_sinv_x = xt @ sinv_x
+        xt_sinv_y = xt @ sinv_y
+        return torch.linalg.solve(xt_sinv_x, xt_sinv_y).squeeze()
+    
+    def marginal_residual(self, y, x, theta):
+        beta = self.blue(y, x, theta)
+        y_mat = y.unsqueeze(-1)
+        return y_mat - x @ beta
+
+    def blup(self, y, x, z, theta, map_theta_to_g):
+        device = REML.get_device(y, x, z, theta)
+        
+        n = y.shape[0]
+    
+        v = self.map_theta_to_v(theta)
+        v = v + 1e-6 * torch.eye(n, device=device)
+    
+        l = torch.linalg.cholesky(v)
+    
+        r = self.marginal_residual(y, x, theta)
+    
+        sinv_res = torch.cholesky_solve(r, l)
+    
+        g = map_theta_to_g(theta)
+    
+        u = g @ (z.T @ sinv_res)
+    
+        return u.squeeze()
+      
+    def residual(self, y, x, z, theta, map_theta_to_g):
+        device = REML.get_device(y, x, z, theta)
+    
+        beta = self.blue(y, x, theta)
+
+        u = self.blup(y, x, z, theta, map_theta_to_g)
+
+        y_mat = y.unsqueeze(-1)
+    
+        residual = y_mat - x @ beta - z @ u.unsqueeze(-1)
+    
+        return residual.squeeze()
+    
+    def loglik(self, y, x, theta):
+        device = self.get_device(y, x, theta)
+        n = y.shape[0]
+        
+        v = self.map_theta_to_v(theta)
+        v = v + 1e-6 * torch.eye(n, device=device)
+        l = torch.linalg.cholesky(v)
+        
+        y_mat = y.unsqueeze(-1)
+    
+        sinv_y = torch.cholesky_solve(y_mat, l)
+        sinv_x = torch.cholesky_solve(x, l)
+    
+        xt = x.T
+        xt_sinv_x = xt @ sinv_x
+        xt_sinv_y = xt @ sinv_y
+        
+        beta = torch.linalg.solve(xt_sinv_x, xt_sinv_y)
+        
+        r = y_mat - x @ beta
+        sinv_r = torch.cholesky_solve(r, l)
+        
+        logdet_v = 2.0 * torch.sum(torch.log(torch.diag(l)))
+                
+        c = torch.linalg.cholesky(xt_sinv_x)
+        logdet_xt_vinv_x = 2.0 * torch.sum(torch.log(torch.diag(c)))
+        
+        quad = r.T @ sinv_r
+        
+        loglik = -0.5 * (
+            logdet_v +
+            logdet_xt_vinv_x +
+            quad.squeeze()
+        )
+        
+        return loglik
           
     def compute_v_dv(self, theta):
-      
         jacobian = self.jacobian_func(theta)
         v = self.map_theta_to_v(theta)
         dv = [jacobian[..., i] for i in range(theta.shape[0])]
     
         return v, dv
 
-    def ai_step(self, y, x, theta, require_loglik=True):
-      
-        n = y.shape[0]
-        v, dv = self.compute_v_dv(theta)
-          
-        with torch.no_grad():
+    def ai_step(self, y, x, theta, require_loglik=True, require_beta=True):
+        r"""
+        Score:
         
-            v = v + 1e-6 * torch.eye(n)
-            l = torch.linalg.cholesky(v)
+        S_k = 0.5 * ((P Y)^T dV_k P Y - tr(P dV_k))
         
-            y_mat = y.unsqueeze(-1)
+        AI:
         
-            sinv_y = torch.cholesky_solve(y_mat, l)
-            sinv_x = torch.cholesky_solve(x, l)
+        AI_{ij} = 0.5 * (P Y)^T dV_i P dV_j P Y
         
-            xt = x.T
-            xt_sinv_x = xt @ sinv_x
-            xt_sinv_y = xt @ sinv_y
-            beta = torch.linalg.solve(xt_sinv_x, xt_sinv_y)
+        P Y:
         
-            r = y_mat - x @ beta
-            sinv_r = torch.cholesky_solve(r, l)
+        P Y = V^{-1} Y - V^{-1} X (X^T V^{-1} X)^{-1} X^T V^{-1} Y
         
-            # score
-            score = []
-            for this_dv in dv:
-                s = 0.5 * (
-                    (sinv_r.T @ (this_dv @ sinv_r)) -
-                    torch.trace(torch.cholesky_solve(this_dv, l))
-                )
-                score.append(s.squeeze())
-            score = torch.stack(score)
+        P dV_k:
         
-            # AI matrix
-            m = len(dv)
-            ai = torch.zeros(m, m)
+        P dV_k = V^{-1} dV_k - V^{-1} X (X^T V^{-1} X)^{-1} X^T V^{-1} dV_k
+        """
         
-            for i in range(m):
-                for j in range(m):
-                    tmp = torch.cholesky_solve(dv[j], l)
-                    ai[i, j] = 0.5 * torch.trace(
-                        torch.cholesky_solve(dv[i] @ tmp, l)
-                    )
+        device = self.get_device(y, x, theta)
+        
+        matrix = {}
+        vector = {}
+        scalar = {}
+        matrix_list = {}
+        
+        matrix["X"] = x
+        matrix["Y"] = y.unsqueeze(-1)
+        scalar["N"] = y.shape[0]
+        
+        matrix["V"], matrix_list["dV"] = self.compute_v_dv(theta)
+        scalar["K"] = len(matrix_list["dV"])
+        
+        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device)
+        
+        matrix["L"] = torch.linalg.cholesky(matrix["V"])
+        
+        matrix["V^{-1} Y"] = torch.cholesky_solve(matrix["Y"], matrix["L"])
+        matrix["V^{-1} X"] = torch.cholesky_solve(matrix["X"], matrix["L"])
+        
+        matrix["X^T V^{-1} X"] = matrix["X"].T @ matrix["V^{-1} X"]
+        
+        matrix["L_{X^T V^{-1} X}"] = torch.linalg.cholesky(matrix["X^T V^{-1} X"])
+        
+        matrix["(X^T V^{-1} X)^{-1} X^T V{-1}"] = torch.cholesky_solve(matrix["V^{-1} X"].T,
+                                                                       matrix["L_{X^T V^{-1} X}"])
+        
+        matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] = matrix["V^{-1} X"] @ matrix["(X^T V^{-1} X)^{-1} X^T V{-1}"]
+        
+        matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} Y"] = matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ matrix["Y"]
+        
+        matrix["P Y"] = matrix["V^{-1} Y"] - matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} Y"]
+        
+        matrix_list["V^{-1} dV_k"] = [torch.cholesky_solve(dv_k, matrix["L"]) for dv_k in matrix_list["dV"]]
+        
+        matrix_list["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV_k"] = [matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ dv_k for dv_k in matrix_list["dV"]]
+        
+        matrix_list["P dV_k"] = [matrix_list["V^{-1} dV_k"][i] - matrix_list["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV_k"][i] for i in range(scalar["K"])]
+        
+        matrix_list["P dV_k P Y"] = [p_dv_k @ matrix["P Y"] for p_dv_k in matrix_list["P dV_k"]]
+        
+        matrix["P dV P Y"] = torch.cat(matrix_list["P dV_k P Y"], dim=1)
+        vector["Y^T P dV P Y"] = (matrix["Y"].T @ matrix["P dV P Y"]).squeeze()
+        
+        vector["tr(P dV)"] = torch.stack([torch.trace(p_dv_k) for p_dv_k in matrix_list["P dV_k"]])
+        
+        # Score vector
+        vector["score"] = 0.5 * (vector["Y^T P dV P Y"] - vector["tr(P dV)"])
+        
+        # AI matrix
+        matrix["AI"] = torch.ones(scalar["K"], scalar["K"])
+        
+        for k in range(scalar["K"]):
+            for j in range(scalar["K"]):
+                if k > j:
+                    next
+                entry = 0.5 * (matrix["Y"].T @ matrix_list["P dV_k"][k] @ matrix_list["P dV_k P Y"][j])
+                matrix["AI"][k][j] = entry
+                matrix["AI"][j][k] = entry
+                
+        # REML log-likelihood
+        if require_loglik:
+            scalar["log |V|"] = 2.0 * torch.sum(torch.log(torch.diag(matrix["L"])))
+            scalar["log |X^T V^{-1} X|"] = 2.0 * torch.sum(torch.log(torch.diag(matrix["L_{X^T V^{-1} X}"])))
+            scalar["Y^T P Y"] = (matrix["Y"].T @ matrix["P Y"]).squeeze()
+            scalar["loglik"] = -0.5 * (scalar["log |V|"] + scalar["log |X^T V^{-1} X|"] + scalar["Y^T P Y"])
+        else:
+            scalar["loglik"] = torch.nan
             
-            # REML log-likelihood
-            if require_loglik:
-                logdet_v = 2.0 * torch.sum(torch.log(torch.diag(l)))
-                
-                c = torch.linalg.cholesky(xt_sinv_x)
-                logdet_xt_vinv_x = 2.0 * torch.sum(torch.log(torch.diag(c)))
-                
-                quad = r.T @ sinv_r
-                
-                reml_loglik = -0.5 * (
-                    logdet_v +
-                    logdet_xt_vinv_x +
-                    quad.squeeze()
-                )
-            else:
-                reml_loglik = torch.nan
+        if require_beta:
+            vector["beta"] = (matrix["(X^T V^{-1} X)^{-1} X^T V{-1}"] @ matrix["Y"]).squeeze()
+        else:
+            vector["beta"] = torch.nan
     
-        return beta.squeeze(), score, ai, reml_loglik
+        return vector["beta"], vector["score"], matrix["AI"], scalar["loglik"]
     
-    def is_converged(self):
-        return False
+    def is_converged(self, tol_score=1e-4, tol_delta=1e-4):
+        if len(self.history["score"]) < 2:
+            return False
+    
+        score_norm = torch.norm(self.history["score"][-1]).item()
+        delta_norm = torch.norm(self.history["delta"][-1]).item()
+    
+        return score_norm < tol_score and delta_norm < tol_delta
     
     def optimize(self, y, x, theta, max_iter=50, lr=0.5, require_loglik=True):
-        for i in range(max_iter):
-            beta, score, ai, reml_loglik = self.ai_step(y, x, theta, require_loglik=require_loglik)
-            delta = torch.linalg.solve(ai, score)
-            theta = theta + lr * delta
-            
-            if self.is_converged():
-              break
-          
-        return beta, theta, reml_loglik
+        device = self.get_device(y, x, theta)
+        
+        self.history = {"theta": [], 
+                        "beta": [], 
+                        "loglik": [], 
+                        "score": [], 
+                        "ai": [], 
+                        "delta": []}
+        
+        with torch.no_grad():
+            for i in range(max_iter):
+                beta, score, ai, loglik = self.ai_step(y, x, theta, require_loglik=require_loglik)
+                delta = torch.linalg.solve(ai, score)
+                theta = theta + lr * delta
+                
+                self.history["theta"].append(theta)
+                self.history["beta"].append(beta)
+                self.history["loglik"].append(loglik)
+                self.history["score"].append(score)
+                self.history["ai"].append(ai)
+                self.history["delta"].append(delta)
+                
+                if self.is_converged():
+                  break
+        
+        return theta, beta, i
       
 if __name__ == "__main__":
     
@@ -160,11 +317,11 @@ if __name__ == "__main__":
                 f"z_rb={z_rb.device}"
             )
       
-        sigma2 = torch.exp(theta)
+        sigma2 = torch.exp(theta) ** 2
         v = k_gen * sigma2[0] + k_rb * sigma2[1] + sigma2[2] * i_n
                 
         return v
       
     mod = REML(map_theta_to_v)
-    mod.optimize(y, x, torch.tensor([1.0, 1.0, 1.0]), require_loglik=False)
+    mod.optimize(y, x, torch.tensor([0.0, 0.0, 0.0]), require_loglik=True, max_iter=50)
     
