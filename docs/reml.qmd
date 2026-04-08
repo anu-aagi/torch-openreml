@@ -30,8 +30,8 @@ where:
 
 We assume
 \begin{equation}
-\symbf{b} \sim \mathcal{N}(\mathbf{0}, \symbf{G}), \quad
-\symbf{\varepsilon} \sim \mathcal{N}(\mathbf{0}, \symbf{R}), \quad
+\symbf{b} \sim \mathcal{N}(\symbf{0}, \symbf{G}), \quad
+\symbf{\varepsilon} \sim \mathcal{N}(\symbf{0}, \symbf{R}), \quad
 \symbf{b} \perp \symbf{\varepsilon},
 \end{equation}
 where $\symbf{G} \in \mathbb{R}^{q \times q}$ and $\symbf{R} \in \mathbb{R}^{n \times n}$ are covariance matrices.
@@ -62,6 +62,17 @@ Given $\symbf{\theta}$, the Best Linear Unbiased Estimator (BLUE) of $\symbf{\be
 \end{equation}
 
 This estimator is the generalised least squares (GLS) estimator of $\symbf{\beta}$.
+
+# BLUP
+
+Given $\symbf{\theta}$, we often wish to predict the random effects $\symbf{b}$. The Best Linear Unbiased Predictor (BLUP) of $\symbf{b}$ is given by:
+
+\begin{equation}
+\widehat{\symbf{b}}(\symbf{\theta}) = \symbf{G}(\symbf{\theta})\symbf{Z}^\top \symbf{\Sigma}^{-1}(\symbf{\theta}) (\symbf{Y} - \symbf{X}\widehat{\symbf{\beta}}).
+\label{eq:blup}
+\end{equation}
+
+
 
 # ML Estimation
 
@@ -502,62 +513,62 @@ Putting everything together yields the observed information:
 
 ### Expected Information
 
-We now derive the expected Fisher information matrix by taking expectations of the negative second derivatives. Recall that under the model, $\mathbb{E}[\mathbf{Y}] = \mathbf{X}\symbf{\beta}$. However, a fundamental property of the projection matrix $\mathbf{P}$ is that $\mathbf{P}\mathbf{X} = \mathbf{0}$, which implies $\mathbf{P}\mathbf{Y} = \mathbf{P}(\mathbf{Y} - \mathbf{X}\symbf{\beta})$. Consequently, when computing expectations of expressions involving $\mathbf{P}$, we may without loss of generality treat $\mathbf{Y}$ as centered at zero. We therefore take $\mathbb{E}[\mathbf{Y}] = \mathbf{0}$ and $\mathbb{E}[\mathbf{Y}\mathbf{Y}^\top] = \symbf{\Sigma}$ for the remainder of this derivation.
+We now derive the expected Fisher information matrix by taking expectations of the negative second derivatives. Recall that under the model, $\mathbb{E}[\symbf{Y}] = \symbf{X}\symbf{\beta}$. However, a fundamental property of the projection matrix $\symbf{P}$ is that $\symbf{P}\symbf{X} = \symbf{0}$, which implies $\symbf{P}\symbf{Y} = \symbf{P}(\symbf{Y} - \symbf{X}\symbf{\beta})$. Consequently, when computing expectations of expressions involving $\symbf{P}$, we may without loss of generality treat $\symbf{Y}$ as centered at zero. We therefore take $\mathbb{E}[\symbf{Y}] = \symbf{0}$ and $\mathbb{E}[\symbf{Y}\symbf{Y}^\top] = \symbf{\Sigma}$ for the remainder of this derivation.
 
 The observed information matrix is given by
 \begin{equation}
 -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j}
 =
-\underbrace{\mathbf{Y}^\top \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \mathbf{Y}}_{T_1}
--\frac12 \underbrace{\operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\,\dot{\symbf{\Sigma}}_k \big)}_{T_2}
-+\frac12 \underbrace{\operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)}_{T_3}
-- \frac12 \underbrace{\mathbf{Y}^\top \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P}\mathbf{Y}}_{T_4}.
+\underbrace{\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \symbf{Y}}_{T_1}
+-\frac12 \underbrace{\operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k \big)}_{T_2}
++\frac12 \underbrace{\operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)}_{T_3}
+- \frac12 \underbrace{\symbf{Y}^\top \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P}\symbf{Y}}_{T_4}.
 \end{equation}
 We evaluate the expectation of each term in turn.
 
 #### Expectation of $T_1$
 
-The quantity $T_1$ is a quadratic form in $\mathbf{Y}$. For a zero-mean random vector with covariance $\symbf{\Sigma}$, the identity $\mathbb{E}[\mathbf{Y}^\top \mathbf{A} \mathbf{Y}] = \operatorname{tr}(\mathbf{A} \symbf{\Sigma})$ holds for any conformable matrix $\mathbf{A}$. Applying this with $\mathbf{A} = \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}$ yields
+The quantity $T_1$ is a quadratic form in $\symbf{Y}$. For a zero-mean random vector with covariance $\symbf{\Sigma}$, the identity $\mathbb{E}[\symbf{Y}^\top \symbf{A} \symbf{Y}] = \operatorname{tr}(\symbf{A} \symbf{\Sigma})$ holds for any conformable matrix $\symbf{A}$. Applying this with $\symbf{A} = \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}$ yields
 \begin{equation}
-\mathbb{E}[T_1] = \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \, \symbf{\Sigma} \big).
+\mathbb{E}[T_1] = \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \, \symbf{\Sigma} \big).
 \end{equation}
-A key identity satisfied by $\mathbf{P}$ is $\mathbf{P}\symbf{\Sigma}\mathbf{P} = \mathbf{P}$, which can be verified by direct substitution of the definition $\mathbf{P} = \symbf{\Sigma}^{-1} - \symbf{\Sigma}^{-1}\mathbf{X}(\mathbf{X}^\top\symbf{\Sigma}^{-1}\mathbf{X})^{-1}\mathbf{X}^\top\symbf{\Sigma}^{-1}$. Using the cyclic property of the trace,
+A key identity satisfied by $\symbf{P}$ is $\symbf{P}\symbf{\Sigma}\symbf{P} = \symbf{P}$, which can be verified by direct substitution of the definition $\symbf{P} = \symbf{\Sigma}^{-1} - \symbf{\Sigma}^{-1}\symbf{X}(\symbf{X}^\top\symbf{\Sigma}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{\Sigma}^{-1}$. Using the cyclic property of the trace,
 \begin{align}
-\mathbb{E}[T_1] &= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\, (\mathbf{P}\symbf{\Sigma}) \big) \\
-&= \operatorname{tr}\!\big( \dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\symbf{\Sigma}\mathbf{P} \big) \quad \text{(cyclic permutation)} \\
-&= \operatorname{tr}\!\big( \dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \big) \quad \text{(since $\mathbf{P}\symbf{\Sigma}\mathbf{P} = \mathbf{P}$)} \\
-&= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big) \quad \text{(cyclic permutation again)}.
+\mathbb{E}[T_1] &= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\, (\symbf{P}\symbf{\Sigma}) \big) \\
+&= \operatorname{tr}\!\big( \dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\symbf{\Sigma}\symbf{P} \big) \quad \text{(cyclic permutation)} \\
+&= \operatorname{tr}\!\big( \dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \big) \quad \text{(since $\symbf{P}\symbf{\Sigma}\symbf{P} = \symbf{P}$)} \\
+&= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big) \quad \text{(cyclic permutation again)}.
 \end{align}
 Thus
 \begin{equation}
-\mathbb{E}[T_1] = \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\mathbb{E}[T_1] = \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
 \end{equation}
 
 #### Expectation of $T_2$
 
 The term $T_2$ contains no random quantities; it is a deterministic function of the parameters. Hence
 \begin{equation}
-\mathbb{E}[T_2] = \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\,\dot{\symbf{\Sigma}}_k \big).
+\mathbb{E}[T_2] = \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k \big).
 \end{equation}
 
 #### Expectation of $T_3$
 
 Similarly, $T_3$ is non-random, giving
 \begin{equation}
-\mathbb{E}[T_3] = \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
+\mathbb{E}[T_3] = \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
 \end{equation}
 
 #### Expectation of $T_4$
 
 The term $T_4$ is again a quadratic form. Applying the same identity as for $T_1$,
 \begin{equation}
-\mathbb{E}[T_4] = \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P} \, \symbf{\Sigma} \big).
+\mathbb{E}[T_4] = \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P} \, \symbf{\Sigma} \big).
 \end{equation}
-Using the cyclic property followed by $\mathbf{P}\symbf{\Sigma}\mathbf{P} = \mathbf{P}$,
+Using the cyclic property followed by $\symbf{P}\symbf{\Sigma}\symbf{P} = \symbf{P}$,
 \begin{align}
-\mathbb{E}[T_4] &= \operatorname{tr}\!\big( \ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P} \symbf{\Sigma} \mathbf{P} \big) \\
-&= \operatorname{tr}\!\big( \ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P} \big) \\
-&= \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
+\mathbb{E}[T_4] &= \operatorname{tr}\!\big( \ddot{\symbf{\Sigma}}_{kj}\,\symbf{P} \symbf{\Sigma} \symbf{P} \big) \\
+&= \operatorname{tr}\!\big( \ddot{\symbf{\Sigma}}_{kj}\,\symbf{P} \big) \\
+&= \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
 \end{align}
 
 #### Combining the expectations
@@ -566,34 +577,34 @@ Assembling the four components,
 \begin{align}
 \mathbb{E}\!\left[ -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j} \right]
 &= \mathbb{E}[T_1] - \frac12 \mathbb{E}[T_2] + \frac12 \mathbb{E}[T_3] - \frac12 \mathbb{E}[T_4] \\[4pt]
-&= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big)
-- \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\,\dot{\symbf{\Sigma}}_k \big) \\
-&\quad + \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)
-- \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
+&= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big)
+- \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k \big) \\
+&\quad + \frac12 \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)
+- \frac12 \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
 \end{align}
 The two terms involving the second derivatives $\ddot{\symbf{\Sigma}}_{kj}$ cancel identically. Moreover, the trace is symmetric in its matrix arguments, so
 \begin{equation}
-\operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P}\,\dot{\symbf{\Sigma}}_k \big)
-= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k \big)
+= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
 \end{equation}
 Substituting this into the expression above,
 \begin{align}
 \mathbb{E}\!\left[ -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j} \right]
-&= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big)
-- \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big) \\[4pt]
-&= \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+&= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big)
+- \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big) \\[4pt]
+&= \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
 \end{align}
 
 This final expression defines the $(k,j)$-th entry of the REML Fisher information matrix,
 \begin{equation}
-\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
 \end{equation}
 
 ### Definition of the Average Information
 
 The expected information (Fisher information) is
 \begin{equation}
-\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
 \end{equation}
 The observed information is denoted $\mathcal{J}_{kj}(\symbf{\theta})$, and the \emph{average information} matrix is defined as
 \begin{equation}
@@ -602,32 +613,32 @@ The observed information is denoted $\mathcal{J}_{kj}(\symbf{\theta})$, and the 
 
 Substituting the expressions and simplifying, the trace terms cancel, yielding
 \begin{align}
-\mathcal{A}_{kj} &= \frac12 \mathbf{Y}^\top \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \mathbf{Y} \\
-&\quad + \frac14 \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)
-- \frac14 \mathbf{Y}^\top \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P}\mathbf{Y}.
+\mathcal{A}_{kj} &= \frac12 \symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \symbf{Y} \\
+&\quad + \frac14 \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)
+- \frac14 \symbf{Y}^\top \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P}\symbf{Y}.
 \end{align}
 
 #### Simplification for Linear Variance Component Models
 
-In the common case where $\symbf{\Sigma}(\symbf{\theta}) = \sum_{t=1}^p \theta_t \mathbf{V}_t$ with known matrices $\mathbf{V}_t$, the second derivatives vanish: $\ddot{\symbf{\Sigma}}_{kj} = \mathbf{0}$ for all $k,j$. The average information matrix then reduces to
+In the common case where $\symbf{\Sigma}(\symbf{\theta}) = \sum_{t=1}^p \theta_t \symbf{V}_t$ with known matrices $\symbf{V}_t$, the second derivatives vanish: $\ddot{\symbf{\Sigma}}_{kj} = \symbf{0}$ for all $k,j$. The average information matrix then reduces to
 \begin{equation}
 \label{eq-AI}
 \boxed{
-\mathcal{A}_{kj} = \frac12 \,\mathbf{Y}^\top \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \mathbf{Y}
+\mathcal{A}_{kj} = \frac12 \,\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \symbf{Y}
 }.
 \end{equation}
 
 This is the form commonly used in the AI-REML algorithm [@gilmour1995average], where the average information matrix is computed directly from the data without requiring second derivatives. The algorithm proceeds by iteratively solving
 
 \begin{equation}
-\symbf{\theta}^{(t+1)} = \symbf{\theta}^{(t)} + \big( \mathcal{A}(\symbf{\theta}^{(t)}) \big)^{-1} \mathbf{S}(\symbf{\theta}^{(t)}).
+\symbf{\theta}^{(t+1)} = \symbf{\theta}^{(t)} + \big( \mathcal{A}(\symbf{\theta}^{(t)}) \big)^{-1} \symbf{S}(\symbf{\theta}^{(t)}).
 \end{equation}
 
 # Computation of REML
 
 <!-- To update $\theta$, one needs to compute the score function and the AI matrix, note that the log likelihood function is not necessary. As derived above, the score function is given in Equation \eqref{eq-score}, and the AI matrix is given in Equation \eqref{eq-AI}. Both have some common terms that can be shared during computation. -->
 
-<!-- During computation, we will avoid forming $\mathbf{P}$ as it is a complex matrix, so we will compute combined terms.  -->
+<!-- During computation, we will avoid forming $\symbf{P}$ as it is a complex matrix, so we will compute combined terms.  -->
 
 <!-- 1. In both the score and AI matrix, the term PY commonly appears, when expand it looks like: -->
 
@@ -664,51 +675,51 @@ This is the form commonly used in the AI-REML algorithm [@gilmour1995average], w
 
 To update $\theta$, one needs to compute the score function and the AI matrix, note that the log likelihood function is not necessary. As derived above, the score function is given in Equation \eqref{eq-score}, and the AI matrix is given in Equation \eqref{eq-AI}. Both have some common terms that can be shared during computation.
 
-During computation, we will avoid forming $\mathbf{P}$ as it is a complex matrix, so we will compute combined terms. 
+During computation, we will avoid forming $\symbf{P}$ as it is a complex matrix, so we will compute combined terms. 
 
-1. In both the score and AI matrix, the term $\mathbf{P}\mathbf{Y}$ commonly appears. Expanding it gives:
+1. In both the score and AI matrix, the term $\symbf{P}\symbf{Y}$ commonly appears. Expanding it gives:
 \begin{equation}
-\mathbf{P}\mathbf{Y} = \symbf{\Sigma}^{-1}\mathbf{Y} - \symbf{\Sigma}^{-1}\mathbf{X}(\mathbf{X}^\top\symbf{\Sigma}^{-1}\mathbf{X})^{-1}\mathbf{X}^\top\symbf{\Sigma}^{-1}\mathbf{Y}
+\symbf{P}\symbf{Y} = \symbf{\Sigma}^{-1}\symbf{Y} - \symbf{\Sigma}^{-1}\symbf{X}(\symbf{X}^\top\symbf{\Sigma}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{\Sigma}^{-1}\symbf{Y}
 \label{eq:PY_expanded}
 \end{equation}
-Since $\mathbf{P}$ is a residual operator, this is actually the weighted residuals. To compute Equation \eqref{eq:PY_expanded}, we need to compute:
+Since $\symbf{P}$ is a residual operator, this is actually the weighted residuals. To compute Equation \eqref{eq:PY_expanded}, we need to compute:
 \begin{align}
 &\text{a. } \dot{\symbf{\Sigma}}_k \quad \text{(derivative of covariance matrix w.r.t. $\theta_k$)} \nonumber \\
-&\text{b. } \mathbf{L}_{\symbf{\Sigma}} \quad \text{(Cholesky factor)} \nonumber \\
-&\text{c. } \symbf{\Sigma}^{-1} \mathbf{Y} \nonumber \\
-&\text{d. } \symbf{\Sigma}^{-1} \mathbf{X} \nonumber \\
-&\text{e. } \mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X} \nonumber \\
-&\text{f. } \mathbf{L}_{\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X}} \quad \text{(Cholesky factor)} \nonumber \\
-&\text{g. } (\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X})^{-1} \mathbf{X}^\top \symbf{\Sigma}^{-1} \nonumber \\
-&\text{h. } \symbf{\Sigma}^{-1} \mathbf{X} (\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X})^{-1} \mathbf{X}^\top \symbf{\Sigma}^{-1} \nonumber \\
-&\text{i. } \symbf{\Sigma}^{-1} \mathbf{X} (\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X})^{-1} \mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{Y} \nonumber
+&\text{b. } \symbf{L}_{\symbf{\Sigma}} \quad \text{(Cholesky factor)} \nonumber \\
+&\text{c. } \symbf{\Sigma}^{-1} \symbf{Y} \nonumber \\
+&\text{d. } \symbf{\Sigma}^{-1} \symbf{X} \nonumber \\
+&\text{e. } \symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X} \nonumber \\
+&\text{f. } \symbf{L}_{\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X}} \quad \text{(Cholesky factor)} \nonumber \\
+&\text{g. } (\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{\Sigma}^{-1} \nonumber \\
+&\text{h. } \symbf{\Sigma}^{-1} \symbf{X} (\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{\Sigma}^{-1} \nonumber \\
+&\text{i. } \symbf{\Sigma}^{-1} \symbf{X} (\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{Y} \nonumber
 \end{align}
 Note that we use Cholesky operations to avoid inverting large symmetric matrices. 
 
-2. Another term that commonly appears is $\mathbf{P} \dot{\symbf{\Sigma}}_k$. Expanding it gives:
+2. Another term that commonly appears is $\symbf{P} \dot{\symbf{\Sigma}}_k$. Expanding it gives:
 \begin{equation}
-\mathbf{P} \dot{\symbf{\Sigma}}_k = \symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k - \symbf{\Sigma}^{-1}\mathbf{X}(\mathbf{X}^\top\symbf{\Sigma}^{-1}\mathbf{X})^{-1}\mathbf{X}^\top\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k
+\symbf{P} \dot{\symbf{\Sigma}}_k = \symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k - \symbf{\Sigma}^{-1}\symbf{X}(\symbf{X}^\top\symbf{\Sigma}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k
 \label{eq:P_Sigma_expanded}
 \end{equation}
 To compute Equation \eqref{eq:P_Sigma_expanded}, we need to compute:
 \begin{align}
 &\text{a. } \symbf{\Sigma}^{-1} \dot{\symbf{\Sigma}}_k \nonumber \\
-&\text{b. } \symbf{\Sigma}^{-1} \mathbf{X} (\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X})^{-1} \mathbf{X}^\top \symbf{\Sigma}^{-1} \dot{\symbf{\Sigma}}_k \nonumber
+&\text{b. } \symbf{\Sigma}^{-1} \symbf{X} (\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{\Sigma}^{-1} \dot{\symbf{\Sigma}}_k \nonumber
 \end{align}
 
 3. Then for the score function, we have enough ingredients to compute:
 \begin{equation}
-S_k = \frac{1}{2}\left[\mathbf{Y}^\top (\mathbf{P} \dot{\symbf{\Sigma}}_k) (\mathbf{P}\mathbf{Y}) - \operatorname{tr}(\mathbf{P} \dot{\symbf{\Sigma}}_k)\right]
+S_k = \frac{1}{2}\left[\symbf{Y}^\top (\symbf{P} \dot{\symbf{\Sigma}}_k) (\symbf{P}\symbf{Y}) - \operatorname{tr}(\symbf{P} \dot{\symbf{\Sigma}}_k)\right]
 \label{eq:score_computed}
 \end{equation}
 
 4. For the AI matrix, we also have enough ingredients to compute it. Since the AI matrix is symmetric, we need to compute only half of the matrix and then populate it to the full matrix:
 \begin{equation}
-\mathcal{A}_{kj} = \frac{1}{2}\left[\mathbf{Y}^\top (\mathbf{P} \dot{\symbf{\Sigma}}_k) (\mathbf{P} \dot{\symbf{\Sigma}}_j) (\mathbf{P}\mathbf{Y})\right]
+\mathcal{A}_{kj} = \frac{1}{2}\left[\symbf{Y}^\top (\symbf{P} \dot{\symbf{\Sigma}}_k) (\symbf{P} \dot{\symbf{\Sigma}}_j) (\symbf{P}\symbf{Y})\right]
 \label{eq:AI_computed}
 \end{equation}
 
-During the update, if $\mathcal{A}$ is large, we can compute $\mathbf{L}_{\mathcal{A}}$ (the Cholesky factor of $\mathcal{A}$) and then solve $\mathcal{A}^{-1} \mathbf{S}$ efficiently via back-substitution. Additionally, a damping factor can be applied to $\mathbf{D} \mathcal{A}^{-1} \mathbf{S}$ to control the learning rate. This is useful when the score or AI matrix computation is inaccurate, or when the estimation encounters ill-conditioned problems.
+During the update, if $\mathcal{A}$ is large, we can compute $\symbf{L}_{\mathcal{A}}$ (the Cholesky factor of $\mathcal{A}$) and then solve $\mathcal{A}^{-1} \symbf{S}$ efficiently via back-substitution. Additionally, a damping factor can be applied to $\symbf{D} \mathcal{A}^{-1} \symbf{S}$ to control the learning rate. This is useful when the score or AI matrix computation is inaccurate, or when the estimation encounters ill-conditioned problems.
 
 \clearpage
 
