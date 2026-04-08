@@ -178,6 +178,7 @@
 \urlstyle{same} % disable monospaced font for URLs
 \hypersetup{
   pdftitle={OpenREML Technical Documentation},
+  pdfauthor={Patrick Li},
   colorlinks=true,
   linkcolor={blue},
   filecolor={Maroon},
@@ -187,7 +188,7 @@
 
 
 \title{OpenREML Technical Documentation}
-\author{}
+\author{Patrick Li}
 \date{}
 
 \begin{document}
@@ -200,8 +201,8 @@
 \tableofcontents
 }
 
-\section{Gaussian linear mixed model
-formulation}\label{gaussian-linear-mixed-model-formulation}
+\section{Gaussian Linear Mixed Model
+Formulation}\label{gaussian-linear-mixed-model-formulation}
 
 Consider the linear mixed model \begin{equation}
 \symbf{Y} = \symbf{X}\symbf{\beta} + \symbf{Z}\symbf{b} + \symbf{\varepsilon},
@@ -413,6 +414,7 @@ Let \(\symbf{A}\) be an \((n-p)\times n\) matrix satisfying
 
 Using standard matrix identities, this expression can be rewritten as
 \begin{equation}
+\boxed{
 \ell_R(\symbf{\theta})
 =
 -\frac{1}{2}\left[
@@ -420,8 +422,10 @@ Using standard matrix identities, this expression can be rewritten as
 + \log\big|\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{X}\big|
 + \symbf{Y}^\top \symbf{P}(\symbf{\theta}) \symbf{Y}
 \right]
-+ C,
++ C
+},
 \end{equation} where \begin{equation}
+\boxed{
 \symbf{P}(\symbf{\theta})
 =
 \symbf{\Sigma}(\symbf{\theta})^{-1}
@@ -430,7 +434,8 @@ Using standard matrix identities, this expression can be rewritten as
 \left(
 \symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1}\symbf{X}
 \right)^{-1}
-\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1},
+\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1}
+},
 \end{equation} and \(C\) is a constant independent of
 \(\symbf{\theta}\). Since additive constants do not affect maximisation
 with respect to \(\symbf{\theta}\), the REML log-likelihood is taken to
@@ -592,6 +597,8 @@ term becomes \begin{equation}
 \Big).
 \end{equation} Substituting this identity into the previous expression
 for \(S_k(\symbf{\theta})\) yields \begin{equation}
+\label{eq-score}
+\boxed{
 S_k(\symbf{\theta})
 =
 \frac{1}{2}
@@ -599,7 +606,8 @@ S_k(\symbf{\theta})
 \symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\symbf{Y}
 -
 \operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
-\right].
+\right]
+}.
 \end{equation}
 
 \subsection{Average Information
@@ -802,13 +810,15 @@ yielding \begin{align}
 - \frac14 \mathbf{Y}^\top \mathbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\mathbf{P}\mathbf{Y}.
 \end{align}
 
-\subsubsection*{Simplification for Linear Variance Component Models}
+\paragraph{Simplification for Linear Variance Component
+Models}\label{simplification-for-linear-variance-component-models}
 
 In the common case where
 \(\symbf{\Sigma}(\symbf{\theta}) = \sum_{t=1}^p \theta_t \mathbf{V}_t\)
 with known matrices \(\mathbf{V}_t\), the second derivatives vanish:
 \(\ddot{\symbf{\Sigma}}_{kj} = \mathbf{0}\) for all \(k,j\). The average
 information matrix then reduces to \begin{equation}
+\label{eq-AI}
 \boxed{
 \mathcal{A}_{kj} = \frac12 \,\mathbf{Y}^\top \mathbf{P}\,\dot{\symbf{\Sigma}}_k\,\mathbf{P}\,\dot{\symbf{\Sigma}}_j\,\mathbf{P} \mathbf{Y}
 }.
@@ -824,6 +834,70 @@ The algorithm proceeds by iteratively solving
 \end{equation}
 
 \section{Computation of REML}\label{computation-of-reml}
+
+To update \(\theta\), one needs to compute the score function and the AI
+matrix, note that the log likelihood function is not necessary. As
+derived above, the score function is given in Equation \eqref{eq-score},
+and the AI matrix is given in Equation \eqref{eq-AI}. Both have some
+common terms that can be shared during computation.
+
+During computation, we will avoid forming \(\mathbf{P}\) as it is a
+complex matrix, so we will compute combined terms.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  In both the score and AI matrix, the term \(\mathbf{P}\mathbf{Y}\)
+  commonly appears. Expanding it gives: \begin{equation}
+  \mathbf{P}\mathbf{Y} = \symbf{\Sigma}^{-1}\mathbf{Y} - \symbf{\Sigma}^{-1}\mathbf{X}(\mathbf{X}^\top\symbf{\Sigma}^{-1}\mathbf{X})^{-1}\mathbf{X}^\top\symbf{\Sigma}^{-1}\mathbf{Y}
+  \label{eq:PY_expanded}
+  \end{equation} Since \(\mathbf{P}\) is a residual operator, this is
+  actually the weighted residuals. To compute Equation
+  \eqref{eq:PY_expanded}, we need to compute: \begin{align}
+  &\text{a. } \dot{\symbf{\Sigma}}_k \quad \text{(derivative of covariance matrix w.r.t. $\theta_k$)} \nonumber \\
+  &\text{b. } \mathbf{L}_{\symbf{\Sigma}} \quad \text{(Cholesky factor)} \nonumber \\
+  &\text{c. } \symbf{\Sigma}^{-1} \mathbf{Y} \nonumber \\
+  &\text{d. } \symbf{\Sigma}^{-1} \mathbf{X} \nonumber \\
+  &\text{e. } \mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X} \nonumber \\
+  &\text{f. } \mathbf{L}_{\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X}} \quad \text{(Cholesky factor)} \nonumber \\
+  &\text{g. } (\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X})^{-1} \mathbf{X}^\top \symbf{\Sigma}^{-1} \nonumber \\
+  &\text{h. } \symbf{\Sigma}^{-1} \mathbf{X} (\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X})^{-1} \mathbf{X}^\top \symbf{\Sigma}^{-1} \nonumber \\
+  &\text{i. } \symbf{\Sigma}^{-1} \mathbf{X} (\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X})^{-1} \mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{Y} \nonumber
+  \end{align} Note that we use Cholesky operations to avoid inverting
+  large symmetric matrices.
+\item
+  Another term that commonly appears is
+  \(\mathbf{P} \dot{\symbf{\Sigma}}_k\). Expanding it gives:
+  \begin{equation}
+  \mathbf{P} \dot{\symbf{\Sigma}}_k = \symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k - \symbf{\Sigma}^{-1}\mathbf{X}(\mathbf{X}^\top\symbf{\Sigma}^{-1}\mathbf{X})^{-1}\mathbf{X}^\top\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k
+  \label{eq:P_Sigma_expanded}
+  \end{equation} To compute Equation \eqref{eq:P_Sigma_expanded}, we
+  need to compute: \begin{align}
+  &\text{a. } \symbf{\Sigma}^{-1} \dot{\symbf{\Sigma}}_k \nonumber \\
+  &\text{b. } \symbf{\Sigma}^{-1} \mathbf{X} (\mathbf{X}^\top \symbf{\Sigma}^{-1} \mathbf{X})^{-1} \mathbf{X}^\top \symbf{\Sigma}^{-1} \dot{\symbf{\Sigma}}_k \nonumber
+  \end{align}
+\item
+  Then for the score function, we have enough ingredients to compute:
+  \begin{equation}
+  S_k = \frac{1}{2}\left[\mathbf{Y}^\top (\mathbf{P} \dot{\symbf{\Sigma}}_k) (\mathbf{P}\mathbf{Y}) - \operatorname{tr}(\mathbf{P} \dot{\symbf{\Sigma}}_k)\right]
+  \label{eq:score_computed}
+  \end{equation}
+\item
+  For the AI matrix, we also have enough ingredients to compute it.
+  Since the AI matrix is symmetric, we need to compute only half of the
+  matrix and then populate it to the full matrix: \begin{equation}
+  \mathcal{A}_{kj} = \frac{1}{2}\left[\mathbf{Y}^\top (\mathbf{P} \dot{\symbf{\Sigma}}_k) (\mathbf{P} \dot{\symbf{\Sigma}}_j) (\mathbf{P}\mathbf{Y})\right]
+  \label{eq:AI_computed}
+  \end{equation}
+\end{enumerate}
+
+During the update, if \(\mathcal{A}\) is large, we can compute
+\(\mathbf{L}_{\mathcal{A}}\) (the Cholesky factor of \(\mathcal{A}\))
+and then solve \(\mathcal{A}^{-1} \mathbf{S}\) efficiently via
+back-substitution. Additionally, a damping factor can be applied to
+\(\mathbf{D} \mathcal{A}^{-1} \mathbf{S}\) to control the learning rate.
+This is useful when the score or AI matrix computation is inaccurate, or
+when the estimation encounters ill-conditioned problems.
 
 \clearpage
 
