@@ -4,10 +4,11 @@ from tqdm import tqdm
 
 class REML:
     
-    def __init__(self, map_theta_to_v, map_theta_to_g=None):
+    def __init__(self, map_theta_to_v, map_theta_to_g=None, map_theta_to_dv=None):
         self.map_theta_to_v = map_theta_to_v
         self.jacobian_func = torch.func.jacrev(map_theta_to_v)
         self.map_theta_to_g = map_theta_to_g
+        self.map_theta_to_dv = map_theta_to_dv
       
     def blue(self, y, x, theta):
         device = get_device(y, x, theta)
@@ -155,9 +156,14 @@ class REML:
         return -0.5 * (scalar["log |V|"] + scalar["log |X^T V^{-1} X|"] + scalar["Y^T P Y"])
           
     def compute_v_dv(self, theta):
-        jacobian = self.jacobian_func(theta)
+        
         v = self.map_theta_to_v(theta)
-        dv = [jacobian[..., i] for i in range(theta.shape[0])]
+        
+        if self.map_theta_to_dv is None:
+            jacobian = self.jacobian_func(theta)
+            dv = [jacobian[..., i] for i in range(theta.shape[0])]
+        else:
+            dv = self.map_theta_to_dv(theta)
     
         return v, dv
 
