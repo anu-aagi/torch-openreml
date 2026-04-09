@@ -37,7 +37,8 @@ df = pd.DataFrame(data, columns=["plot","rep","block","gen","yield"])
 # -----------------------------
 # Design matrices
 # -----------------------------
-x = torch.tensor(pd.get_dummies(df["rep"]).values, dtype=torch.float32)
+x = torch.tensor(pd.get_dummies(df["rep"], drop_first=True).values, dtype=torch.float32)
+x = torch.cat([torch.ones(x.shape[0], 1), x], dim=1)
 z_gen = torch.tensor(pd.get_dummies(df["gen"]).values, dtype=torch.float32)
 
 df["rep_block"] = df["rep"] + ":" + df["block"]
