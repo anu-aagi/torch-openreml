@@ -38,7 +38,7 @@ df = pd.DataFrame(data, columns=["plot","rep","block","gen","yield"])
 # Design matrices
 # -----------------------------
 x = torch.tensor(pd.get_dummies(df["rep"], drop_first=True).values, dtype=torch.float32)
-x = torch.cat([torch.ones(x.shape[0], 1), x], dim=1)
+x = torch.cat([torch.ones(x.shape[0], 1, dtype=torch.float32), x], dim=1)
 z_gen = torch.tensor(pd.get_dummies(df["gen"]).values, dtype=torch.float32)
 
 df["rep_block"] = df["rep"] + ":" + df["block"]
@@ -49,7 +49,7 @@ n = len(y)
 
 k_gen = z_gen @ z_gen.T
 k_rb = z_rb @ z_rb.T
-i_n = torch.eye(n)
+i_n = torch.eye(n, dtype=torch.float32)
 
 # User spcify mapping function
 def map_theta_to_v(theta):
