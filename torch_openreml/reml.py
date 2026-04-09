@@ -1,5 +1,5 @@
 import torch
-from torch_openreml.utils import get_device
+from torch_openreml.utils import get_device, get_dtype
 from tqdm import tqdm
 
 class REML:
@@ -11,6 +11,7 @@ class REML:
       
     def blue(self, y, x, theta):
         device = get_device(y, x, theta)
+        dtype = get_dtype(y, x, theta)
         
         scalar = {}
         matrix = {}
@@ -18,7 +19,7 @@ class REML:
         scalar["N"] = y.shape[0]
         matrix["V"] = self.map_theta_to_v(theta)
         
-        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device)
+        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device, dtype=dtype)
         matrix["L"] = torch.linalg.cholesky(matrix["V"])
         
         matrix["Y"] = y.unsqueeze(-1)
@@ -50,6 +51,7 @@ class REML:
             map_theta_to_g = self.map_theta_to_g
       
         device = get_device(y, x, z, theta)
+        dtype = get_dtype(y, x, z, theta)
         
         scalar = {}
         matrix = {}
@@ -58,7 +60,7 @@ class REML:
         
         matrix["V"] = self.map_theta_to_v(theta)
         
-        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device)
+        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device, dtype=dtype)
         matrix["L"] = torch.linalg.cholesky(matrix["V"])
         
         matrix["Y"] = y.unsqueeze(-1)
@@ -76,6 +78,7 @@ class REML:
             map_theta_to_g = self.map_theta_to_g
             
         device = get_device(y, x, z, theta)
+        dtype = get_dtype(y, x, z, theta)
         
         scalar = {}
         matrix = {}
@@ -83,7 +86,7 @@ class REML:
         scalar["N"] = y.shape[0]
         matrix["V"] = self.map_theta_to_v(theta)
         
-        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device)
+        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device, dtype=dtype)
         matrix["L"] = torch.linalg.cholesky(matrix["V"])
         
         matrix["Y"] = y.unsqueeze(-1)
@@ -117,6 +120,7 @@ class REML:
     
     def loglik(self, y, x, theta):
         device = get_device(y, x, theta)
+        dtype = get_dtype(y, x, theta)
         
         scalar = {}
         matrix = {}
@@ -124,7 +128,7 @@ class REML:
         scalar["N"] = y.shape[0]
         
         matrix["V"] = self.map_theta_to_v(theta)
-        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(n, device=device)
+        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(n, device=device, dtype=dtype)
         
         matrix["L"] = torch.linalg.cholesky(matrix["V"])
         
@@ -159,6 +163,7 @@ class REML:
 
     def ai_step(self, y, x, theta, require_loglik=True, require_beta=True):
         device = get_device(y, x, theta)
+        dtype = get_dtype(y, x, theta)
         
         matrix = {}
         vector = {}
@@ -172,7 +177,7 @@ class REML:
         matrix["V"], matrix_list["dV"] = self.compute_v_dv(theta)
         scalar["K"] = len(matrix_list["dV"])
         
-        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device)
+        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device, dtype=dtype)
         
         matrix["L"] = torch.linalg.cholesky(matrix["V"])
         
