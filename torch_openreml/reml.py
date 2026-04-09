@@ -254,7 +254,7 @@ class REML:
         else:
             return score_norm < tol_score and delta_norm < tol_delta
         
-    def optimize(self, y, x, theta, max_iter=200, eta=0.5, require_loglik=True, verbose=False):
+    def optimize(self, y, x, theta, max_iter=200, eta=0.5, require_loglik=True, verbose=False, tol_score=1e-4, tol_delta=1e-4, tol_loglik=1e-4):
         self.history = {"theta": [], 
                         "beta": [], 
                         "loglik": [], 
@@ -262,10 +262,10 @@ class REML:
                         "ai": [], 
                         "delta": []}
         
-        iterator = tqdm(range(max_iter), disable=not verbose)
+        pb = tqdm(disable=not verbose, bar_format="{desc} | \u23F1 {elapsed} | \u26A1 {rate_fmt}")
         
         with torch.no_grad():
-            for i in iterator:
+            for i in range(max_iter):
                 beta, score, ai, loglik = self.ai_step(y, x, theta, require_loglik=require_loglik)
                 l_ai = torch.linalg.cholesky(ai)
                 delta = torch.cholesky_solve(score.unsqueeze(-1), l_ai).squeeze()
@@ -279,7 +279,8 @@ class REML:
                 self.history["delta"].append(delta)
                 
                 if verbose:
-                    iterator.set_description(f"Iter {i + 1:3d}")
+                    pb.set_description(f"Iter {i + 1:3d}")
+                    pb.update(1)
                     
                     write_str = f"\u2225\u2207\u2225: {torch.norm(score):12.4f}, \u2225\u0394\u2225: {torch.norm(delta):6.4f}, \u03B7: {eta:.2f}"
                   
@@ -292,10 +293,12 @@ class REML:
                     
                     tqdm.write(write_str)
                 
-                if self.is_converged():
+                if self.is_converged(tol_score, tol_delta, tol_loglik):
                     if verbose:
                         tqdm.write(f"\n\u2713 Converged at iteration {i + 1}")
                     break
+        
+        pb.close()
         
         return theta, beta, i + 1
   
