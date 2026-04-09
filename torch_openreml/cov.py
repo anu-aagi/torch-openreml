@@ -27,7 +27,7 @@ class ScalarMatrix(CovMatrix):
             self._grad = [torch.eye(self.n, device=self.device, dtype=self.dtype)]
         return self.sigma2 * torch.eye(self.n, device=self.device, dtype=self.dtype)
 
-class DiagMatrix(CovMatrix):
+class DiagonalMatrix(CovMatrix):
   
     def __init__(self, sigma2):
         self.sigma2 = sigma2
@@ -87,6 +87,42 @@ class AR1Matrix(CovMatrix):
             self._grad = [d_sigma2, d_rho]
             
         return self.sigma2 * rho_power
+      
+class UnstructuredMatrix(CovMatrix):
+  
+    def __init__(self, n, entries):
+        if torch.is_tensor(n):
+            self.n = n.item()
+        else:
+            self.n = n
+            
+        self.entries = entries
+        self.device = entries.device
+        self.dtype = entries.dtype
+    
+    def build(self, grad=True):
+      
+        if grad:
+            self._grad = []
+            for k in range(self.entries.shape[0]):
+                i = k // n
+                j = k % n
+                E = torch.zeros(n, n)
+                E[i, j] = 1.0
+                self._grad.append(E)
+
+        return self.entries.reshape(n, n)
+        
 
 class KroneckerProductMatrix(CovMatrix):
-    pass 
+    
+    def __init__(self, A, B, theta_A, theta_B):
+        self.A = A
+        self.B = B
+        self.theta_A = theta_A
+        self.theta_B = theta_B
+        self.device = get_device(A, B, theta_A, theta_B)
+        self.dtype = get_dtype(A, B, theta_A, theta_B)
+    
+    def build(self, grad=True):
+        pass
