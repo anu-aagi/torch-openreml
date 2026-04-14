@@ -1,5 +1,6 @@
 import torch
-from abc import ABC, abstarctmethod
+from functools import partial
+from abc import ABC, abstractmethod
 
 class CovarianceMatrix(ABC):
   
@@ -60,6 +61,10 @@ class CovarianceMatrix(ABC):
             raise ValueError(f"Expected {len(self._param_names)} parameters, got {len(params)}!")
         
         return dict(zip(self._param_names, params))
+      
+    def auto_grad(self, params):
+        jacobian = torch.func.jacrev(partial(self.build, grad=False))(params)
+        jacobian = jacobian.permute(2, 0, 1)
 
     @abstractmethod
     def build(self, params, grad=True):
@@ -90,7 +95,7 @@ class CovarianceMatrix(ABC):
         if len(param_names) != len(set(param_names)):
             raise ValueError(f"Parameter names must be unique!")
         
-    @property(self):
+    @property
     def n(self):
         return self._n
 
