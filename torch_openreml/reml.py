@@ -296,7 +296,7 @@ class REML:
                 if self.is_converged(tol_score, tol_delta, tol_loglik):
                     if verbose > 0:
                         if verbose > 1:
-                            tqdm.write(f"\n\u2207: score, \u0394 = \U0001D409\u207B\u00B9\u2207")
+                            tqdm.write(f"\n[\u2207: score, \u0394: \U0001D409\u207B\u00B9\u2207, \u03B7: learning rate, \U0001D4DB: restricted likelihood]")
                         tqdm.write(f"\n\u2713 Converged at iteration {i + 1}")
                     break
         
