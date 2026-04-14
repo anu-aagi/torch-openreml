@@ -39,15 +39,15 @@ class CovarianceMatrix(ABC):
             self._no_grad_index = set(self._no_grad_index)
             
     def map_param_dict(self, param_dict):
-        missing = set(self.param_names) - set(param_dict.keys())
+        missing = set(self._param_names) - set(param_dict.keys())
         if missing:
             raise ValueError(f"Missing parameters: {missing}")
         
-        extra = set(param_dict.keys()) - set(self.param_names)
+        extra = set(param_dict.keys()) - set(self._param_names)
         if extra:
             raise ValueError(f"Unexpected parameters: {extra}")
         
-        return [param_dict[name] for name in self.param_names]
+        return [param_dict[name] for name in self._param_names]
 
     @abstractmethod
     def build(self, params, grad=True):
@@ -71,6 +71,8 @@ class CovarianceMatrix(ABC):
     
         if params.shape[0] != self._num_params:
             raise RuntimeError(f"Parameters must have length {self.num_params}, got {params.shape[0]}!")
+        
+        return params.device, params.dtype
     
     def check_param_names(self, param_names):
         if len(param_names) != len(set(param_names)):
