@@ -37,6 +37,17 @@ class CovarianceMatrix(ABC):
             positions = [index_map[name] for n in param_names]
             self._no_grad_index.append(positions)
             self._no_grad_index = set(self._no_grad_index)
+            
+    def map_param_dict(self, param_dict):
+        missing = set(self.param_names) - set(param_dict.keys())
+        if missing:
+            raise ValueError(f"Missing parameters: {missing}")
+        
+        extra = set(param_dict.keys()) - set(self.param_names)
+        if extra:
+            raise ValueError(f"Unexpected parameters: {extra}")
+        
+        return [param_dict[name] for name in self.param_names]
 
     @abstractmethod
     def build(self, params, grad=True):
