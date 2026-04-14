@@ -161,7 +161,7 @@ class REML:
         
         if self.map_theta_to_dv is None:
             jacobian = self.jacobian_func(theta)
-            dv = [jacobian[..., i] for i in range(theta.shape[0])]
+            dv = jacobian.permute(2, 0, 1)
         else:
             dv = self.map_theta_to_dv(theta)
     
