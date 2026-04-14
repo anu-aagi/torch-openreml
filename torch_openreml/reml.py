@@ -174,14 +174,14 @@ class REML:
         matrix = {}
         vector = {}
         scalar = {}
-        matrix_list = {}
+        tensor3d = {}
         
         matrix["X"] = x
         matrix["Y"] = y.unsqueeze(-1)
         scalar["N"] = y.shape[0]
         
-        matrix["V"], matrix_list["dV"] = self.compute_v_dv(theta)
-        scalar["K"] = len(matrix_list["dV"])
+        matrix["V"], tensor3d["dV"] = self.compute_v_dv(theta)
+        scalar["K"] = len(tensor3d["dV"])
         
         matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device, dtype=dtype)
         
@@ -203,32 +203,24 @@ class REML:
         
         matrix["P Y"] = matrix["V^{-1} Y"] - matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} Y"]
         
-        matrix_list["V^{-1} dV_k"] = [torch.cholesky_solve(dv_k, matrix["L"]) for dv_k in matrix_list["dV"]]
+        tensor3d["V^{-1} dV"] = torch.cholesky_solve(tensor3d["dV"], matrix["L"])
         
-        matrix_list["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV_k"] = [matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ dv_k for dv_k in matrix_list["dV"]]
+        tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV"] = matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ tensor3d["dV"]
         
-        matrix_list["P dV_k"] = [matrix_list["V^{-1} dV_k"][i] - matrix_list["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV_k"][i] for i in range(scalar["K"])]
+        tensor3d["P dV"] = tensor3d["V^{-1} dV"] - tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV"]
         
-        matrix_list["P dV_k P Y"] = [p_dv_k @ matrix["P Y"] for p_dv_k in matrix_list["P dV_k"]]
+        tensor3d["P dV P Y"] = tensor3d["P dV"] @ matrix["P Y"]
         
-        matrix["P dV P Y"] = torch.cat(matrix_list["P dV_k P Y"], dim=1)
-        vector["Y^T P dV P Y"] = (matrix["Y"].T @ matrix["P dV P Y"]).squeeze()
+        vector["Y^T P dV P Y"] = (matrix["Y"].T @ tensor3d["P dV P Y"]).squeeze()
         
-        vector["tr(P dV)"] = torch.stack([torch.trace(p_dv_k) for p_dv_k in matrix_list["P dV_k"]])
+        vector["tr(P dV)"] = torch.vmap(torch.trace)(tensor3d["P dV"])
         
         # Score vector
         vector["score"] = 0.5 * (vector["Y^T P dV P Y"] - vector["tr(P dV)"])
         
-        # AI matrix
-        matrix["AI"] = torch.ones(scalar["K"], scalar["K"])
+        tensor3d["Y^T P dV"] = matrix["Y"].T @ tensor3d["P dV"]
         
-        for k in range(scalar["K"]):
-            for j in range(scalar["K"]):
-                if k > j:
-                    next
-                entry = 0.5 * (matrix["Y"].T @ matrix_list["P dV_k"][k] @ matrix_list["P dV_k P Y"][j])
-                matrix["AI"][k][j] = entry
-                matrix["AI"][j][k] = entry
+        matrix["AI"] = 0.5 * (tensor3d["Y^T P dV"].squeeze() @ tensor3d["P dV P Y"].squeeze().T)
                 
         # REML log-likelihood
         if require_loglik:
