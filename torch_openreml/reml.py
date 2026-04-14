@@ -218,6 +218,7 @@ class REML:
         # Score vector
         vector["score"] = 0.5 * (vector["Y^T P dV P Y"] - vector["tr(P dV)"])
         
+        # AI matrix
         tensor3d["Y^T P dV"] = matrix["Y"].T @ tensor3d["P dV"]
         
         matrix["AI"] = 0.5 * (tensor3d["Y^T P dV"].squeeze() @ tensor3d["P dV P Y"].squeeze().T)
@@ -293,7 +294,9 @@ class REML:
                         tqdm.write(write_str)
                 
                 if self.is_converged(tol_score, tol_delta, tol_loglik):
-                    if verbose:
+                    if verbose > 0:
+                        if verbose > 1:
+                            tqdm.write(f"\n\u2207: score, \u0394 = \U0001D409\u207B\u00B9\u2207")
                         tqdm.write(f"\n\u2713 Converged at iteration {i + 1}")
                     break
         
