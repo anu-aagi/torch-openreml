@@ -1037,6 +1037,60 @@ For the correlation parameter \(\theta_2\), we first note that
 \left(\mathbf{1}_n \mathbf{1}_n^\top - \symbf{I}_n \right).
 \end{equation}
 
+\subsection{AR(1) Matrix}\label{ar1-matrix}
+
+The autoregressive order-1 (AR(1)) covariance structure assumes that
+correlations decay exponentially with distance between indices. It is
+commonly used to model ordered random effects or longitudinal data with
+equally spaced observations. The covariance matrix is defined as
+\begin{equation}
+\symbf{G}(\symbf{\theta}) = \sigma^2 \symbf{T}(\rho),
+\end{equation} where \(\sigma^2 > 0\) is a variance parameter and
+\(\symbf{T}(\rho)\) is the correlation matrix with entries
+\begin{equation}
+\left[\symbf{T}(\rho)\right]_{ij} = \rho^{|i-j|}, \qquad i,j = 1,\ldots,n,
+\end{equation} with \(|\rho| < 1\) ensuring positive definiteness.
+
+To guarantee valid parameter constraints, we adopt the
+reparameterisation \begin{equation}
+\theta_1 = \log(\sigma), \qquad \theta_2 \in \mathbb{R},
+\end{equation} together with \begin{equation}
+\sigma^2 = \exp(2\theta_1),
+\end{equation} and a bounded transformation for the correlation
+parameter \begin{equation}
+\rho = 2~\mathrm{sigmoid}(\theta_2) - 1,
+\end{equation} which ensures \(\rho \in (-1,1)\).
+
+Under this parameterisation, the covariance matrix can be written as
+\begin{equation}
+\symbf{G}(\symbf{\theta}) = \exp(2\theta_1)\symbf{T}(\rho).
+\end{equation}
+
+The derivative with respect to \(\theta_1\) is given by \begin{equation}
+\frac{\partial \symbf{G}}{\partial \theta_1}
+= 2\sigma^2 \symbf{T}(\rho).
+\end{equation}
+
+For the correlation parameter, we first note that \begin{equation}
+\frac{\partial \rho}{\partial \theta_2}
+= 2~\mathrm{sigmoid}(\theta_2)\big(1 - \mathrm{sigmoid}(\theta_2)\big),
+\end{equation} and the derivative of the correlation matrix has entries
+\begin{equation}
+\left[\frac{\partial \symbf{T}}{\partial \rho}\right]_{ij}
+= |i-j| \rho^{|i-j|-1}.
+\end{equation}
+
+Therefore, the derivative of the covariance matrix with respect to
+\(\theta_2\) is \begin{equation}
+\frac{\partial \symbf{G}}{\partial \theta_2}
+= \sigma^2 \frac{\partial \rho}{\partial \theta_2}
+\frac{\partial \symbf{T}(\rho)}{\partial \rho}.
+\end{equation}
+
+This structure captures decaying dependence with increasing lag distance
+and provides a parsimonious representation of serial correlation through
+a single correlation parameter.
+
 \clearpage
 
 \section*{References}\label{references}
