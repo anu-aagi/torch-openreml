@@ -15,6 +15,7 @@ include-in-header:
 
 Consider the linear mixed model
 \begin{equation}
+\label{eq-main}
 \symbf{Y} = \symbf{X}\symbf{\beta} + \symbf{Z}\symbf{b} + \symbf{\varepsilon},
 \end{equation}
 where:
@@ -48,6 +49,7 @@ Under these assumptions, the marginal distribution of $\symbf{Y}$ is given by
 \end{equation}
 where
 \begin{equation}
+\label{eq-sigma}
 \symbf{\Sigma}(\symbf{\theta}) = \symbf{Z}\symbf{G}(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta}).
 \end{equation}
 
@@ -720,6 +722,132 @@ S_k = \frac{1}{2}\left[\symbf{Y}^\top (\symbf{P} \dot{\symbf{\Sigma}}_k) (\symbf
 \end{equation}
 
 During the update, if $\mathcal{A}$ is large, we can compute $\symbf{L}_{\mathcal{A}}$ (the Cholesky factor of $\mathcal{A}$) and then solve $\mathcal{A}^{-1} \symbf{S}$ efficiently via back-substitution. Additionally, a damping factor can be applied to $\symbf{D} \mathcal{A}^{-1} \symbf{S}$ to control the learning rate. This is useful when the score or AI matrix computation is inaccurate, or when the estimation encounters ill-conditioned problems.
+
+
+
+# Covariance Structure
+
+As defined in Equation \eqref{eq-sigma}, the covariance structure of the Gaussian linear mixed model depends on $\symbf{G}(\symbf{\theta})$ and $\symbf{R}(\symbf{\theta})$. The marginal covariance matrix $\symbf{\Sigma}$ can be decomposed into a sum of component-specific contributions. Specifically, the model can be written as
+\begin{equation}
+\symbf{\Sigma} = \sum_{m=1}^{M} \symbf{Z}\symbf{G}_m(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta}).
+\end{equation}
+
+For each random-effect covariance component $\symbf{G}_m(\symbf{\theta})$ and the residual covariance $\symbf{R}(\symbf{\theta})$, a number of standard covariance structures are commonly employed. In the following, we summarise several of these structures together with their parameterisations and corresponding derivatives.
+
+## Identity Matrix
+
+The identity covariance structure is defined as
+\begin{equation}
+\symbf{G}(\symbf{\theta}) = \symbf{I}_n,
+\end{equation}
+where $\symbf{I}_n$ denotes the $n \times n$ identity matrix. This structure contains no free parameters, and therefore represents a fixed covariance specification. Since there are no parameters associated with this form, no derivative with respect to $\symbf{\theta}$ is required or defined.
+
+## Scalar Matrix
+
+The scalar covariance structure is defined as
+\begin{equation}
+\symbf{G}(\symbf{\theta}) = \sigma^2 \symbf{I}_n,
+\end{equation}
+where $\sigma^2 > 0$ is a variance parameter. To ensure positivity, we adopt the reparameterisation
+\begin{equation}
+\theta = \log(\sigma),
+\end{equation}
+which implies
+\begin{equation}
+\sigma^2 = \exp(2\theta).
+\end{equation}
+
+Under this parameterisation, the derivative of the covariance matrix with respect to $\theta$ is given by
+\begin{equation}
+\frac{\partial \symbf{G}}{\partial \theta}
+= \frac{\partial}{\partial \theta}\left(\exp(2\theta)\symbf{I}_n\right)
+= 2\exp(2\theta)\symbf{I}_n
+= 2\sigma^2 \symbf{I}_n.
+\end{equation}
+
+
+## Diagnoal Matrix 
+
+The diagonal covariance structure extends the scalar case by allowing heterogeneous variances across components while maintaining independence between them. It is defined as
+\begin{equation}
+\symbf{G}(\symbf{\theta}) = \mathrm{diag}(\sigma_1^2, \sigma_2^2, \ldots, \sigma_n^2),
+\end{equation}
+where each $\sigma_i^2 > 0$ represents a component-specific variance parameter.
+
+To ensure positivity of all variance terms, we adopt the element-wise reparameterisation
+\begin{equation}
+\theta_i = \log(\sigma_i), \quad i = 1, \ldots, n,
+\end{equation}
+which implies
+\begin{equation}
+\sigma_i^2 = \exp(2\theta_i).
+\end{equation}
+
+Under this parameterisation, the covariance matrix can be written as
+\begin{equation}
+\symbf{G}(\symbf{\theta}) = \mathrm{diag}\big(\exp(2\theta_1), \exp(2\theta_2), \ldots, \exp(2\theta_n)\big).
+\end{equation}
+
+The derivative with respect to the $k$-th parameter $\theta_k$ is a diagonal matrix with a single non-zero entry corresponding to the $k$-th diagonal element, given by
+\begin{equation}
+\frac{\partial \symbf{G}}{\partial \theta_k}
+= 2\exp(2\theta_k) \mathbf{e}_k \mathbf{e}_k^\top
+= 2\sigma_k^2 \mathbf{e}_k \mathbf{e}_k^\top,
+\end{equation}
+where $\mathbf{e}_k$ denotes the $k$-th standard basis vector in $\mathbb{R}^n$.
+
+
+## Compound Symmetric Matrix
+
+The compound symmetric (CS) covariance structure assumes homogeneous marginal variance and a common correlation across all pairs of observations. It is defined as
+\begin{equation}
+\symbf{G}(\symbf{\theta}) = \sigma^2 \left[(1 - \rho)\symbf{I}_n + \rho \mathbf{1}_n \mathbf{1}_n^\top \right],
+\end{equation}
+where $\sigma^2 > 0$ denotes the variance parameter, $\rho$ is the common correlation, $\symbf{I}_n$ is the $n \times n$ identity matrix, and $\mathbf{1}_n$ is an $n$-dimensional vector of ones.
+
+To ensure both positivity of $\sigma^2$ and admissibility of the correlation structure, we adopt the reparameterisations
+\begin{equation}
+\theta_1 = \log(\sigma), \qquad \theta_2 \in \mathbb{R},
+\end{equation}
+together with
+\begin{equation}
+\sigma^2 = \exp(2\theta_1),
+\end{equation}
+and a constrained mapping for the correlation parameter given by
+\begin{equation}
+\rho = \rho_{\min} + (1 - \rho_{\min})~ \mathrm{sigmoid}(\theta_2),
+\qquad \rho_{\min} = -\frac{1}{n - 1}.
+\end{equation}
+
+This transformation guarantees that $\rho \in (\rho_{\min}, 1)$, ensuring that $\symbf{G}(\symbf{\theta})$ remains positive semidefinite for all admissible parameter values.
+
+Under this parameterisation, the covariance matrix can be written as
+\begin{equation}
+\symbf{G}(\symbf{\theta})
+= \exp(2\theta_1)\left[(1 - \rho)\symbf{I}_n + \rho \mathbf{1}_n \mathbf{1}_n^\top \right].
+\end{equation}
+
+The derivative with respect to $\theta_1$ is given by
+\begin{equation}
+\frac{\partial \symbf{G}}{\partial \theta_1}
+= 2\sigma^2 \left[(1 - \rho)\symbf{I}_n + \rho \mathbf{1}_n \mathbf{1}_n^\top \right].
+\end{equation}
+
+For the correlation parameter $\theta_2$, we first note that
+\begin{equation}
+\frac{\partial \rho}{\partial \theta_2}
+= (1 - \rho_{\min})~ \mathrm{sigmoid}(\theta_2)\big(1 - \mathrm{sigmoid}(\theta_2)\big),
+\end{equation}
+and therefore the derivative of the covariance matrix is
+\begin{equation}
+\frac{\partial \symbf{G}}{\partial \theta_2}
+= \sigma^2 \frac{\partial \rho}{\partial \theta_2}
+\left(\mathbf{1}_n \mathbf{1}_n^\top - \symbf{I}_n \right).
+\end{equation}
+
+
+
+
 
 \clearpage
 
