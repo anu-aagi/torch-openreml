@@ -21,7 +21,7 @@ class CovarianceMatrix(ABC):
     
     def set_no_grad(index=None, param_name=None):
         if (index is None) == (param_name is None):
-            raise RuntimeError("Provide exactly one of 'index' or 'param_name'!")
+            raise ValueError("Provide exactly one of 'index' or 'param_name'!")
         
         if (param_name is None):
             if (not isinstance(index, list)):
@@ -38,16 +38,28 @@ class CovarianceMatrix(ABC):
             self._no_grad_index.append(positions)
             self._no_grad_index = set(self._no_grad_index)
             
-    def map_param_dict(self, param_dict):
+    def from_param_dict(self, param_dict):
+        if not isinstance(param_dict, dict):
+            return param_dict
+        
         missing = set(self._param_names) - set(param_dict.keys())
         if missing:
-            raise ValueError(f"Missing parameters: {missing}")
+            raise ValueError(f"Missing parameters: {missing}!")
         
         extra = set(param_dict.keys()) - set(self._param_names)
         if extra:
-            raise ValueError(f"Unexpected parameters: {extra}")
+            raise ValueError(f"Unexpected parameters: {extra}!")
         
         return [param_dict[name] for name in self._param_names]
+      
+    def to_param_dict(self, params):
+        if isinstance(params, dict):
+            return params
+        
+        if len(params) != len(self._param_names):
+            raise ValueError(f"Expected {len(self._param_names)} parameters, got {len(params)}!")
+        
+        return dict(zip(self._param_names, params))
 
     @abstractmethod
     def build(self, params, grad=True):
@@ -60,23 +72,23 @@ class CovarianceMatrix(ABC):
     def check_no_grad_index(self, no_grad_index):
         if no_grad_index is not None:
             if any(idx < 0 or idx >= self._num_params for idx in no_grad_index):
-                raise RuntimeError("Parameter index outside range!")
+                raise ValueError("Parameter index outside range!")
               
     def check_params(self, params):
         if not torch.is_tensor(params):
             raise TypeError("Parameters must be a Torch tensor!")
     
         if params.dim() != 1:
-            raise RuntimeError("Parameters must be a 1D tensor!")
+            raise ValueError("Parameters must be a 1D tensor!")
     
         if params.shape[0] != self._num_params:
-            raise RuntimeError(f"Parameters must have length {self.num_params}, got {params.shape[0]}!")
+            raise ValueError(f"Parameters must have length {self.num_params}, got {params.shape[0]}!")
         
         return params.device, params.dtype
     
     def check_param_names(self, param_names):
         if len(param_names) != len(set(param_names)):
-            raise RuntimeError(f"Parameter names must be unique!")
+            raise ValueError(f"Parameter names must be unique!")
         
     @property(self):
     def n(self):
