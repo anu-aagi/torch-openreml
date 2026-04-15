@@ -1,4 +1,5 @@
 from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+import torch
 
 class AR1Matrix(CovarianceMatrix):
   
@@ -8,7 +9,7 @@ class AR1Matrix(CovarianceMatrix):
     def trans_rho(self, scaled_rho):
         return 2 * torch.sigmoid(scaled_rho) - 1
       
-    def _compute_grad(self, sigma2, sigmoid, v, diff, rho_power):
+    def _compute_grad(self, rho, sigma2, sigmoid, v, diff, rho_power):
         self.reset_grad()
         
         if len(self.no_grad_index) == self.num_params:
@@ -43,6 +44,6 @@ class AR1Matrix(CovarianceMatrix):
         v = sigma2 * rho_power
         
         if grad:
-            self._compute_grad(sigma2=sigma2, sigmoid=sigmoid, v=v, diff=diff, rho_power=rho_power)
+            self._compute_grad(rho=rho, sigma2=sigma2, sigmoid=sigmoid, v=v, diff=diff, rho_power=rho_power)
             
         return v

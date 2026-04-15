@@ -1,11 +1,12 @@
 from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+import torch
 
 class ScalarMatrix(CovarianceMatrix):
   
     def __init__(self, n, no_grad_index=None):
         super().__init__(n, ["log_sigma"], no_grad_index)
         
-    def _comptue_grad(self, v):
+    def _compute_grad(self, v):
         self.reset_grad()
         if len(self.no_grad_index) == 0:
             self._grad = (2 * v).unsqueeze(0)

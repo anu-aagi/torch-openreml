@@ -1,4 +1,5 @@
 from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+import torch
 
 class CompoundSymmetricMatrix(CovarianceMatrix):
   
@@ -39,7 +40,7 @@ class CompoundSymmetricMatrix(CovarianceMatrix):
         i_n = torch.eye(self.n, device=device, dtype=dtype)
         j_n = torch.ones((self.n, self.n), device=device, dtype=dtype)
         
-        v = sigma2 * ((1 - rho) * I + rho * J)
+        v = sigma2 * ((1 - rho) * i_n + rho * j_n)
         
         if grad:
             self._compute_grad(v=v, sigma2=sigma2, sigmoid=sigmoid, i_n=i_n, j_n=j_n)

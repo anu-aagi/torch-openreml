@@ -1,4 +1,5 @@
 from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+import torch
 
 class IdentityMatrix(CovarianceMatrix):
     
