@@ -4,11 +4,21 @@ from tqdm import tqdm
 
 class REML:
     
-    def __init__(self, map_theta_to_v, map_theta_to_g=None, map_theta_to_dv=None):
+    def __init__(self, map_theta_to_v, map_theta_to_g=None, map_theta_to_dv=None, lb=None, ub=None):
         self.map_theta_to_v = map_theta_to_v
         self.jacobian_func = torch.func.jacrev(map_theta_to_v)
         self.map_theta_to_g = map_theta_to_g
         self.map_theta_to_dv = map_theta_to_dv
+        
+        if lb is None:
+            self.lb = -torch.inf
+        else
+            self.lb = lb
+          
+        if ub is None:
+            self.ub = torch.inf
+        else
+            self.ub = ub
       
     def blue(self, y, x, theta):
         device = get_device(y, x, theta)
@@ -252,6 +262,11 @@ class REML:
             return score_norm < tol_score and delta_norm < tol_delta and loglik_diff < tol_loglik
         else:
             return score_norm < tol_score and delta_norm < tol_delta
+          
+    def udpate(self, theta, delta, eta):
+        theta = theta + delta * eta
+        theta = torch.clamp(theta, min=self.theta_lb, max=self.theta_ub)
+        return theta
         
     def optimize(self, y, x, theta, max_iter=200, eta=0.5, require_loglik=True, verbose=0, tol_score=1e-4, tol_delta=1e-4, tol_loglik=1e-4):
         self.history = {"theta": [], 
@@ -268,7 +283,7 @@ class REML:
                 beta, score, ai, loglik = self.ai_step(y, x, theta, require_loglik=require_loglik)
                 l_ai = torch.linalg.cholesky(ai)
                 delta = torch.cholesky_solve(score.unsqueeze(-1), l_ai).squeeze()
-                theta = theta + eta * delta
+                theta = self.update(theta, delta, eta)
                 
                 self.history["theta"].append(theta)
                 self.history["beta"].append(beta)
