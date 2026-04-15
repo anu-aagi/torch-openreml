@@ -12,10 +12,10 @@ class ScalarMatrix(CovarianceMatrix):
             self._grad_names = self.param_names
         
     def build(self, params, grad=True):
-        param_dict = self.to_param_dict(params)
+        params = self.from_param_dict(params)
         device, dtype = self.check_params(params)
         
-        sigma2 = torch.exp(2 * param_dict["log_sigma"])
+        sigma2 = torch.exp(2 * params[0])
         v = sigma2 * torch.eye(self.n, device=device, dtype=dtype)
         
         if grad:

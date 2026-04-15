@@ -29,6 +29,7 @@ class CompoundSymmetricMatrix(CovarianceMatrix):
         self._grad = torch.stack(grad)
       
     def build(self, params, grad=True):
+        params = self.from_param_dict(params)
         device, dtype = self.check_params(params)
         
         sigma2 = torch.exp(2 * params[0])

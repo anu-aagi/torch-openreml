@@ -80,6 +80,8 @@ class CovarianceMatrix(ABC):
                 raise ValueError("Parameter index outside range!")
               
     def check_params(self, params):
+        params = self.from_param_dict(params)
+        
         if not torch.is_tensor(params):
             raise TypeError("Parameters must be a Torch tensor!")
     
