@@ -8,8 +8,8 @@ class ScalarMatrix(CovarianceMatrix):
     def _comptue_grad(self, v):
         self.reset_grad()
         if len(self.no_grad_index) == 0:
-            self._grad = [2 * v]
-            self._grad_names = self._param_names
+            self._grad = (2 * v).unsqueeze(0)
+            self._grad_names = self.param_names
         
     def build(self, params, grad=True):
         param_dict = self.to_param_dict(params)
