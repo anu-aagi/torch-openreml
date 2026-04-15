@@ -7,14 +7,19 @@ class DiagonalMatrix(CovarianceMatrix):
         
     def _compute_grad(self, sigma2, device, dtype):
         self.reset_grad()
-            
-        for i in range(self.num_params):
-            if i in self.no_grad_index:
-                continue
-            e = torch.zeros((self.n, self.n), device=device, dtype=dtype)
-            e[i, i] = 2 * sigma2[i]
-            self._grad.append(e)
-            self._grad_names.append(self.param_names[i])
+        
+        if len(self.no_grad_index) == self.num_params:
+            return
+        
+        self._grad = torch.zeros(self.n, self.n, self.n, device=device, dtype=dtype)
+        idx = torch.arange(self.n, device=device)
+        self._grad[idx, idx, idx] = 2 * sigma2
+        
+        mask = torch.ones(self.n, dtype=torch.bool, device=device)
+        mask[self.no_grad_index] = False
+        
+        self._grad = self._grad[mask]
+        self._grad_names = [name for i, name in enumerate(self.param_names) if i not in self.no_grad_index]
         
     def build(self, params, grad=True):
         params = self.from_param_dict(params)
