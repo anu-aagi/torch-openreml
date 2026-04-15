@@ -239,6 +239,32 @@ class REML:
             vector["beta"] = torch.nan
     
         return vector["beta"], vector["score"], matrix["AI"], scalar["loglik"]
+      
+    def get_theta(self, select="last", history=None):
+        if history is None:
+            history = self.history
+            
+        if select == "last":
+            return self.history["theta"][-1]
+        else:
+            if torch.is_tensor(self.history["loglik"][-1]):
+                index = torch.argmax(torch.stack(self.history["loglik"])).item()
+                return self.history["theta"][index]
+            else:
+                return self.history["theta"][-1]
+              
+    def get_beta(self, select="last", history=None):
+        if history is None:
+            history = self.history
+            
+        if select == "last":
+            return self.history["beta"][-1]
+        else:
+            if torch.is_tensor(self.history["loglik"][-1]):
+                index = torch.argmax(torch.stack(self.history["loglik"])).item()
+                return self.history["beta"][index]
+            else:
+                return self.history["beta"][-1]
     
     def is_converged(self, 
                      check_score=True, 
