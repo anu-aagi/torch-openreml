@@ -329,6 +329,8 @@ class REML:
                             else:
                                 write_str += f", log \U0001D4DB: {loglik:8.4f}"
                         
+                        if i == 0:
+                            tqdm.write("")
                         tqdm.write(write_str)
                 
                 if self.is_converged(check_score, check_delta, check_loglik, tol_score, tol_delta, tol_loglik):
