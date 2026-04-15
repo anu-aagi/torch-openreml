@@ -4,21 +4,11 @@ from tqdm import tqdm
 
 class REML:
     
-    def __init__(self, map_theta_to_v, map_theta_to_g=None, map_theta_to_dv=None, lb=None, ub=None):
+    def __init__(self, map_theta_to_v, map_theta_to_g=None, map_theta_to_dv=None):
         self.map_theta_to_v = map_theta_to_v
         self.jacobian_func = torch.func.jacrev(map_theta_to_v)
         self.map_theta_to_g = map_theta_to_g
         self.map_theta_to_dv = map_theta_to_dv
-        
-        if lb is None:
-            self.lb = -torch.inf
-        else
-            self.lb = lb
-          
-        if ub is None:
-            self.ub = torch.inf
-        else
-            self.ub = ub
       
     def blue(self, y, x, theta):
         device = get_device(y, x, theta)
@@ -250,31 +240,63 @@ class REML:
     
         return vector["beta"], vector["score"], matrix["AI"], scalar["loglik"]
     
-    def is_converged(self, tol_score=1e-4, tol_delta=1e-4, tol_loglik=1e-4):
+    def is_converged(self, 
+                     check_score=True, 
+                     check_delta=True,
+                     check_loglik=True,
+                     tol_score=1e-4, 
+                     tol_delta=1e-4, 
+                     tol_loglik=1e-4):
+                       
         if len(self.history["score"]) < 2:
             return False
-    
-        score_norm = torch.norm(self.history["score"][-1]).item()
-        delta_norm = torch.norm(self.history["delta"][-1]).item()
-        
-        if torch.is_tensor(self.history["loglik"][-1]):
-            loglik_diff = torch.abs(self.history["loglik"][-1] - self.history["loglik"][-2]).item()
-            return score_norm < tol_score and delta_norm < tol_delta and loglik_diff < tol_loglik
-        else:
-            return score_norm < tol_score and delta_norm < tol_delta
           
-    def udpate(self, theta, delta, eta):
-        theta = theta + delta * eta
-        theta = torch.clamp(theta, min=self.theta_lb, max=self.theta_ub)
-        return theta
+        if check_score:
+            score_norm = torch.norm(self.history["score"][-1]).item()
+            if score_norm >= tol_score:
+                return False
         
-    def optimize(self, y, x, theta, max_iter=200, eta=0.5, require_loglik=True, verbose=0, tol_score=1e-4, tol_delta=1e-4, tol_loglik=1e-4):
+        if check_delta:
+            delta_norm = torch.norm(self.history["delta"][-1]).item()
+            if delta_norm >= tol_delta:
+                return False
+              
+        if check_loglik and torch.is_tensor(self.history["loglik"][-1]):
+            loglik_diff = torch.abs(self.history["loglik"][-1] - self.history["loglik"][-2]).item()
+            if loglik_diff >= tol_loglik:
+                return False
+        
+        return True
+          
+    def update(self, theta, delta, eta, lb=-torch.inf, ub=torch.inf):
+        last_theta = theta
+        theta = theta + delta * eta
+        theta = torch.clamp(theta, min=lb, max=ub)
+        return theta, theta - last_theta
+        
+    def optimize(self, 
+                 y, 
+                 x, 
+                 theta, 
+                 max_iter=200, 
+                 eta=0.5, 
+                 require_loglik=True,
+                 lb=-torch.inf, 
+                 ub=torch.inf,
+                 verbose=0, 
+                 check_score=True,
+                 check_delta=True,
+                 check_loglik=True,
+                 tol_score=1e-4, 
+                 tol_delta=1e-4, 
+                 tol_loglik=1e-4):
         self.history = {"theta": [], 
                         "beta": [], 
                         "loglik": [], 
                         "score": [], 
                         "ai": [], 
-                        "delta": []}
+                        "delta": [],
+                        "update": []}
         
         pb = tqdm(disable=not verbose, bar_format="{desc} \u23F1 {elapsed} | \u26A1 {rate_fmt}")
         
@@ -283,7 +305,7 @@ class REML:
                 beta, score, ai, loglik = self.ai_step(y, x, theta, require_loglik=require_loglik)
                 l_ai = torch.linalg.cholesky(ai)
                 delta = torch.cholesky_solve(score.unsqueeze(-1), l_ai).squeeze()
-                theta = self.update(theta, delta, eta)
+                theta, update = self.update(theta, delta, eta, lb, ub)
                 
                 self.history["theta"].append(theta)
                 self.history["beta"].append(beta)
@@ -291,13 +313,14 @@ class REML:
                 self.history["score"].append(score)
                 self.history["ai"].append(ai)
                 self.history["delta"].append(delta)
+                self.history["update"].append(update)
                 
                 if verbose > 0:
                     pb.set_description(f"Iter {i + 1}")
                     pb.update(1)
                     
                     if verbose > 1:
-                        write_str = f"\u2225\u2207\u2225: {torch.norm(score):12.4f}, \u2225\u0394\u2225: {torch.norm(delta):6.4f}, \u03B7: {eta:.2f}"
+                        write_str = f"\u2225\u2207\u2225: {torch.norm(score):12.4f}, \u2225\u0394\u2225: {torch.norm(delta):6.4f}, \u03B7: {eta:.2f}, \u2225\u0394\u1D9C\u2225: {torch.norm(update):6.4f}"
                       
                         if require_loglik:
                             if len(self.history["loglik"]) > 1:
@@ -308,10 +331,10 @@ class REML:
                         
                         tqdm.write(write_str)
                 
-                if self.is_converged(tol_score, tol_delta, tol_loglik):
+                if self.is_converged(check_score, check_delta, check_loglik, tol_score, tol_delta, tol_loglik):
                     if verbose > 0:
                         if verbose > 1:
-                            tqdm.write(f"\n[\u2207: score, \u0394: \U0001D409\u207B\u00B9\u2207, \u03B7: learning rate, \U0001D4DB: restricted likelihood]")
+                            tqdm.write(f"\n[\u2207: score, \u0394: \U0001D409\u207B\u00B9\u2207, \u03B7: learning rate, \u0394\u1D9C: clip(\U0001D6C9 + \u03B7\u0394, lb, ub) - \U0001D6C9, \U0001D4DB: restricted likelihood]")
                         tqdm.write(f"\n\u2713 Converged at iteration {i + 1}")
                     break
         
