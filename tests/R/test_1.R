@@ -41,13 +41,13 @@ fit_openreml <- openreml$REML(map_theta_to_v)
 result <- fit_openreml$optimize(y, 
                                 x, 
                                 torch$zeros(3L), 
-                                require_loglik = FALSE, 
-                                verbose = TRUE,
-                                eta = 1,
-                                tol_loglik = 1e-4)
+                                require_loglik = TRUE, 
+                                verbose = 2,
+                                eta = 1)
 
-openreml_beta <- py_to_r(fit_openreml$history$beta[-1]$numpy())
-openreml_sigma <- exp(py_to_r(fit_openreml$history$theta[-1]$numpy()))
+openreml_beta <- py_to_r(fit_openreml$get_beta()$numpy())
+openreml_sigma <- exp(py_to_r(fit_openreml$get_theta()$numpy()))
 
 print(lme4_beta - openreml_beta)
 print(lme4_sigma - openreml_sigma)
+
