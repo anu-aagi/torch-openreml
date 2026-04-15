@@ -17,7 +17,7 @@ class CovarianceMatrix(ABC):
         self._no_grad_index = no_grad_index or []
     
     def reset_grad(self):
-        self._grad = []
+        self._grad = None
         self._grad_names = []
     
     def set_no_grad(index=None, param_name=None):
