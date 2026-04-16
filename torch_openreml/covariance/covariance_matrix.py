@@ -181,7 +181,7 @@ class OperatorMatrix(CovarianceMatrix):
                 if grad:
                     if operand.grad is not None:
                         grad_groups.append(operand.grad)
-                        grad_name_groups.append(operand.grad_names)
+                        grad_name_groups.append([f"{name}/{grad_name}" for grad_name in operand.grad_names])
         
         return v_groups, grad_groups, grad_name_groups
         
