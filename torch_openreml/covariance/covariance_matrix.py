@@ -14,7 +14,7 @@ class CovarianceMatrix(ABC):
         self.check_param_names(param_names)
         self._param_names = param_names
         self._num_params = len(param_names)
-        self._no_grad_index = set(no_grad_index) or []
+        self._no_grad_index = list(set(no_grad_index or []))
     
     def reset_grad(self):
         self._grad = None
@@ -28,14 +28,14 @@ class CovarianceMatrix(ABC):
             if (not isinstance(index, list)):
                 index = [index]
             self.check_no_grad_index(index)
-            self._no_grad_index = set(index)
+            self._no_grad_index = list(set(index))
         
         if (index is None):
             if (not isinstance(param_name, list)):
                 param_names = [param_name]
             index_map = {name: i for i, name in enumerate(self._param_names)}
             index = [index_map[name] for n in param_names]
-            self._no_grad_index = set(index)
+            self._no_grad_index = list(set(index))
             
     def from_param_dict(self, param_dict):
         if not isinstance(param_dict, dict):
@@ -49,7 +49,7 @@ class CovarianceMatrix(ABC):
         if extra:
             raise ValueError(f"Unexpected parameters: {extra}!")
         
-        return [param_dict[name] for name in self._param_names]
+        return torch.cat([param_dict[name] for name in self._param_names])
       
     def to_param_dict(self, params):
         if isinstance(params, dict):
@@ -58,7 +58,7 @@ class CovarianceMatrix(ABC):
         if len(params) != len(self._param_names):
             raise ValueError(f"Expected {len(self._param_names)} parameters, got {len(params)}!")
         
-        return dict(zip(self._param_names, params))
+        return {name: tensor for name, tensor in zip(self.param_names, params)}
       
     def auto_grad(self, params):
         jacobian = torch.func.jacrev(partial(self.build, grad=False))(params)
@@ -120,7 +120,7 @@ class CovarianceMatrix(ABC):
         return self._no_grad_index
 
 
-def OperatorMatrix(CovarianceMatrix):
+class OperatorMatrix(CovarianceMatrix):
     
     def __init__(self, n, operands):
         self.check_operands(operands)
@@ -136,7 +136,7 @@ def OperatorMatrix(CovarianceMatrix):
         
         del self._no_grad_index
         
-    def check_operand_dict(self, operands):
+    def check_operands(self, operands):
         if not isinstance(operands, dict):
             raise TypeError(f"operands must be a dict, got {type(operands).__name__}!")
         
@@ -154,8 +154,8 @@ def OperatorMatrix(CovarianceMatrix):
                     f"got {type(value).__name__}!"
                 )
                 
-          if not any(isinstance(v, CovarianceMatrix) for v in operands.values()):
-              raise TypeError("operands must include at least one CovarianceMatrix!")
+        if not any(isinstance(v, CovarianceMatrix) for v in operands.values()):
+            raise TypeError("operands must include at least one CovarianceMatrix!")
             
     def set_no_grad(self, index=None, param_name=None):
         raise RuntimeError(
@@ -167,7 +167,7 @@ def OperatorMatrix(CovarianceMatrix):
     def operands(self):
         return self._operands
       
-    @propery
+    @property
     def no_grad_index(self):
         result = []
         total_num_params = 0
