@@ -14,7 +14,7 @@ class CovarianceMatrix(ABC):
         self.check_param_names(param_names)
         self._param_names = param_names
         self._num_params = len(param_names)
-        self._no_grad_index = no_grad_index or []
+        self._no_grad_index = set(no_grad_index) or []
     
     def reset_grad(self):
         self._grad = None
@@ -126,11 +126,6 @@ def OperatorMatrix(CovarianceMatrix):
         self.check_operands(operands)
         self._operands = operands
         
-        self._operand_param_dict = {
-            operand_name: getattr(operand, "param_names", [])
-            for operand_name, operand in operands.items()
-        }
-        
         param_names = [
             f"{operand_name}/{name}"
             for operand_name, operand in operands.items()
@@ -171,16 +166,16 @@ def OperatorMatrix(CovarianceMatrix):
     @property
     def operands(self):
         return self._operands
-    
-    @property
-    def operand_param_dict(self):
-        return self._operand_param_dict
       
     @propery
     def no_grad_index(self):
         result = []
-        for operand in self._operands
+        total_num_params = 0
+        
+        for name, operand in self._operands.items():
             if isinstance(operand, CovarianceMatrix):
-                result.extend(operand.no_grad_index)
+                result.extend([index + total_num_params for index in operand.no_grad_index])
+                total_num_params = total_num_params + operand.num_params
+                
         return result
         
