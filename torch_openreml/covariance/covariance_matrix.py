@@ -20,7 +20,7 @@ class CovarianceMatrix(ABC):
         self._grad = None
         self._grad_names = []
     
-    def set_no_grad(index=None, param_name=None):
+    def set_no_grad(self, index=None, param_name=None):
         if (index is None) == (param_name is None):
             raise ValueError("Provide exactly one of 'index' or 'param_name'!")
         
@@ -28,16 +28,14 @@ class CovarianceMatrix(ABC):
             if (not isinstance(index, list)):
                 index = [index]
             self.check_no_grad_index(index)
-            self._no_grad_index.append(index)
-            self._no_grad_index = set(self._no_grad_index)
+            self._no_grad_index = set(index)
         
         if (index is None):
             if (not isinstance(param_name, list)):
                 param_names = [param_name]
             index_map = {name: i for i, name in enumerate(self._param_names)}
-            positions = [index_map[name] for n in param_names]
-            self._no_grad_index.append(positions)
-            self._no_grad_index = set(self._no_grad_index)
+            index = [index_map[name] for n in param_names]
+            self._no_grad_index = set(index)
             
     def from_param_dict(self, param_dict):
         if not isinstance(param_dict, dict):
@@ -120,3 +118,69 @@ class CovarianceMatrix(ABC):
     @property
     def no_grad_index(self):
         return self._no_grad_index
+
+
+def OperatorMatrix(CovarianceMatrix):
+    
+    def __init__(self, n, operands):
+        self.check_operands(operands)
+        self._operands = operands
+        
+        self._operand_param_dict = {
+            operand_name: getattr(operand, "param_names", [])
+            for operand_name, operand in operands.items()
+        }
+        
+        param_names = [
+            f"{operand_name}/{name}"
+            for operand_name, operand in operands.items()
+            for name in getattr(operand, "param_names", [])
+        ]
+        
+        super().__init__(n, param_names)
+        
+        del self._no_grad_index
+        
+    def check_operand_dict(self, operands):
+        if not isinstance(operands, dict):
+            raise TypeError(f"operands must be a dict, got {type(operands).__name__}!")
+        
+        for key, value in operands.items():
+    
+            if not isinstance(key, str):
+                raise TypeError(f"Operand name must be a string, got {type(key).__name__}!")
+    
+            if "." in key:
+                raise ValueError(f"Invalid operand name '{key}': '.' is not allowed!")
+    
+            if not isinstance(value, (CovarianceMatrix, torch.Tensor)):
+                raise TypeError(
+                    f"Operand '{key}' must be a CovarianceMatrix or torch.Tensor, "
+                    f"got {type(value).__name__}!"
+                )
+                
+          if not any(isinstance(v, CovarianceMatrix) for v in operands.values()):
+              raise TypeError("operands must include at least one CovarianceMatrix!")
+            
+    def set_no_grad(self, index=None, param_name=None):
+        raise RuntimeError(
+            "This operator only provides a view of no_grad_index. "
+            "Set it on the covariance matrix that owns the parameters instead!"
+        )
+        
+    @property
+    def operands(self):
+        return self._operands
+    
+    @property
+    def operand_param_dict(self):
+        return self._operand_param_dict
+      
+    @propery
+    def no_grad_index(self):
+        result = []
+        for operand in self._operands
+            if isinstance(operand, CovarianceMatrix):
+                result.extend(operand.no_grad_index)
+        return result
+        
