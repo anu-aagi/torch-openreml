@@ -14,36 +14,18 @@ class SumMatrix(OperatorMatrix):
         )
           
         super().__init__(n, operands)
-        
+    
     def build(self, params, grad=True):
-        params = self.from_param_dict(params)
-        self.check_params(params)
+        v_groups, grad_groups, grad_name_groups = self.build_operands(params, grad)
         
-        v = None
-        
+        v = sum(v_groups)
         if grad:
             self.reset_grad()
-            self._grad = []
-        
-        for name, operand in self.operands.items():
-            if isinstance(operand, CovarianceMatrix):
-                operand_params = params[0:operand.num_params]
-                params = params[operand.num_params:]
-                
-                if v is None:
-                    v = operand.build(operand_params)
-                else:
-                    v = v + operand.build(operand_params)
-                    
-                if grad:
-                    if operand.grad is not None:
-                        self._grad.append(operand.grad)
-                        self._grad_names.extend(operand.grad_names)
-        
-        if grad:
-            if len(self._grad) == 0:
+            
+            if len(grad_groups) == 0:
                 self._grad = None
             else:
-                self._grad = torch.cat(self._grad)
-                    
+                self._grad = torch.cat(grad_groups)
+                self._grad_names = [name for group in grad_name_groups for name in group]
+                
         return v

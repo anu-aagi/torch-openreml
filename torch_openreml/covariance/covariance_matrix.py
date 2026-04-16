@@ -162,6 +162,28 @@ class OperatorMatrix(CovarianceMatrix):
             "This operator only provides a view of no_grad_index. "
             "Set it on the covariance matrix that owns the parameters instead!"
         )
+    
+    def build_operands(self, params, grad=True):
+        params = self.from_param_dict(params)
+        self.check_params(params)
+        
+        v_groups = []
+        grad_groups = []
+        grad_name_groups = []
+        
+        for name, operand in self.operands.items():
+            if isinstance(operand, CovarianceMatrix):
+                operand_params = params[0:operand.num_params]
+                params = params[operand.num_params:]
+                
+                v_groups.append(operand.build(operand_params, grad))
+                
+                if grad:
+                    if operand.grad is not None:
+                        grad_groups.append(operand.grad)
+                        grad_name_groups.append(operand.grad_names)
+        
+        return v_groups, grad_groups, grad_name_groups
         
     @property
     def operands(self):
