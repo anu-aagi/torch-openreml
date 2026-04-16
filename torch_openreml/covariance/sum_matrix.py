@@ -22,9 +22,7 @@ class SumMatrix(OperatorMatrix):
         if grad:
             self.reset_grad()
             
-            if len(grad_groups) == 0:
-                self._grad = None
-            else:
+            if len(grad_groups) > 0:
                 self._grad = torch.cat(grad_groups)
                 self._grad_names = [name for group in grad_name_groups for name in group]
                 
