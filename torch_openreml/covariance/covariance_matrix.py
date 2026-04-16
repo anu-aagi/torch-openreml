@@ -145,8 +145,8 @@ class OperatorMatrix(CovarianceMatrix):
             if not isinstance(key, str):
                 raise TypeError(f"Operand name must be a string, got {type(key).__name__}!")
     
-            if "." in key:
-                raise ValueError(f"Invalid operand name '{key}': '.' is not allowed!")
+            if "/" in key:
+                raise ValueError(f"Invalid operand name '{key}': '/' is not allowed!")
     
             if not isinstance(value, (CovarianceMatrix, torch.Tensor)):
                 raise TypeError(
