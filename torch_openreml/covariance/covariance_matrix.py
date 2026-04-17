@@ -69,6 +69,14 @@ class CovarianceMatrix(ABC):
     @abstractmethod
     def build(self, params, grad=True):
         raise NotImplementedError
+      
+    def map_theta_to_v(self, theta):
+        return self.build(theta, grad=True)
+      
+    def map_theta_to_dv(self, theta):
+        if self.grad is None and len(self.no_grad_index) < len(self.num_params):
+            self.build(grad=True)
+        return self.grad
     
     def check_n(self, n):
         if not isinstance(n, int):
