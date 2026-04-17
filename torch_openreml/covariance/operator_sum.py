@@ -1,7 +1,8 @@
-from torch_openreml.covariance.covariance_matrix import CovarianceMatrix, OperatorMatrix
+from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+from torch_openreml.covariance.operator import Operator
 import torch
 
-class SumMatrix(OperatorMatrix):
+class Sum(Operator):
     
     def __init__(self, operands):
         if (len(operands) < 2):
