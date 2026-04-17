@@ -2,6 +2,8 @@ from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
 import torch
 
 class Operator(CovarianceMatrix):
+  
+    _repr_single_line = False
     
     def __init__(self, n, operands):
         self.check_operands(operands)

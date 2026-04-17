@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 
 class CovarianceMatrix(ABC):
   
+    _repr_single_line = True
+  
     def __init__(self, n, param_names, no_grad_index=None):
         self.check_n(n)
         self._n = n
@@ -94,10 +96,58 @@ class CovarianceMatrix(ABC):
     def check_param_names(self, param_names):
         if len(param_names) != len(set(param_names)):
             raise ValueError(f"Parameter names must be unique!")
-    
+
     def __repr__(self):
-        args = ", ".join(f"{k}={v!r}" for k, v in self.repr_dict.items())
-        return f"{self.__class__.__name__}({args})"
+        return self._repr_indented(0)
+    
+    def _repr_indented(self, level):
+        indent = " " * 2
+        
+        if self._repr_single_line:
+            args = ", ".join(f"{key}={repr(value)}" for key, value in self.repr_dict.items())
+            return f"{self.__class__.__name__}({args})"
+          
+        inner = level + 1
+        pad = indent * inner
+        closing_pad = indent * level
+        parts = []
+        
+        for key, value in self.repr_dict.items():
+            key_str = f"{key}="
+            value_pad = pad + " " * len(key_str)
+            value_str = self._repr_value(value, inner, value_pad)
+            parts.append(f"{pad}{key_str}{value_str}")
+            
+        args = ",\n".join(parts)
+        return f"{self.__class__.__name__}(\n{args}\n{closing_pad})"
+      
+    def _repr_value(self, value, level, continuation_pad=""):
+        indent = " " * 2
+        
+        if hasattr(value, "_repr_indented"):
+            return value._repr_indented(level)
+        elif isinstance(value, dict):
+            return self._repr_dict(value, level)
+        else:
+            if not continuation_pad:
+                continuation_pad = indent * level
+            return repr(value).replace("\n", "\n" + continuation_pad)
+      
+    def _repr_dict(self, d, level):
+        indent = " " * 2
+        inner = level + 1
+        pad = indent * inner
+        closing_pad = indent * level
+        parts = []
+        
+        for key, value in d.items():
+            key_str = f"{key!r}: "
+            value_pad = pad + " " * len(key_str)
+            value_str = self._repr_value(value, inner, value_pad)
+            parts.append(f"{pad}{key_str}{value_str}")
+            
+        args = ",\n".join(parts)
+        return "{\n" + args + "\n" + closing_pad + "}"
         
     @property
     def n(self):

@@ -52,6 +52,7 @@ A = torch.eye(3)
 B = torch_openreml.covariance.ScalarMatrix(3)
 C = torch_openreml.covariance.DiagonalMatrix(3)
 D = torch_openreml.covariance.Sum({"A": A, "B": B, "C": C})
+D
 D.param_names
 
 D.build(torch.tensor([0.0, 1.0, 2.0, 3.0]))
@@ -62,5 +63,19 @@ auto_grad = D.grad
 print(manual_grad)
 print(manual_grad == auto_grad)
 print(manual_grad.shape == auto_grad.shape)
+print(D.grad_names)
 
 D.build_operands(torch.tensor([0.0, 1.0, 2.0, 3.0]))
+
+E = torch_openreml.covariance.Sum({"D.1": D, "D.2": D})
+E
+E.param_names
+
+E.build(torch.tensor([0.0, 1.0, 2.0, 3.0, 0.0, 1.0, 2.0, 3.0]))
+manual_grad = E.grad
+E.auto_grad(torch.tensor([0.0, 1.0, 2.0, 3.0, 0.0, 1.0, 2.0, 3.0]))
+auto_grad = E.grad
+
+print(manual_grad)
+print(manual_grad == auto_grad)
+print(manual_grad.shape == auto_grad.shape)
