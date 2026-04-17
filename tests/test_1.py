@@ -66,6 +66,6 @@ def map_theta_to_v(theta):
             
     return v
 
-model = torch_openreml.REML(map_theta_to_v)
+model = torch_openreml.REML(map_theta_to_v=map_theta_to_v)
 result = model.optimize(y, x, torch.tensor([0.0, 0.0, 0.0]), require_loglik=True, verbose=True, max_iter=50, eta=1)
 print(result)

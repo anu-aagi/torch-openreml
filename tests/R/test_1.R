@@ -37,7 +37,7 @@ map_theta_to_v <- function(theta) {
   return(v)
 }
 
-fit_openreml <- openreml$REML(map_theta_to_v)
+fit_openreml <- openreml$REML(map_theta_to_v = map_theta_to_v)
 result <- fit_openreml$optimize(y, 
                                 x, 
                                 torch$zeros(3L), 

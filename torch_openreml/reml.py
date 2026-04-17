@@ -19,9 +19,9 @@ class REML:
         else:
             self.map_theta_to_v = map_theta_to_v
             self.jacobian_func = torch.func.jacrev(map_theta_to_v)
+            self.map_theta_to_dv = map_theta_to_dv
             
         self.map_theta_to_g = map_theta_to_g
-        self.map_theta_to_dv = map_theta_to_dv
       
     def blue(self, y, x, theta):
         device = get_device(y, x, theta)
@@ -318,7 +318,7 @@ class REML:
                  x, 
                  theta, 
                  max_iter=200, 
-                 eta=0.5, 
+                 eta=1.0, 
                  require_loglik=True,
                  lb=-torch.inf, 
                  ub=torch.inf,

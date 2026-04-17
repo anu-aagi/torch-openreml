@@ -31,8 +31,7 @@ v <- openreml$covariance$Sum(list(g = g, r = r))
 print(v)
 print(v$param_names)
 
-fit_openreml <- openreml$REML(map_theta_to_v = v$build,
-                              map_theta_to_dv = \(...) v$grad)
+fit_openreml <- openreml$REML(v_model = v)
 
 result <- fit_openreml$optimize(y, 
                                 x, 
