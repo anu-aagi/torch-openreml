@@ -1,10 +1,10 @@
-from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+from torch_openreml.covariance.matrix import Matrix
 import torch
 
-class AR1Matrix(CovarianceMatrix):
+class AR1Matrix(Matrix):
   
     def __init__(self, n, no_grad_index=None):
-        super().__init__(n, ["log_sigma", "scaled_rho"], no_grad_index)
+        super().__init__((n, n), ["log_sigma", "scaled_rho"], no_grad_index)
     
     def trans_rho(self, scaled_rho):
         return 2 * torch.sigmoid(scaled_rho) - 1
@@ -32,7 +32,7 @@ class AR1Matrix(CovarianceMatrix):
         params = self.from_param_dict(params)
         device, dtype = self.check_params(params)
       
-        idx = torch.arange(self.n, device=params.device, dtype=params.dtype)
+        idx = torch.arange(self.shape[0], device=params.device, dtype=params.dtype)
         diff = torch.abs(idx.unsqueeze(0) - idx.unsqueeze(1))
         
         sigma2 = torch.exp(2 * params[0])

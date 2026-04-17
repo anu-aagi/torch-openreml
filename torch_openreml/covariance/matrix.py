@@ -2,13 +2,13 @@ import torch
 from functools import partial
 from abc import ABC, abstractmethod
 
-class CovarianceMatrix(ABC):
+class Matrix(ABC):
   
     _repr_single_line = True
   
-    def __init__(self, n, param_names, no_grad_index=None):
-        self.check_n(n)
-        self._n = n
+    def __init__(self, shape, param_names, no_grad_index=None):
+        self.check_shape(shape)
+        self._shape = shape
         
         self.reset_grad()
         self.check_no_grad_index(no_grad_index)
@@ -81,6 +81,12 @@ class CovarianceMatrix(ABC):
     def check_n(self, n):
         if not isinstance(n, int):
             raise TypeError("'n' must be an int!")
+          
+    def check_shape(self, shape):
+        if shape is None:
+            return
+        if not isinstance(shape, (list, tuple, torch.Size)):
+            raise TypeError("'shape' must be a list, a tuple or a torch.Size!")
       
     def check_no_grad_index(self, no_grad_index):
         if no_grad_index is not None:
@@ -158,8 +164,8 @@ class CovarianceMatrix(ABC):
         return "{\n" + args + "\n" + closing_pad + "}"
         
     @property
-    def n(self):
-        return self._n
+    def shape(self):
+        return self._shape
 
     @property
     def grad(self):
@@ -183,5 +189,5 @@ class CovarianceMatrix(ABC):
     
     @property
     def repr_dict(self):
-        return {"n": self._n, "no_grad_index": self._no_grad_index}
+        return {"shape": self._shape, "no_grad_index": self._no_grad_index}
 

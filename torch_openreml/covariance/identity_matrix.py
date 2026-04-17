@@ -1,16 +1,16 @@
-from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+from torch_openreml.covariance.matrix import Matrix
 import torch
 
-class IdentityMatrix(CovarianceMatrix):
+class IdentityMatrix(Matrix):
     
     def __init__(self, n):
-        super().__init__(n, [])
+        super().__init__((n, n), [])
     
     def build(self, params, grad=True):
         if isinstance(params, dict):
             params = next(iter(params))
-        return torch.eye(self.n, device=params.device, dtype=params.dtype)
+        return torch.eye(self.shape[0], device=params.device, dtype=params.dtype)
     
     @property
     def repr_dict(self):
-        return {"n": self.n}
+        return {"shape": self.shape}

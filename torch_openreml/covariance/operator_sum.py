@@ -1,4 +1,3 @@
-from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
 from torch_openreml.covariance.operator import Operator
 import torch
 
@@ -8,13 +7,7 @@ class Sum(Operator):
         if (len(operands) < 2):
             raise ValueError("At least two operands are required")
           
-        n = next(
-            operand.n 
-            for operand in operands.values() 
-            if isinstance(operand, CovarianceMatrix)
-        )
-          
-        super().__init__(n, operands)
+        super().__init__(None, operands)
     
     def build(self, params, grad=True):
         v_groups, grad_groups, grad_name_groups = self.build_operands(params, grad)
@@ -28,5 +21,6 @@ class Sum(Operator):
             if len(grad_groups) > 0:
                 self._grad = torch.cat(grad_groups)
                 self._grad_names = [name for group in grad_name_groups for name in group]
-                
+        
+        self._shape = tuple(v.shape)
         return v

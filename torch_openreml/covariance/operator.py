@@ -1,11 +1,11 @@
-from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+from torch_openreml.covariance.matrix import Matrix
 import torch
 
-class Operator(CovarianceMatrix):
+class Operator(Matrix):
   
     _repr_single_line = False
     
-    def __init__(self, n, operands):
+    def __init__(self, shape, operands):
         self.check_operands(operands)
         self._operands = operands
         
@@ -15,7 +15,7 @@ class Operator(CovarianceMatrix):
             for name in getattr(operand, "param_names", [])
         ]
         
-        super().__init__(n, param_names)
+        super().__init__(shape, param_names)
         
         del self._no_grad_index
         
@@ -31,14 +31,14 @@ class Operator(CovarianceMatrix):
             if "/" in key:
                 raise ValueError(f"Invalid operand name '{key}': '/' is not allowed!")
     
-            if not isinstance(value, (CovarianceMatrix, torch.Tensor)):
+            if not isinstance(value, (Matrix, torch.Tensor)):
                 raise TypeError(
-                    f"Operand '{key}' must be a CovarianceMatrix or torch.Tensor, "
+                    f"Operand '{key}' must be a Matrix or torch.Tensor, "
                     f"got {type(value).__name__}!"
                 )
                 
-        if not any(isinstance(v, CovarianceMatrix) for v in operands.values()):
-            raise TypeError("operands must include at least one CovarianceMatrix!")
+        if not any(isinstance(v, Matrix) for v in operands.values()):
+            raise TypeError("operands must include at least one Matrix!")
             
     def set_no_grad(self, index=None, param_name=None):
         raise RuntimeError(
@@ -55,7 +55,7 @@ class Operator(CovarianceMatrix):
         grad_name_groups = []
         
         for name, operand in self.operands.items():
-            if isinstance(operand, CovarianceMatrix):
+            if isinstance(operand, Matrix):
                 operand_params = params[0:operand.num_params]
                 params = params[operand.num_params:]
                 
@@ -84,7 +84,7 @@ class Operator(CovarianceMatrix):
         total_num_params = 0
         
         for name, operand in self._operands.items():
-            if isinstance(operand, CovarianceMatrix):
+            if isinstance(operand, Matrix):
                 result.extend([index + total_num_params for index in operand.no_grad_index])
                 total_num_params = total_num_params + operand.num_params
                 

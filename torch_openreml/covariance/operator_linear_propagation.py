@@ -1,4 +1,3 @@
-from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
 from torch_openreml.covariance.operator import Operator
 import torch
 
@@ -7,10 +6,8 @@ class LinearPropagation(Operator):
     def __init__(self, operands):
         if (len(operands) != 2):
             raise ValueError("Two operands are required")
-    
-        n = list(operands.values())[1].n
           
-        super().__init__(n, operands)
+        super().__init__(None, operands)
     
     def build(self, params, grad=True):
         v_groups, grad_groups, grad_name_groups = self.build_operands(params, grad)
@@ -38,5 +35,6 @@ class LinearPropagation(Operator):
                 
             if len(grad) > 0:
                 self._grad = torch.cat(grad)
-                
+        
+        self._shape = tuple(v.shape)
         return v

@@ -1,4 +1,4 @@
-from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.covariance.identity_matrix import IdentityMatrix
 from torch_openreml.covariance.scalar_matrix import ScalarMatrix
 from torch_openreml.covariance.diagonal_matrix import DiagonalMatrix

@@ -1,10 +1,10 @@
-from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+from torch_openreml.covariance.matrix import Matrix
 import torch
 
-class ScalarMatrix(CovarianceMatrix):
+class ScalarMatrix(Matrix):
   
     def __init__(self, n, no_grad_index=None):
-        super().__init__(n, ["log_sigma"], no_grad_index)
+        super().__init__((n, n), ["log_sigma"], no_grad_index)
         
     def _compute_grad(self, v):
         self.reset_grad()
@@ -17,7 +17,7 @@ class ScalarMatrix(CovarianceMatrix):
         device, dtype = self.check_params(params)
         
         sigma2 = torch.exp(2 * params[0])
-        v = sigma2 * torch.eye(self.n, device=device, dtype=dtype)
+        v = sigma2 * torch.eye(self.shape[0], device=device, dtype=dtype)
         
         if grad:
             self._compute_grad(v=v)

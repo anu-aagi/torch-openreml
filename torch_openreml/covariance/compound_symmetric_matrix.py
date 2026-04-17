@@ -1,11 +1,11 @@
-from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
+from torch_openreml.covariance.matrix import Matrix
 import torch
 
-class CompoundSymmetricMatrix(CovarianceMatrix):
+class CompoundSymmetricMatrix(Matrix):
   
     def __init__(self, n, no_grad_index=None):
         self.rho_min = -1/(n - 1)
-        super().__init__(n, ["log_sigma", "scaled_rho"], no_grad_index)
+        super().__init__((n, n), ["log_sigma", "scaled_rho"], no_grad_index)
       
     def trans_rho(self, scaled_rho):
         return self.rho_min + (1 - self.rho_min) * torch.sigmoid(scaled_rho)
@@ -37,8 +37,8 @@ class CompoundSymmetricMatrix(CovarianceMatrix):
         sigmoid = torch.sigmoid(params[1])
         rho = self.rho_min + (1 - self.rho_min) * sigmoid
         
-        i_n = torch.eye(self.n, device=device, dtype=dtype)
-        j_n = torch.ones((self.n, self.n), device=device, dtype=dtype)
+        i_n = torch.eye(self.shape[0], device=device, dtype=dtype)
+        j_n = torch.ones((self.shape[0], self.shape[0]), device=device, dtype=dtype)
         
         v = sigma2 * ((1 - rho) * i_n + rho * j_n)
         
