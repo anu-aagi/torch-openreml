@@ -60,9 +60,15 @@ class Operator(CovarianceMatrix):
                 v_groups.append(operand.build(operand_params, grad))
                 
                 if grad:
-                    if operand.grad is not None:
-                        grad_groups.append(operand.grad)
-                        grad_name_groups.append([f"{name}/{grad_name}" for grad_name in operand.grad_names])
+                    grad_groups.append(operand.grad)
+                    grad_name_groups.append([f"{name}/{grad_name}" for grad_name in operand.grad_names])
+                else:
+                    grad_groups.append(None)
+                    grad_name_groups.append([])
+            else:
+                v_groups.append(operand)
+                grad_groups.append(None)
+                grad_name_groups.append([])
         
         return v_groups, grad_groups, grad_name_groups
         

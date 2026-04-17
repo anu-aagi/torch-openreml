@@ -48,10 +48,10 @@ print(A.trans_rho(torch.tensor([2.0])))
 
 A.build({"log_sigma": torch.tensor([1.0]), "scaled_rho": torch.tensor([2.0])})
 
-A = torch_openreml.covariance.IdentityMatrix(3)
+A = torch.eye(3)
 B = torch_openreml.covariance.ScalarMatrix(3)
 C = torch_openreml.covariance.DiagonalMatrix(3)
-D = torch_openreml.covariance.SumMatrix({"A": A, "B": B, "C": C})
+D = torch_openreml.covariance.Sum({"A": A, "B": B, "C": C})
 D.param_names
 
 D.build(torch.tensor([0.0, 1.0, 2.0, 3.0]))
@@ -63,3 +63,4 @@ print(manual_grad)
 print(manual_grad == auto_grad)
 print(manual_grad.shape == auto_grad.shape)
 
+D.build_operands(torch.tensor([0.0, 1.0, 2.0, 3.0]))
