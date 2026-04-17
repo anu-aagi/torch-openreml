@@ -94,6 +94,10 @@ class CovarianceMatrix(ABC):
     def check_param_names(self, param_names):
         if len(param_names) != len(set(param_names)):
             raise ValueError(f"Parameter names must be unique!")
+    
+    def __repr__(self):
+        args = ", ".join(f"{k}={v!r}" for k, v in self.repr_dict.items())
+        return f"{self.__class__.__name__}({args})"
         
     @property
     def n(self):
@@ -118,4 +122,8 @@ class CovarianceMatrix(ABC):
     @property
     def no_grad_index(self):
         return self._no_grad_index
+    
+    @property
+    def repr_dict(self):
+        return {"n": self._n, "no_grad_index": self._no_grad_index}
 

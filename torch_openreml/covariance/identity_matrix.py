@@ -10,3 +10,7 @@ class IdentityMatrix(CovarianceMatrix):
         if isinstance(params, dict):
             params = next(iter(params))
         return torch.eye(self.n, device=params.device, dtype=params.dtype)
+    
+    @property
+    def repr_dict(self):
+        return {"n": self.n}

@@ -87,4 +87,8 @@ class Operator(CovarianceMatrix):
                 total_num_params = total_num_params + operand.num_params
                 
         return result
+    
+    @property
+    def repr_dict(self):
+        return {"operands": self.operands}
         
