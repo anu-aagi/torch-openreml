@@ -1,12 +1,25 @@
 import torch
 from torch_openreml.utils import get_device, get_dtype
+from torch_openreml.covariance.covariance_matrix import CovarianceMatrix
 from tqdm import tqdm
 
 class REML:
     
-    def __init__(self, map_theta_to_v, map_theta_to_g=None, map_theta_to_dv=None):
-        self.map_theta_to_v = map_theta_to_v
-        self.jacobian_func = torch.func.jacrev(map_theta_to_v)
+    def __init__(self, v_model=None, map_theta_to_v=None, map_theta_to_g=None, map_theta_to_dv=None):
+        
+        if v_model is not None and not isinstance(v_model, CovarianceMatrix):
+            raise TypeError("'v_model' must be a CovarianceMatrix instance or None!")
+        
+        if v_model is None and map_theta_to_v is None:
+            raise ValueError("At least one of 'v_model' or 'map_theta_to_v' must be provided!")
+        
+        if v_model is not None:
+            self.map_theta_to_v = v_model.map_theta_to_v
+            self.map_theta_to_dv = v_model.map_theta_to_dv
+        else:
+            self.map_theta_to_v = map_theta_to_v
+            self.jacobian_func = torch.func.jacrev(map_theta_to_v)
+            
         self.map_theta_to_g = map_theta_to_g
         self.map_theta_to_dv = map_theta_to_dv
       
