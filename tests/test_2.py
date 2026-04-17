@@ -79,3 +79,34 @@ auto_grad = E.grad
 print(manual_grad)
 print(manual_grad == auto_grad)
 print(manual_grad.shape == auto_grad.shape)
+
+Z = torch.cat([torch.eye(3), torch.eye(3)])
+G = torch_openreml.covariance.ScalarMatrix(3)
+S = torch_openreml.covariance.LinearPropagation({"Z": Z, "G": G})
+S
+S.param_names
+S.build(torch.tensor([1.0]))
+manual_grad = S.grad
+S.auto_grad(torch.tensor([1.0]))
+auto_grad = S.grad
+
+print(manual_grad)
+print(manual_grad == auto_grad)
+print(manual_grad.shape == auto_grad.shape)
+print(S.grad_names)
+
+
+Z = torch.cat([torch.eye(3), torch.eye(3)])
+G = torch_openreml.covariance.ScalarMatrix(3)
+S = torch_openreml.covariance.LinearPropagation({"Z": Z, "G": G})
+S
+S.param_names
+S.build(torch.tensor([1.0]))
+manual_grad = S.grad
+S.auto_grad(torch.tensor([1.0]))
+auto_grad = S.grad
+
+print(manual_grad)
+print(manual_grad == auto_grad)
+print(manual_grad.shape == auto_grad.shape)
+print(S.grad_names)
