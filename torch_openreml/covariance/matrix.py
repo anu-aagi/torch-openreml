@@ -1,12 +1,13 @@
 import torch
 from functools import partial
 from abc import ABC, abstractmethod
+from torch_openreml.covariance.transform import Transform
 
 class Matrix(ABC):
   
     _repr_single_line = True
   
-    def __init__(self, shape, param_names, no_grad_index=None):
+    def __init__(self, shape, param_names, trans, no_grad_index=None):
         self.check_shape(shape)
         self._shape = tuple(shape or ())
         
@@ -16,6 +17,10 @@ class Matrix(ABC):
         self.check_param_names(param_names)
         self._param_names = param_names
         self._num_params = len(param_names)
+
+        self.check_trans(trans)
+        self._trans = trans
+
         self._no_grad_index = list(set(no_grad_index or []))
     
     def reset_grad(self):
@@ -93,6 +98,14 @@ class Matrix(ABC):
         
         if not all([isinstance(p, int) and p > 0 for p in shape]):
             raise TypeError("All elements of 'shape' must be positive int!")
+
+    def check_trans(self, trans):
+        if isinstance(trans, (list, tuple)):
+            for t in trans:
+                if not isinstance(t, Transform):
+                    raise TypeError("'trans' must be a list of Transform objects!")
+        else:
+            raise TypeError("'trans' must be a list of Transform objects!")
       
     def check_no_grad_index(self, no_grad_index):
         if no_grad_index is not None:
@@ -188,6 +201,10 @@ class Matrix(ABC):
     @property
     def num_params(self):
         return self._num_params
+
+    @property
+    def trans(self):
+        return self._trans
     
     @property
     def no_grad_index(self):
@@ -195,5 +212,5 @@ class Matrix(ABC):
     
     @property
     def repr_dict(self):
-        return {"shape": self._shape, "no_grad_index": self._no_grad_index}
+        return {"shape": self._shape, "param_names": self._param_names, "trans": self._trans, "no_grad_index": self._no_grad_index}
 
