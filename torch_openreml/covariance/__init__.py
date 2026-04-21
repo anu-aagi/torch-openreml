@@ -8,3 +8,4 @@ from torch_openreml.covariance.ar1_matrix import AR1Matrix
 from torch_openreml.covariance.operator import Operator
 from torch_openreml.covariance.operator_sum import Sum
 from torch_openreml.covariance.operator_linear_propagation import LinearPropagation
+from torch_openreml.covariance.operator_kronecker_product import KroneckerProduct

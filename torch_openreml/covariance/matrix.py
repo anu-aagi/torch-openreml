@@ -8,7 +8,7 @@ class Matrix(ABC):
   
     def __init__(self, shape, param_names, no_grad_index=None):
         self.check_shape(shape)
-        self._shape = shape
+        self._shape = tuple(shape or ())
         
         self.reset_grad()
         self.check_no_grad_index(no_grad_index)
@@ -85,8 +85,14 @@ class Matrix(ABC):
     def check_shape(self, shape):
         if shape is None:
             return
+        
         if not isinstance(shape, (list, tuple, torch.Size)):
             raise TypeError("'shape' must be a list, a tuple or a torch.Size!")
+        
+        shape = tuple(shape)
+        
+        if not all([isinstance(p, int) and p > 0 for p in shape]):
+            raise TypeError("All elements of 'shape' must be positive int!")
       
     def check_no_grad_index(self, no_grad_index):
         if no_grad_index is not None:
