@@ -33,13 +33,6 @@ class TransformChain:
             if not isinstance(trans, Transform):
                 raise TypeError("Chain needs to be a list of Transform objects!")
 
-        last_output_space = None
-        for trans in chain:
-            if last_output_space is not None:
-                if last_output_space != trans.input_space:
-                    raise ValueError("Output space {last_output_space} do not match the next input space {trans.input_space}!")
-            last_output_space = trans.output_space
-
     def __call__(self, x):
         for trans in self.chain:
             x = trans(x)
@@ -63,14 +56,3 @@ class TransformChain:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.chain!r})"
-
-    def __str__(self):
-
-        result = f"{self.chain!r}: "
-
-        result = result + f"{self.chain[0].input_space} \u21A6 {self.chain[0].output_space}"
-
-        for trans in self.chain[1:]:
-            result = result + f" \u21A6 {trans.output_space}"
-
-        return result
