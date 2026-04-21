@@ -1,4 +1,4 @@
-from torch_openreml.covariance.transform.base import Transform
+from torch_openreml.covariance.transform.transform import Transform
 import torch
 
 class TransformLog(Transform):

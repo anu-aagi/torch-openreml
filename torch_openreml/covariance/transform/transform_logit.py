@@ -1,7 +1,10 @@
-from torch_openreml.covariance.transform.base import Transform
+from torch_openreml.covariance.transform.transform import Transform
 import torch
 
 class TransformLogit(Transform):
+
+    domain = "(0, 1)"
+    codomain = "\u211D\u2080\u207A"
 
     def __init__(self):
         pass
