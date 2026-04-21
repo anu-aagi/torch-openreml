@@ -1,10 +1,11 @@
 from torch_openreml.covariance.matrix import Matrix
+from torch_openreml.covariance.transform import TransformSqrtLog
 import torch
 
 class ScalarMatrix(Matrix):
   
     def __init__(self, n, no_grad_index=None):
-        super().__init__((n, n), ["log_sigma"], no_grad_index)
+        super().__init__((n, n), ["sigma^2"], [TransformSqrtLog()], no_grad_index)
         
     def _compute_grad(self, v):
         self.reset_grad()
