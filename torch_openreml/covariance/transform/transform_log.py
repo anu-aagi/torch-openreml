@@ -1,7 +1,11 @@
-from torch_openreml.covariance.parameter.transform import Transform
+from torch_openreml.covariance.transform.base import Transform
 import torch
 
 class TransformLog(Transform):
+
+    domain = "\u211D\u207A"
+    codomain = "\u211D"
+
     def __init__(self):
         pass
     
@@ -15,6 +19,10 @@ class TransformLog(Transform):
         return torch.exp(x)
 
 class TransformLog2(Transform):
+
+    domain = "\u211D\u207A"
+    codomain = "\u211D"
+
     def __init__(self):
         pass
 
@@ -28,6 +36,10 @@ class TransformLog2(Transform):
         return torch.exp2(x) * torch.log(torch.tensor([2], dtype=x.dtype, device=x.device))
 
 class TransformLog10(Transform):
+
+    domain = "\u211D\u207A"
+    codomain = "\u211D"
+
     def __init__(self):
         pass
 
@@ -36,7 +48,6 @@ class TransformLog10(Transform):
 
     def inverse(self, x):
         return torch.pow(10.0, x)
-    torch.exp
 
     def chain_rule_factor(self, x):
         return torch.pow(10.0, x) * torch.log(torch.tensor([10], dtype=x.dtype, device=x.device))
