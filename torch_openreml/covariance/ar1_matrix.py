@@ -1,49 +1,50 @@
 from torch_openreml.covariance.matrix import Matrix
+from torch_openreml.covariance.transform import TransformExpPow2, TransformChain, TransformScaleShift, TransformSigmoid
 import torch
 
 class AR1Matrix(Matrix):
   
-    def __init__(self, n, no_grad_index=None):
-        super().__init__((n, n), ["log_sigma", "scaled_rho"], no_grad_index)
-    
-    def trans_rho(self, scaled_rho):
-        return 2 * torch.sigmoid(scaled_rho) - 1
+    def __init__(self, n, param_names=None, trans=None, no_grad_index=None):
+        param_names = param_names or ["sigma^2", "rho"]
+        trans = trans or [TransformExpPow2(), TransformChain([TransformSigmoid(), TransformScaleShift(2.0, -1.0)])]
+        super().__init__((n, n), param_names, trans, no_grad_index)
       
-    def _compute_grad(self, rho, sigma2, sigmoid, v, diff, rho_power):
+    def _compute_grad(self, params, rho, sigma2, diff, rho_power):
         self.reset_grad()
         
         if len(self.no_grad_index) == self.num_params:
             return
         
         grad = []
-        
+
+        chain_rule_factor = self.trans_chain_rule_factor(params)
+
         if 0 not in self.no_grad_index:
-            grad.append(2 * v)
-            self._grad_names.append("log_sigma")  
+            grad.append(chain_rule_factor[0] * rho_power)
+            self._grad_names.append(self.param_names[0])
         
         if 1 not in self.no_grad_index:
             rho = torch.sign(rho) * torch.clamp(rho.abs(), min=1e-6)
-            grad.append(sigma2 * 2 * sigmoid * (1 - sigmoid) * diff * rho_power / rho)
-            self._grad_names.append("scaled_rho") 
+            d_rho = chain_rule_factor[1] * sigma2 * diff * rho_power / rho
+            d_rho.fill_diagonal_(0.0)
+            grad.append(d_rho)
+            self._grad_names.append(self.param_names[1])
             
         self._grad = torch.stack(grad)
         
     def build(self, params, grad=True):
         params = self.from_param_dict(params)
         device, dtype = self.check_params(params)
+        sigma2, rho = self.trans_params(params)
       
         idx = torch.arange(self.shape[0], device=params.device, dtype=params.dtype)
         diff = torch.abs(idx.unsqueeze(0) - idx.unsqueeze(1))
-        
-        sigma2 = torch.exp(2 * params[0])
-        sigmoid = torch.sigmoid(params[1])
-        rho = 2 * sigmoid - 1
         
         rho_power = rho ** diff
         
         v = sigma2 * rho_power
         
         if grad:
-            self._compute_grad(rho=rho, sigma2=sigma2, sigmoid=sigmoid, v=v, diff=diff, rho_power=rho_power)
+            self._compute_grad(params=params, rho=rho, sigma2=sigma2, diff=diff, rho_power=rho_power)
             
         return v
