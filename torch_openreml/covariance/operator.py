@@ -15,7 +15,7 @@ class Operator(Matrix):
             for name in getattr(operand, "param_names", [])
         ]
         
-        super().__init__(shape, param_names)
+        super().__init__(shape, param_names, ())
         
         del self._no_grad_index
         
