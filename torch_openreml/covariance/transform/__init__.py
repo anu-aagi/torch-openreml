@@ -1,6 +1,7 @@
 from torch_openreml.covariance.transform.transform import Transform, TransformChain
-from torch_openreml.covariance.transform.transform_log import TransformLog
-from torch_openreml.covariance.transform.transform_logit import TransformLogit
+from torch_openreml.covariance.transform.transform_identity import TransformIdentity
+from torch_openreml.covariance.transform.transform_exp import TransformExp, TransformExp2, TransformExp10
+from torch_openreml.covariance.transform.transform_sigmoid import TransformSigmoid
 from torch_openreml.covariance.transform.transform_scale_shift import TransformScaleShift
-from torch_openreml.covariance.transform.transform_sqrt import TransformSqrt
-from torch_openreml.covariance.transform.transform_sqrtlog import TransformSqrtLog
+from torch_openreml.covariance.transform.transform_pow import TransformPow
+from torch_openreml.covariance.transform.transform_exppow2 import TransformExpPow2

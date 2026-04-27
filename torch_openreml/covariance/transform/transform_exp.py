@@ -1,7 +1,7 @@
 from torch_openreml.covariance.transform.transform import Transform
 import torch
 
-class TransformLog(Transform):
+class TransformExp(Transform):
 
     domain = "\u211D\u207A"
     codomain = "\u211D"
