@@ -23,15 +23,15 @@ class Transform(ABC):
     def __str__(self):
         return f"{self.__class__.__name__}: {self.domain} \u21A6 {self.codomain}"
 
-class TransformChain:
+class TransformChain(Transform):
     def __init__(self, chain):
-        if not isinstance(chain, list):
+        if not isinstance(chain, (list, tuple)):
             chain = [chain]
         self.chain = chain
 
         for trans in chain:
             if not isinstance(trans, Transform):
-                raise TypeError("Chain needs to be a list of Transform objects!")
+                raise TypeError("Chain needs to be a list or a tuple of Transform objects!")
 
     def __call__(self, x):
         for trans in self.chain:
@@ -44,15 +44,18 @@ class TransformChain:
 
     def chain_rule_factor(self, x):
         factor = None
-        for trans in reversed(self.chain):
+        for trans in self.chain:
             if factor is None:
                 factor = trans.chain_rule_factor(x)
             else:
                 factor = factor * trans.chain_rule_factor(x)
 
-            x = trans.inverse(x)
+            x = trans(x)
 
         return factor
 
     def __repr__(self):
+        return f"{self.__class__.__name__}({self.chain!r})"
+
+    def __str__(self):
         return f"{self.__class__.__name__}({self.chain!r})"
