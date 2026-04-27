@@ -1,19 +1,22 @@
 from torch_openreml.covariance.transform.transform import Transform
 import torch
 
-class TransformSqrt(Transform):
+class TransformPow(Transform):
 
-    domain = "\u211D\u2080\u207A"
-    codomain = "\u211D\u2080\u207A"
+    codomain = "\u211D"
+    domain = "\u211D"
 
-    def __init__(self):
-        pass
+    def __init__(self, factor=2.0):
+        self.factor = factor
 
     def __call__(self, x):
-        return torch.sqrt(x)
+        return torch.pow(x, self.factor)
 
     def inverse(self, x):
-        return torch.pow(x, 2.0)
+        return torch.sqrt(x)
 
     def chain_rule_factor(self, x):
-        return 2 * x
+        return self.factor * x
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(factor={self.factor})"
