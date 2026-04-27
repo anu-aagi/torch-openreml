@@ -16,4 +16,7 @@ class TransformScaleShift(Transform):
         return (x - self.b) / self.a
 
     def chain_rule_factor(self, x):
-        return 1.0 / self.a
+        return self.a
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(a={self.a}, b={self.b})"
