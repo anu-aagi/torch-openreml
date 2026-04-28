@@ -169,7 +169,14 @@ class Matrix(ABC):
         indent = " " * 2
         
         if self._repr_single_line:
-            args = ", ".join(f"{key}={repr(value)}" for key, value in self.repr_dict.items())
+            args = []
+            for key, value in self.repr_dict.items():
+                if value:
+                    if key in ("param_names", "trans") and len(value) > 3:
+                        args.append(f"{key}=[{value[0]}, ..., {value[-1]}]")
+                    else:
+                        args.append(f"{key}={repr(value)}")
+            args = ", ".join(args)
             return f"{self.__class__.__name__}({args})"
           
         inner = level + 1
@@ -193,6 +200,8 @@ class Matrix(ABC):
             return value._repr_indented(level)
         elif isinstance(value, dict):
             return self._repr_dict(value, level)
+        elif isinstance(value, torch.Tensor):
+            return value.shape
         else:
             if not continuation_pad:
                 continuation_pad = indent * level
