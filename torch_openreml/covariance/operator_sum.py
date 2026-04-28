@@ -4,7 +4,7 @@ import torch
 class Sum(Operator):
     
     def __init__(self, operands):
-        if (len(operands) < 2):
+        if len(operands) < 2:
             raise ValueError("At least two operands are required")
           
         super().__init__(None, operands)
