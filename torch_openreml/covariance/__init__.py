@@ -12,5 +12,6 @@ from torch_openreml.covariance.operator_kronecker_product import KroneckerProduc
 from torch_openreml.covariance.operator_hadamard_product import HadamardProduct
 
 from torch_openreml.covariance.design_matrix import DesignMatrix
+from torch_openreml.covariance.g_side_covariance import GSideCovariance
 
 import torch_openreml.covariance.transform

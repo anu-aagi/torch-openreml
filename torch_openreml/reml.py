@@ -5,17 +5,17 @@ from tqdm import tqdm
 
 class REML:
     
-    def __init__(self, v_model=None, map_theta_to_v=None, map_theta_to_g=None, map_theta_to_dv=None):
+    def __init__(self, v_builder=None, map_theta_to_v=None, map_theta_to_g=None, map_theta_to_dv=None):
         
-        if v_model is not None and not isinstance(v_model, Matrix):
-            raise TypeError("'v_model' must be a Matrix instance or None!")
+        if v_builder is not None and not isinstance(v_builder, Matrix):
+            raise TypeError("'v_builder' must be a Matrix instance or None!")
         
-        if v_model is None and map_theta_to_v is None:
-            raise ValueError("At least one of 'v_model' or 'map_theta_to_v' must be provided!")
+        if v_builder is None and map_theta_to_v is None:
+            raise ValueError("At least one of 'v_builder' or 'map_theta_to_v' must be provided!")
         
-        if v_model is not None:
-            self.map_theta_to_v = v_model.map_theta_to_v
-            self.map_theta_to_dv = v_model.map_theta_to_dv
+        if v_builder is not None:
+            self.map_theta_to_v = v_builder.map_theta_to_v
+            self.map_theta_to_dv = v_builder.map_theta_to_dv
         else:
             self.map_theta_to_v = map_theta_to_v
             self.jacobian_func = torch.func.jacrev(map_theta_to_v)
