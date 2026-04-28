@@ -142,7 +142,7 @@ class REML:
         scalar["N"] = y.shape[0]
         
         matrix["V"] = self.map_theta_to_v(theta)
-        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(n, device=device, dtype=dtype)
+        matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device, dtype=dtype)
         
         matrix["L"] = torch.linalg.cholesky(matrix["V"])
         
