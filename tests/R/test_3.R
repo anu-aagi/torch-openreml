@@ -26,9 +26,6 @@ n_rep <- length(unique(agridat::john.alpha$rep))
 n_block <- length(unique(agridat::john.alpha$block))
 
 
-categorical_to_design_matrix <- openreml$utils$categorical_to_design_matrix
-augment <- openreml$utils$augment
-DesignMatrix <- openreml$covariance$DesignMatrix
 IdentityMatrix <- openreml$covariance$IdentityMatrix
 ScalarMatrix <- openreml$covariance$ScalarMatrix
 LinearPropagation <- openreml$covariance$LinearPropagation
@@ -39,9 +36,9 @@ y <- torch$tensor(agridat::john.alpha$yield, dtype=torch$float32)
 
 x <- torch$tensor(r_to_py(model.matrix(fit_lme4)), dtype = torch$float32)
 
-G_gen <- LinearPropagation(list(z_gen = DesignMatrix(agridat::john.alpha$gen), g_gen = ScalarMatrix(n_gen)))
-G_rep <- LinearPropagation(list(z_rep = DesignMatrix(agridat::john.alpha$rep), g_rep = IdentityMatrix(n_rep)))
-G_block <- LinearPropagation(list(z_block = DesignMatrix(agridat::john.alpha$block), g_block = ScalarMatrix(n_block)))
+G_gen <- GSidenCovariance(agridat::john.alpha$gen, ScalarMatrix)
+G_rep <- GSidenCovariance(agridat::john.alpha$rep, IdentityMatrix)
+G_block <- GSidenCovariance(agridat::john.alpha$block, ScalarMatrix)
 
 G_rep_block <- HadamardProduct(list(G_rep = G_rep, G_block = G_block))
 
@@ -52,7 +49,7 @@ V <- Sum(list(G_gen = G_gen, G_rep_block = G_rep_block, R = R))
 print(V)
 print(V$param_names)
 
-fit_openreml <- openreml$REML(v_model = V)
+fit_openreml <- openreml$REML(v_builder = V)
 
 result <- fit_openreml$optimize(y, 
                                 x, 

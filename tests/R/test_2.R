@@ -31,7 +31,7 @@ v <- openreml$covariance$Sum(list(g = g, r = r))
 print(v)
 print(v$param_names)
 
-fit_openreml <- openreml$REML(v_model = v)
+fit_openreml <- openreml$REML(v_builder = v)
 
 result <- fit_openreml$optimize(y, 
                                 x, 
