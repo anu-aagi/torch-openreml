@@ -4,7 +4,7 @@ import torch
 class KroneckerProduct(Operator):
     
     def __init__(self, operands):
-        if (len(operands) != 2):
+        if len(operands) != 2:
             raise ValueError("Two operands are required")
           
         super().__init__(None, operands)
