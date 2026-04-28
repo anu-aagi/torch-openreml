@@ -92,10 +92,10 @@ print(torch.allclose(manual_grad, auto_grad))
 print(manual_grad.shape == auto_grad.shape)
 print(S.grad_names)
 
-A = torch_openreml.covariance.DiagonalMatrix(3)
+A = torch_openreml.covariance.DiagonalMatrix(4)
 B = torch.eye(2)
 C = torch_openreml.covariance.KroneckerProduct({"A": A, "B": B})
-C.build(torch.tensor([0.0, 1.0, 2.0]))
+C.build(torch.tensor([0.0, 1.0, 2.0, 3.0]))
 C.grad
-C.auto_grad(torch.tensor([0.0, 1.0, 2.0]))
+C.auto_grad(torch.tensor([0.0, 1.0, 2.0, 3.0]))
 C.grad
