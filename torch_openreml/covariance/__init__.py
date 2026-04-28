@@ -1,4 +1,5 @@
 from torch_openreml.covariance.matrix import Matrix
+from torch_openreml.covariance.identity_matrix import IdentityMatrix
 from torch_openreml.covariance.scalar_matrix import ScalarMatrix
 from torch_openreml.covariance.diagonal_matrix import DiagonalMatrix
 from torch_openreml.covariance.compound_symmetric_matrix import CompoundSymmetricMatrix
@@ -8,5 +9,8 @@ from torch_openreml.covariance.operator import Operator
 from torch_openreml.covariance.operator_sum import Sum
 from torch_openreml.covariance.operator_linear_propagation import LinearPropagation
 from torch_openreml.covariance.operator_kronecker_product import KroneckerProduct
+from torch_openreml.covariance.operator_hadamard_product import HadamardProduct
+
+from torch_openreml.covariance.design_matrix import DesignMatrix
 
 import torch_openreml.covariance.transform
