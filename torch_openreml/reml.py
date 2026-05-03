@@ -342,8 +342,7 @@ class REML:
         with torch.no_grad():
             for i in range(max_iter):
                 beta, score, ai, loglik = self.ai_step(y, x, theta, require_loglik=require_loglik)
-                l_ai = torch.linalg.cholesky(ai)
-                delta = torch.cholesky_solve(score.unsqueeze(-1), l_ai).squeeze()
+                delta = torch.linalg.lstsq(ai, score.unsqueeze(-1)).solution.squeeze()
                 theta, update = self.update(theta, delta, eta, lb, ub)
                 
                 self.history["theta"].append(theta)
