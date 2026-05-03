@@ -25,8 +25,8 @@ n_gen <- length(unique(agridat::john.alpha$gen))
 n_rep <- length(unique(agridat::john.alpha$rep))
 n_block <- length(unique(agridat::john.alpha$block))
 
-
 IdentityMatrix <- openreml$covariance$IdentityMatrix
+DesignMatrix <- openreml$covariance$DesignMatrix
 ScalarMatrix <- openreml$covariance$ScalarMatrix
 LinearPropagation <- openreml$covariance$LinearPropagation
 HadamardProduct <- openreml$covariance$HadamardProduct
@@ -36,9 +36,9 @@ y <- torch$tensor(agridat::john.alpha$yield, dtype=torch$float32)
 
 x <- torch$tensor(r_to_py(model.matrix(fit_lme4)), dtype = torch$float32)
 
-G_gen <- GSidenCovariance(agridat::john.alpha$gen, ScalarMatrix)
-G_rep <- GSidenCovariance(agridat::john.alpha$rep, IdentityMatrix)
-G_block <- GSidenCovariance(agridat::john.alpha$block, ScalarMatrix)
+G_gen <- LinearPropagation(list(z_gen = DesignMatrix(agridat::john.alpha$gen), g_gen = ScalarMatrix(n_gen)))
+G_rep <- LinearPropagation(list(z_rep = DesignMatrix(agridat::john.alpha$rep), g_gen = IdentityMatrix(n_rep)))
+G_block <- LinearPropagation(list(z_block = DesignMatrix(agridat::john.alpha$block), g_gen = ScalarMatrix(n_block)))
 
 G_rep_block <- HadamardProduct(list(G_rep = G_rep, G_block = G_block))
 
