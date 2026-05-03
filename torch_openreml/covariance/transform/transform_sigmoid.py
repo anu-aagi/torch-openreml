@@ -78,7 +78,7 @@ class TransformSigmoid(Transform):
         """
         return torch.logit(x)
 
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         r"""
         Compute derivative of :math:`\sigma(x)` for chain rule propagation.
 
@@ -101,7 +101,7 @@ class TransformSigmoid(Transform):
 
             t = TransformSigmoid()
             x = torch.tensor([0.0, 1.0])
-            t.chain_rule_factor(x)
+            t.grad(x)
         """
         sigmoid = torch.sigmoid(x)
         return sigmoid * (1 - sigmoid)

@@ -76,7 +76,7 @@ class TransformIdentity(Transform):
         """
         return x
 
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         r"""
         Compute derivative of :math:`f(x) = x` for chain rule propagation.
 
@@ -95,7 +95,7 @@ class TransformIdentity(Transform):
 
             t = TransformIdentity()
             x = torch.tensor([0.0])
-            t.chain_rule_factor(x)
+            t.grad(x)
         """
 
         return torch.tensor([1.0], dtype=x.dtype, device=x.device)

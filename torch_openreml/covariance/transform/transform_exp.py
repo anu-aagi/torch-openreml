@@ -82,7 +82,7 @@ class TransformExp(Transform):
         """
         return torch.log(x)
 
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         r"""
         Compute derivative of :math:`e^x` for chain rule propagation.
 
@@ -101,7 +101,7 @@ class TransformExp(Transform):
 
             t = TransformExp()
             x = torch.tensor([0.0])
-            t.chain_rule_factor(x)
+            t.grad(x)
         """
         return torch.exp(x)
 
@@ -170,7 +170,7 @@ class TransformExp2(Transform):
         """
         return torch.log2(x)
 
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         r"""
         Compute derivative of :math:`2^x`.
 
@@ -193,7 +193,7 @@ class TransformExp2(Transform):
 
             t = TransformExp2()
             x = torch.tensor([1.0])
-            t.chain_rule_factor(x)
+            t.grad(x)
         """
         return torch.exp2(x) * torch.log(
             torch.tensor([2], dtype=x.dtype, device=x.device)
@@ -264,7 +264,7 @@ class TransformExp10(Transform):
         """
         return torch.log10(x)
 
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         r"""
         Compute derivative of :math:`10^x`.
 
@@ -287,7 +287,7 @@ class TransformExp10(Transform):
 
             t = TransformExp10()
             x = torch.tensor([1.0])
-            t.chain_rule_factor(x)
+            t.grad(x)
         """
         return torch.pow(10.0, x) * torch.log(
             torch.tensor([10], dtype=x.dtype, device=x.device)

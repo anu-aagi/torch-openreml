@@ -57,7 +57,7 @@ class Transform(ABC):
         pass
 
     @abstractmethod
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         """
         Compute the derivative factor for chain rule propagation.
 
@@ -162,7 +162,7 @@ class TransformChain(Transform):
             x = trans.inverse(x)
         return x
 
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         """
         Compute chain rule factor for the full composed transform.
 
@@ -185,14 +185,14 @@ class TransformChain(Transform):
 
             t = TransformChain([TransformExp(), TransformPow(factor=2.0)])
             x = torch.tensor([1.0])
-            t.chain_rule_factor(x)
+            t.grad(x)
         """
         factor = None
         for trans in self.chain:
             if factor is None:
-                factor = trans.chain_rule_factor(x)
+                factor = trans.grad(x)
             else:
-                factor = factor * trans.chain_rule_factor(x)
+                factor = factor * trans.grad(x)
 
             x = trans(x)
 

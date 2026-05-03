@@ -83,7 +83,7 @@ class TransformScaleShift(Transform):
         """
         return (x - self.b) / self.a
 
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         r"""
         Compute derivative of :math:`ax + b` for chain rule propagation.
 
@@ -102,7 +102,7 @@ class TransformScaleShift(Transform):
 
             t = TransformScaleShift(a=2.0, b=1.0)
             x = torch.tensor([0.0])
-            t.chain_rule_factor(x)
+            t.grad(x)
         """
         return torch.tensor([self.a], dtype=x.dtype, device=x.device)
 

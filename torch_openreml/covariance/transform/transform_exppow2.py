@@ -78,7 +78,7 @@ class TransformExpPow2(Transform):
         """
         return torch.log(x) / 2.0
 
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         r"""
         Compute derivative of :math:`e^{2x}` for chain rule propagation.
 
@@ -101,6 +101,6 @@ class TransformExpPow2(Transform):
 
             t = TransformExpPow2()
             x = torch.tensor([0.0, 1.0])
-            t.chain_rule_factor(x)
+            t.grad(x)
         """
         return 2 * torch.exp(2 * x)

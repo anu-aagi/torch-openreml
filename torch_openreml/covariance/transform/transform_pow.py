@@ -81,7 +81,7 @@ class TransformPow(Transform):
         """
         return torch.sqrt(x)
 
-    def chain_rule_factor(self, x):
+    def grad(self, x):
         r"""
         Compute derivative of :math:`x^p` for chain rule propagation.
 
@@ -104,7 +104,7 @@ class TransformPow(Transform):
 
             t = TransformPow(factor=3.0)
             x = torch.tensor([2.0, 3.0])
-            t.chain_rule_factor(x)
+            t.grad(x)
         """
         return self.factor * x
 
