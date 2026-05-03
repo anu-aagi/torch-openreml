@@ -45,22 +45,22 @@ Let $\symbf{\theta}$ denote the collection of variance components that parameter
 
 Under these assumptions, the marginal distribution of $\symbf{Y}$ is given by
 \begin{equation}
-\symbf{Y} \sim \mathcal{N}\left(\symbf{X}\symbf{\beta},\; \symbf{\Sigma}(\symbf{\theta})\right),
+\symbf{Y} \sim \mathcal{N}\left(\symbf{X}\symbf{\beta},\; \symbf{V}(\symbf{\theta})\right),
 \end{equation}
 where
 \begin{equation}
 \label{eq-sigma}
-\symbf{\Sigma}(\symbf{\theta}) = \symbf{Z}\symbf{G}(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta}).
+\symbf{V}(\symbf{\theta}) = \symbf{Z}\symbf{G}(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta}).
 \end{equation}
 
 # BLUE
 
-Given $\symbf{\theta}$, the Best Linear Unbiased Estimator (BLUE) of $\symbf{\beta}$ is the linear unbiased estimator that minimises the variance among all such estimators. Under the linear mixed model with covariance matrix $\symbf{\Sigma}(\symbf{\theta})$, the BLUE of $\symbf{\beta}$ is given by
+Given $\symbf{\theta}$, the Best Linear Unbiased Estimator (BLUE) of $\symbf{\beta}$ is the linear unbiased estimator that minimises the variance among all such estimators. Under the linear mixed model with covariance matrix $\symbf{V}(\symbf{\theta})$, the BLUE of $\symbf{\beta}$ is given by
 \begin{equation}
 \widehat{\symbf{\beta}}(\symbf{\theta})
 =
-\left(\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{X}\right)^{-1}
-\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{Y}.
+\left(\symbf{X}^\top \symbf{V}(\symbf{\theta})^{-1} \symbf{X}\right)^{-1}
+\symbf{X}^\top \symbf{V}(\symbf{\theta})^{-1} \symbf{Y}.
 \end{equation}
 
 This estimator is the generalised least squares (GLS) estimator of $\symbf{\beta}$.
@@ -70,7 +70,7 @@ This estimator is the generalised least squares (GLS) estimator of $\symbf{\beta
 Given $\symbf{\theta}$, we often wish to predict the random effects $\symbf{b}$. The Best Linear Unbiased Predictor (BLUP) of $\symbf{b}$ is given by:
 
 \begin{equation}
-\widehat{\symbf{b}}(\symbf{\theta}) = \symbf{G}(\symbf{\theta})\symbf{Z}^\top \symbf{\Sigma}^{-1}(\symbf{\theta}) (\symbf{Y} - \symbf{X}\widehat{\symbf{\beta}}).
+\widehat{\symbf{b}}(\symbf{\theta}) = \symbf{G}(\symbf{\theta})\symbf{Z}^\top \symbf{V}^{-1}(\symbf{\theta}) (\symbf{Y} - \symbf{X}\widehat{\symbf{\beta}}).
 \label{eq:blup}
 \end{equation}
 
@@ -80,17 +80,17 @@ Given $\symbf{\theta}$, we often wish to predict the random effects $\symbf{b}$.
 
 Maximum likelihood (ML) estimation jointly estimates the fixed effects $\symbf{\beta}$ and variance components $\symbf{\theta}$ by maximising the marginal likelihood of the observed data. After integrating out the random effects $\symbf{b}$ from the joint model, the marginal distribution of $\symbf{Y}$ is
 \begin{equation}
-\symbf{Y} \sim \mathcal{N}\!\left(\symbf{X}\symbf{\beta},\; \symbf{\Sigma}(\symbf{\theta})\right),
+\symbf{Y} \sim \mathcal{N}\!\left(\symbf{X}\symbf{\beta},\; \symbf{V}(\symbf{\theta})\right),
 \end{equation}
-where $\symbf{\Sigma}(\symbf{\theta}) = \symbf{Z}\symbf{G}(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta})$. The corresponding log-likelihood is given by
+where $\symbf{V}(\symbf{\theta}) = \symbf{Z}\symbf{G}(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta})$. The corresponding log-likelihood is given by
 \begin{equation}
 \ell(\symbf{\beta}, \symbf{\theta})
 =
 -\frac{1}{2}\left[
 n\log(2\pi)
-+ \log\left|\symbf{\Sigma}(\symbf{\theta})\right|
++ \log\left|\symbf{V}(\symbf{\theta})\right|
 + (\symbf{Y} - \symbf{X}\symbf{\beta})^\top
-\symbf{\Sigma}(\symbf{\theta})^{-1}
+\symbf{V}(\symbf{\theta})^{-1}
 (\symbf{Y} - \symbf{X}\symbf{\beta})
 \right].
 \end{equation}
@@ -100,9 +100,9 @@ For fixed $\symbf{\theta}$, the log-likelihood is quadratic in $\symbf{\beta}$, 
 \widehat{\symbf{\beta}}(\symbf{\theta})
 =
 \left(
-\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{X}
+\symbf{X}^\top \symbf{V}(\symbf{\theta})^{-1} \symbf{X}
 \right)^{-1}
-\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{Y}.
+\symbf{X}^\top \symbf{V}(\symbf{\theta})^{-1} \symbf{Y}.
 \end{equation}
 Substituting this expression back into the log-likelihood eliminates $\symbf{\beta}$ and produces the profile log-likelihood
 \begin{equation}
@@ -110,7 +110,7 @@ Substituting this expression back into the log-likelihood eliminates $\symbf{\be
 =
 -\frac{1}{2}\left[
 n\log(2\pi)
-+ \log\left|\symbf{\Sigma}(\symbf{\theta})\right|
++ \log\left|\symbf{V}(\symbf{\theta})\right|
 + \symbf{Y}^\top \symbf{P}(\symbf{\theta})\, \symbf{Y}
 \right],
 \end{equation}
@@ -118,13 +118,13 @@ where
 \begin{equation}
 \symbf{P}(\symbf{\theta})
 =
-\symbf{\Sigma}(\symbf{\theta})^{-1}
+\symbf{V}(\symbf{\theta})^{-1}
 -
-\symbf{\Sigma}(\symbf{\theta})^{-1}\symbf{X}
+\symbf{V}(\symbf{\theta})^{-1}\symbf{X}
 \left(
-\symbf{X}^\top\symbf{\Sigma}(\symbf{\theta})^{-1}\symbf{X}
+\symbf{X}^\top\symbf{V}(\symbf{\theta})^{-1}\symbf{X}
 \right)^{-1}
-\symbf{X}^\top\symbf{\Sigma}(\symbf{\theta})^{-1}
+\symbf{X}^\top\symbf{V}(\symbf{\theta})^{-1}
 \end{equation}
 is the residual projection matrix. The resulting optimisation problem depends only on $\symbf{\theta}$.
 
@@ -134,30 +134,30 @@ Since $\ell_p(\symbf{\theta})$ is nonlinear in $\symbf{\theta}$ and does not adm
 =
 -\frac{1}{2}\left[
 \operatorname{tr}\!\left(
-\symbf{\Sigma}^{-1}\frac{\partial \symbf{\Sigma}}{\partial \theta_k}
+\symbf{V}^{-1}\frac{\partial \symbf{V}}{\partial \theta_k}
 \right)
 -
 \symbf{Y}^\top \symbf{P}
-\frac{\partial \symbf{\Sigma}}{\partial \theta_k}
+\frac{\partial \symbf{V}}{\partial \theta_k}
 \symbf{P}\,\symbf{Y}
 \right],
 \end{equation}
 where the identity
-$\partial \log|\symbf{\Sigma}|/\partial \theta_k
+$\partial \log|\symbf{V}|/\partial \theta_k
 =
-\operatorname{tr}(\symbf{\Sigma}^{-1}\partial \symbf{\Sigma}/\partial \theta_k)$
+\operatorname{tr}(\symbf{V}^{-1}\partial \symbf{V}/\partial \theta_k)$
 has been used, together with
 $\partial \symbf{P}/\partial \theta_k
 =
--\symbf{P}(\partial \symbf{\Sigma}/\partial \theta_k)\symbf{P}$.
+-\symbf{P}(\partial \symbf{V}/\partial \theta_k)\symbf{P}$.
 
 A common curvature approximation is given by the Fisher information matrix, whose $(k,j)$ entry is
 \begin{equation}
 \mathcal{I}_{kj}(\symbf{\theta})
 =
 \frac{1}{2}\operatorname{tr}\!\left(
-\symbf{\Sigma}^{-1}\frac{\partial\symbf{\Sigma}}{\partial\theta_k}
-\symbf{\Sigma}^{-1}\frac{\partial\symbf{\Sigma}}{\partial\theta_j}
+\symbf{V}^{-1}\frac{\partial\symbf{V}}{\partial\theta_k}
+\symbf{V}^{-1}\frac{\partial\symbf{V}}{\partial\theta_j}
 \right).
 \end{equation}
 Starting from an initial value $\symbf{\theta}^{(0)}$, the Fisher scoring iteration updates $\symbf{\theta}$ according to
@@ -182,11 +182,11 @@ recovered analytically as
     =
     \left(
         \symbf{X}^\top
-        \symbf{\Sigma}(\widehat{\symbf{\theta}}_{ML})^{-1}
+        \symbf{V}(\widehat{\symbf{\theta}}_{ML})^{-1}
         \symbf{X}
     \right)^{-1}
     \symbf{X}^\top
-    \symbf{\Sigma}(\widehat{\symbf{\theta}}_{ML})^{-1}
+    \symbf{V}(\widehat{\symbf{\theta}}_{ML})^{-1}
     \symbf{Y}.
 \end{equation}
 
@@ -206,7 +206,7 @@ $\symbf{\theta}$.
 
 Restricted maximum likelihood (REML) constructs a likelihood based on linear combinations of $\symbf{Y}$ that are free of $\symbf{\beta}$. Let $\symbf{A}$ be an $(n-p)\times n$ matrix satisfying $\symbf{A}\symbf{X}=\symbf{0}$ and $rank(\symbf{A})=n-p$. Then
 \begin{equation}
-\symbf{AY} \sim \mathcal{N}\big(\symbf{0},\; \symbf{A}\symbf{\Sigma}(\symbf{\theta})\symbf{A}^\top\big),
+\symbf{AY} \sim \mathcal{N}\big(\symbf{0},\; \symbf{A}\symbf{V}(\symbf{\theta})\symbf{A}^\top\big),
 \end{equation}
 and the corresponding log-likelihood is
 \begin{equation}
@@ -214,8 +214,8 @@ and the corresponding log-likelihood is
 =
 -\frac{1}{2}\left[
 (n-p)\log(2\pi)
-+ \log\big|\symbf{A}\symbf{\Sigma}(\symbf{\theta})\symbf{A}^\top\big|
-+ (\symbf{AY})^\top \big(\symbf{A}\symbf{\Sigma}(\symbf{\theta})\symbf{A}^\top\big)^{-1} (\symbf{AY})
++ \log\big|\symbf{A}\symbf{V}(\symbf{\theta})\symbf{A}^\top\big|
++ (\symbf{AY})^\top \big(\symbf{A}\symbf{V}(\symbf{\theta})\symbf{A}^\top\big)^{-1} (\symbf{AY})
 \right].
 \end{equation}
 
@@ -225,8 +225,8 @@ Using standard matrix identities, this expression can be rewritten as
 \ell_R(\symbf{\theta})
 =
 -\frac{1}{2}\left[
-\log\big|\symbf{\Sigma}(\symbf{\theta})\big|
-+ \log\big|\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1} \symbf{X}\big|
+\log\big|\symbf{V}(\symbf{\theta})\big|
++ \log\big|\symbf{X}^\top \symbf{V}(\symbf{\theta})^{-1} \symbf{X}\big|
 + \symbf{Y}^\top \symbf{P}(\symbf{\theta}) \symbf{Y}
 \right]
 + C
@@ -237,13 +237,13 @@ where
 \boxed{
 \symbf{P}(\symbf{\theta})
 =
-\symbf{\Sigma}(\symbf{\theta})^{-1}
+\symbf{V}(\symbf{\theta})^{-1}
 -
-\symbf{\Sigma}(\symbf{\theta})^{-1}\symbf{X}
+\symbf{V}(\symbf{\theta})^{-1}\symbf{X}
 \left(
-\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1}\symbf{X}
+\symbf{X}^\top \symbf{V}(\symbf{\theta})^{-1}\symbf{X}
 \right)^{-1}
-\symbf{X}^\top \symbf{\Sigma}(\symbf{\theta})^{-1}
+\symbf{X}^\top \symbf{V}(\symbf{\theta})^{-1}
 },
 \end{equation}
 and $C$ is a constant independent of $\symbf{\theta}$. Since additive constants do not affect maximisation with respect to $\symbf{\theta}$, the REML log-likelihood is taken to be the above expression up to an additive constant.
@@ -252,32 +252,32 @@ and $C$ is a constant independent of $\symbf{\theta}$. Since additive constants 
 
 Let $\theta_k$ denote the $k$-th component of $\symbf{\theta}$, and define
 \begin{equation}
-\dot{\symbf{\Sigma}}_k
+\dot{\symbf{V}}_k
 =
-\frac{\partial \symbf{\Sigma}(\symbf{\theta})}{\partial \theta_k}.
+\frac{\partial \symbf{V}(\symbf{\theta})}{\partial \theta_k}.
 \end{equation}
 Starting from
 \begin{equation}
 \ell_R(\symbf{\theta})
 =
 -\frac{1}{2}\left[
-\log|\symbf{\Sigma}|
-+ \log\big|\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big|
+\log|\symbf{V}|
++ \log\big|\symbf{X}^\top \symbf{V}^{-1}\symbf{X}\big|
 + \symbf{Y}^\top \symbf{P}\symbf{Y}
 \right]
 + C,
 \end{equation}
 we differentiate each term with respect to $\theta_k$.
 
-\subsubsection*{Derivative of $\log|\symbf{\Sigma}|$}
+\subsubsection*{Derivative of $\log|\symbf{V}|$}
 \begin{equation}
-\frac{\partial}{\partial \theta_k}\log|\symbf{\Sigma}|
+\frac{\partial}{\partial \theta_k}\log|\symbf{V}|
 =
-\operatorname{tr}\!\big(\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k\big).
+\operatorname{tr}\!\big(\symbf{V}^{-1}\dot{\symbf{V}}_k\big).
 \end{equation}
 
-\subsubsection*{Derivative of $\log|\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}|$}
-Set $\symbf{M} = \symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}$. Then
+\subsubsection*{Derivative of $\log|\symbf{X}^\top \symbf{V}^{-1}\symbf{X}|$}
+Set $\symbf{M} = \symbf{X}^\top \symbf{V}^{-1}\symbf{X}$. Then
 \begin{equation}
 \frac{\partial}{\partial \theta_k}\log|\symbf{M}|
 =
@@ -288,22 +288,22 @@ where
 \dot{\symbf{M}}_k
 =
 \frac{\partial}{\partial \theta_k}
-\big(\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big)
+\big(\symbf{X}^\top \symbf{V}^{-1}\symbf{X}\big)
 =
--\,\symbf{X}^\top \symbf{\Sigma}^{-1}
-\dot{\symbf{\Sigma}}_k
-\symbf{\Sigma}^{-1}\symbf{X}.
+-\,\symbf{X}^\top \symbf{V}^{-1}
+\dot{\symbf{V}}_k
+\symbf{V}^{-1}\symbf{X}.
 \end{equation}
 Hence,
 \begin{equation}
 \frac{\partial}{\partial \theta_k}
-\log\big|\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big|
+\log\big|\symbf{X}^\top \symbf{V}^{-1}\symbf{X}\big|
 =
 -\,\operatorname{tr}\!\Big(
-\big(\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big)^{-1}
-\symbf{X}^\top \symbf{\Sigma}^{-1}
-\dot{\symbf{\Sigma}}_k
-\symbf{\Sigma}^{-1}\symbf{X}
+\big(\symbf{X}^\top \symbf{V}^{-1}\symbf{X}\big)^{-1}
+\symbf{X}^\top \symbf{V}^{-1}
+\dot{\symbf{V}}_k
+\symbf{V}^{-1}\symbf{X}
 \Big).
 \end{equation}
 
@@ -321,14 +321,14 @@ Using
 \begin{equation}
 \frac{\partial \symbf{P}}{\partial \theta_k}
 =
--\,\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P},
+-\,\symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P},
 \end{equation}
 we obtain
 \begin{equation}
 \frac{\partial}{\partial \theta_k}
 \big(\symbf{Y}^\top \symbf{P}\symbf{Y}\big)
 =
--\,\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\symbf{Y}.
+-\,\symbf{Y}^\top \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\symbf{Y}.
 \end{equation}
 
 ### Compact Form
@@ -341,16 +341,16 @@ S_k(\symbf{\theta})
 =
 -\frac{1}{2}
 \left[
-\operatorname{tr}\!\big(\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k\big)
+\operatorname{tr}\!\big(\symbf{V}^{-1}\dot{\symbf{V}}_k\big)
 -
 \operatorname{tr}\!\Big(
-\big(\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big)^{-1}
-\symbf{X}^\top \symbf{\Sigma}^{-1}
-\dot{\symbf{\Sigma}}_k
-\symbf{\Sigma}^{-1}\symbf{X}
+\big(\symbf{X}^\top \symbf{V}^{-1}\symbf{X}\big)^{-1}
+\symbf{X}^\top \symbf{V}^{-1}
+\dot{\symbf{V}}_k
+\symbf{V}^{-1}\symbf{X}
 \Big)
 -
-\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\symbf{Y}
+\symbf{Y}^\top \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\symbf{Y}
 \right].
 \end{equation}
 
@@ -358,27 +358,27 @@ To obtain a more compact form, recall the identity
 \begin{equation}
 \symbf{P}
 =
-\symbf{\Sigma}^{-1}
+\symbf{V}^{-1}
 -
-\symbf{\Sigma}^{-1}\symbf{X}
+\symbf{V}^{-1}\symbf{X}
 \left(
-\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}
+\symbf{X}^\top \symbf{V}^{-1}\symbf{X}
 \right)^{-1}
-\symbf{X}^\top \symbf{\Sigma}^{-1}.
+\symbf{X}^\top \symbf{V}^{-1}.
 \end{equation}
 Hence,
 \begin{equation}
-\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{V}}_k\big)
 =
-\operatorname{tr}\!\big(\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k\big)
+\operatorname{tr}\!\big(\symbf{V}^{-1}\dot{\symbf{V}}_k\big)
 -
 \operatorname{tr}\!\Big(
-\symbf{\Sigma}^{-1}\symbf{X}
+\symbf{V}^{-1}\symbf{X}
 \left(
-\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}
+\symbf{X}^\top \symbf{V}^{-1}\symbf{X}
 \right)^{-1}
-\symbf{X}^\top \symbf{\Sigma}^{-1}
-\dot{\symbf{\Sigma}}_k
+\symbf{X}^\top \symbf{V}^{-1}
+\dot{\symbf{V}}_k
 \Big).
 \end{equation}
 Using the cyclic property of the trace, $\operatorname{tr}(\symbf{D}\symbf{A}\symbf{B}\symbf{C})
@@ -386,34 +386,34 @@ Using the cyclic property of the trace, $\operatorname{tr}(\symbf{D}\symbf{A}\sy
 \operatorname{tr}(\symbf{A}\symbf{B}\symbf{C}\symbf{D})$, the second term becomes
 \begin{equation}
 \operatorname{tr}\!\Big(
-\symbf{\Sigma}^{-1}\symbf{X}
+\symbf{V}^{-1}\symbf{X}
 \left(
-\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}
+\symbf{X}^\top \symbf{V}^{-1}\symbf{X}
 \right)^{-1}
-\symbf{X}^\top \symbf{\Sigma}^{-1}
-\dot{\symbf{\Sigma}}_k
+\symbf{X}^\top \symbf{V}^{-1}
+\dot{\symbf{V}}_k
 \Big)
 =
 \operatorname{tr}\!\Big(
 \left(
-\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}
+\symbf{X}^\top \symbf{V}^{-1}\symbf{X}
 \right)^{-1}
-\symbf{X}^\top \symbf{\Sigma}^{-1}
-\dot{\symbf{\Sigma}}_k
-\symbf{\Sigma}^{-1}\symbf{X}
+\symbf{X}^\top \symbf{V}^{-1}
+\dot{\symbf{V}}_k
+\symbf{V}^{-1}\symbf{X}
 \Big).
 \end{equation}
 Therefore,
 \begin{equation}
-\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{V}}_k\big)
 =
-\operatorname{tr}\!\big(\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k\big)
+\operatorname{tr}\!\big(\symbf{V}^{-1}\dot{\symbf{V}}_k\big)
 -
 \operatorname{tr}\!\Big(
-\big(\symbf{X}^\top \symbf{\Sigma}^{-1}\symbf{X}\big)^{-1}
-\symbf{X}^\top \symbf{\Sigma}^{-1}
-\dot{\symbf{\Sigma}}_k
-\symbf{\Sigma}^{-1}\symbf{X}
+\big(\symbf{X}^\top \symbf{V}^{-1}\symbf{X}\big)^{-1}
+\symbf{X}^\top \symbf{V}^{-1}
+\dot{\symbf{V}}_k
+\symbf{V}^{-1}\symbf{X}
 \Big).
 \end{equation}
 Substituting this identity into the previous expression for $S_k(\symbf{\theta})$ yields
@@ -424,9 +424,9 @@ S_k(\symbf{\theta})
 =
 \frac{1}{2}
 \left[
-\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\symbf{Y}
+\symbf{Y}^\top \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\symbf{Y}
 -
-\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{V}}_k\big)
 \right]
 }.
 \end{equation}
@@ -439,16 +439,16 @@ S_k(\symbf{\theta})
 =
 \frac{1}{2}
 \left[
-\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\symbf{Y}
+\symbf{Y}^\top \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\symbf{Y}
 -
-\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{V}}_k\big)
 \right],
 \end{equation}
 where
 \begin{equation}
-\dot{\symbf{\Sigma}}_k
+\dot{\symbf{V}}_k
 =
-\frac{\partial \symbf{\Sigma}(\symbf{\theta})}{\partial \theta_k}.
+\frac{\partial \symbf{V}(\symbf{\theta})}{\partial \theta_k}.
 \end{equation}
 
 ### Observed Information
@@ -461,37 +461,37 @@ Differentiating $S_k$ with respect to $\theta_j$ gives
 \left[
 \symbf{Y}^\top
 \frac{\partial}{\partial \theta_j}
-\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\big)
+\big(\symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\big)
 \symbf{Y}
 -
 \frac{\partial}{\partial \theta_j}
-\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{V}}_k\big)
 \right].
 \end{equation}
 
-For the quadratic term, using the product rule and $\partial \symbf{P}/\partial \theta_j = -\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}$, we obtain
+For the quadratic term, using the product rule and $\partial \symbf{P}/\partial \theta_j = -\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}$, we obtain
 \begin{equation}
 \frac{\partial}{\partial \theta_j}
-\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\big)
+\big(\symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\big)
 =
--\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}
+-\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}
 -
-\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}
+\symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}
 +
-\symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P}.
+\symbf{P}\,\ddot{\symbf{V}}_{kj}\,\symbf{P}.
 \end{equation}
 
 For the trace term,
 \begin{equation}
 \frac{\partial}{\partial \theta_j}
-\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{\Sigma}}_k\big)
+\operatorname{tr}\!\big(\symbf{P}\,\dot{\symbf{V}}_k\big)
 =
 -\,\operatorname{tr}\!\big(
-\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k
+\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}\,\dot{\symbf{V}}_k
 \big)
 +
 \operatorname{tr}\!\big(
-\symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}
+\symbf{P}\,\ddot{\symbf{V}}_{kj}
 \big).
 \end{equation}
 
@@ -500,77 +500,77 @@ Putting everything together yields the observed information:
 \mathcal{J}_{kj}(\symbf{\theta}) = -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j}
 =
 \symbf{Y}^\top
-\symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}
+\symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}
 \symbf{Y}
 -\frac{1}{2}
 \operatorname{tr}\!\big(
-\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k
+\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}\,\dot{\symbf{V}}_k
 \big)
 +\frac{1}{2}
 \operatorname{tr}\!\big(
-\symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}
+\symbf{P}\,\ddot{\symbf{V}}_{kj}
 \big)
-- \frac{1}{2} \symbf{Y}^\top \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P}\symbf{Y}.
+- \frac{1}{2} \symbf{Y}^\top \symbf{P}\,\ddot{\symbf{V}}_{kj}\,\symbf{P}\symbf{Y}.
 \end{equation}
 
 ### Expected Information
 
-We now derive the expected Fisher information matrix by taking expectations of the negative second derivatives. Recall that under the model, $\mathbb{E}[\symbf{Y}] = \symbf{X}\symbf{\beta}$. However, a fundamental property of the projection matrix $\symbf{P}$ is that $\symbf{P}\symbf{X} = \symbf{0}$, which implies $\symbf{P}\symbf{Y} = \symbf{P}(\symbf{Y} - \symbf{X}\symbf{\beta})$. Consequently, when computing expectations of expressions involving $\symbf{P}$, we may without loss of generality treat $\symbf{Y}$ as centered at zero. We therefore take $\mathbb{E}[\symbf{Y}] = \symbf{0}$ and $\mathbb{E}[\symbf{Y}\symbf{Y}^\top] = \symbf{\Sigma}$ for the remainder of this derivation.
+We now derive the expected Fisher information matrix by taking expectations of the negative second derivatives. Recall that under the model, $\mathbb{E}[\symbf{Y}] = \symbf{X}\symbf{\beta}$. However, a fundamental property of the projection matrix $\symbf{P}$ is that $\symbf{P}\symbf{X} = \symbf{0}$, which implies $\symbf{P}\symbf{Y} = \symbf{P}(\symbf{Y} - \symbf{X}\symbf{\beta})$. Consequently, when computing expectations of expressions involving $\symbf{P}$, we may without loss of generality treat $\symbf{Y}$ as centered at zero. We therefore take $\mathbb{E}[\symbf{Y}] = \symbf{0}$ and $\mathbb{E}[\symbf{Y}\symbf{Y}^\top] = \symbf{V}$ for the remainder of this derivation.
 
 The observed information matrix is given by
 \begin{equation}
 -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j}
 =
-\underbrace{\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \symbf{Y}}_{T_1}
--\frac12 \underbrace{\operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k \big)}_{T_2}
-+\frac12 \underbrace{\operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)}_{T_3}
-- \frac12 \underbrace{\symbf{Y}^\top \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P}\symbf{Y}}_{T_4}.
+\underbrace{\symbf{Y}^\top \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P} \symbf{Y}}_{T_1}
+-\frac12 \underbrace{\operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}\,\dot{\symbf{V}}_k \big)}_{T_2}
++\frac12 \underbrace{\operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{V}}_{kj} \big)}_{T_3}
+- \frac12 \underbrace{\symbf{Y}^\top \symbf{P}\,\ddot{\symbf{V}}_{kj}\,\symbf{P}\symbf{Y}}_{T_4}.
 \end{equation}
 We evaluate the expectation of each term in turn.
 
 #### Expectation of $T_1$
 
-The quantity $T_1$ is a quadratic form in $\symbf{Y}$. For a zero-mean random vector with covariance $\symbf{\Sigma}$, the identity $\mathbb{E}[\symbf{Y}^\top \symbf{A} \symbf{Y}] = \operatorname{tr}(\symbf{A} \symbf{\Sigma})$ holds for any conformable matrix $\symbf{A}$. Applying this with $\symbf{A} = \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}$ yields
+The quantity $T_1$ is a quadratic form in $\symbf{Y}$. For a zero-mean random vector with covariance $\symbf{V}$, the identity $\mathbb{E}[\symbf{Y}^\top \symbf{A} \symbf{Y}] = \operatorname{tr}(\symbf{A} \symbf{V})$ holds for any conformable matrix $\symbf{A}$. Applying this with $\symbf{A} = \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}$ yields
 \begin{equation}
-\mathbb{E}[T_1] = \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \, \symbf{\Sigma} \big).
+\mathbb{E}[T_1] = \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P} \, \symbf{V} \big).
 \end{equation}
-A key identity satisfied by $\symbf{P}$ is $\symbf{P}\symbf{\Sigma}\symbf{P} = \symbf{P}$, which can be verified by direct substitution of the definition $\symbf{P} = \symbf{\Sigma}^{-1} - \symbf{\Sigma}^{-1}\symbf{X}(\symbf{X}^\top\symbf{\Sigma}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{\Sigma}^{-1}$. Using the cyclic property of the trace,
+A key identity satisfied by $\symbf{P}$ is $\symbf{P}\symbf{V}\symbf{P} = \symbf{P}$, which can be verified by direct substitution of the definition $\symbf{P} = \symbf{V}^{-1} - \symbf{V}^{-1}\symbf{X}(\symbf{X}^\top\symbf{V}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{V}^{-1}$. Using the cyclic property of the trace,
 \begin{align}
-\mathbb{E}[T_1] &= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\, (\symbf{P}\symbf{\Sigma}) \big) \\
-&= \operatorname{tr}\!\big( \dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\symbf{\Sigma}\symbf{P} \big) \quad \text{(cyclic permutation)} \\
-&= \operatorname{tr}\!\big( \dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \big) \quad \text{(since $\symbf{P}\symbf{\Sigma}\symbf{P} = \symbf{P}$)} \\
-&= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big) \quad \text{(cyclic permutation again)}.
+\mathbb{E}[T_1] &= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\, (\symbf{P}\symbf{V}) \big) \\
+&= \operatorname{tr}\!\big( \dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}\symbf{V}\symbf{P} \big) \quad \text{(cyclic permutation)} \\
+&= \operatorname{tr}\!\big( \dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P} \big) \quad \text{(since $\symbf{P}\symbf{V}\symbf{P} = \symbf{P}$)} \\
+&= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j \big) \quad \text{(cyclic permutation again)}.
 \end{align}
 Thus
 \begin{equation}
-\mathbb{E}[T_1] = \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\mathbb{E}[T_1] = \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j \big).
 \end{equation}
 
 #### Expectation of $T_2$
 
 The term $T_2$ contains no random quantities; it is a deterministic function of the parameters. Hence
 \begin{equation}
-\mathbb{E}[T_2] = \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k \big).
+\mathbb{E}[T_2] = \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}\,\dot{\symbf{V}}_k \big).
 \end{equation}
 
 #### Expectation of $T_3$
 
 Similarly, $T_3$ is non-random, giving
 \begin{equation}
-\mathbb{E}[T_3] = \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
+\mathbb{E}[T_3] = \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{V}}_{kj} \big).
 \end{equation}
 
 #### Expectation of $T_4$
 
 The term $T_4$ is again a quadratic form. Applying the same identity as for $T_1$,
 \begin{equation}
-\mathbb{E}[T_4] = \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P} \, \symbf{\Sigma} \big).
+\mathbb{E}[T_4] = \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{V}}_{kj}\,\symbf{P} \, \symbf{V} \big).
 \end{equation}
-Using the cyclic property followed by $\symbf{P}\symbf{\Sigma}\symbf{P} = \symbf{P}$,
+Using the cyclic property followed by $\symbf{P}\symbf{V}\symbf{P} = \symbf{P}$,
 \begin{align}
-\mathbb{E}[T_4] &= \operatorname{tr}\!\big( \ddot{\symbf{\Sigma}}_{kj}\,\symbf{P} \symbf{\Sigma} \symbf{P} \big) \\
-&= \operatorname{tr}\!\big( \ddot{\symbf{\Sigma}}_{kj}\,\symbf{P} \big) \\
-&= \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
+\mathbb{E}[T_4] &= \operatorname{tr}\!\big( \ddot{\symbf{V}}_{kj}\,\symbf{P} \symbf{V} \symbf{P} \big) \\
+&= \operatorname{tr}\!\big( \ddot{\symbf{V}}_{kj}\,\symbf{P} \big) \\
+&= \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{V}}_{kj} \big).
 \end{align}
 
 #### Combining the expectations
@@ -579,34 +579,34 @@ Assembling the four components,
 \begin{align}
 \mathbb{E}\!\left[ -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j} \right]
 &= \mathbb{E}[T_1] - \frac12 \mathbb{E}[T_2] + \frac12 \mathbb{E}[T_3] - \frac12 \mathbb{E}[T_4] \\[4pt]
-&= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big)
-- \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k \big) \\
-&\quad + \frac12 \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)
-- \frac12 \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big).
+&= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j \big)
+- \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}\,\dot{\symbf{V}}_k \big) \\
+&\quad + \frac12 \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{V}}_{kj} \big)
+- \frac12 \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{V}}_{kj} \big).
 \end{align}
-The two terms involving the second derivatives $\ddot{\symbf{\Sigma}}_{kj}$ cancel identically. Moreover, the trace is symmetric in its matrix arguments, so
+The two terms involving the second derivatives $\ddot{\symbf{V}}_{kj}$ cancel identically. Moreover, the trace is symmetric in its matrix arguments, so
 \begin{equation}
-\operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P}\,\dot{\symbf{\Sigma}}_k \big)
-= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P}\,\dot{\symbf{V}}_k \big)
+= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j \big).
 \end{equation}
 Substituting this into the expression above,
 \begin{align}
 \mathbb{E}\!\left[ -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j} \right]
-&= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big)
-- \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big) \\[4pt]
-&= \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+&= \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j \big)
+- \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j \big) \\[4pt]
+&= \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j \big).
 \end{align}
 
 This final expression defines the $(k,j)$-th entry of the REML Fisher information matrix,
 \begin{equation}
-\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j \big).
 \end{equation}
 
 ### Definition of the Average Information
 
 The expected information (Fisher information) is
 \begin{equation}
-\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j \big).
+\mathcal{I}_{kj}(\symbf{\theta}) = \frac12 \operatorname{tr}\!\big( \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j \big).
 \end{equation}
 The observed information is denoted $\mathcal{J}_{kj}(\symbf{\theta})$, and the \emph{average information} matrix is defined as
 \begin{equation}
@@ -615,18 +615,18 @@ The observed information is denoted $\mathcal{J}_{kj}(\symbf{\theta})$, and the 
 
 Substituting the expressions and simplifying, the trace terms cancel, yielding
 \begin{align}
-\mathcal{A}_{kj} &= \frac12 \symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \symbf{Y} \\
-&\quad + \frac14 \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj} \big)
-- \frac14 \symbf{Y}^\top \symbf{P}\,\ddot{\symbf{\Sigma}}_{kj}\,\symbf{P}\symbf{Y}.
+\mathcal{A}_{kj} &= \frac12 \symbf{Y}^\top \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P} \symbf{Y} \\
+&\quad + \frac14 \operatorname{tr}\!\big( \symbf{P}\,\ddot{\symbf{V}}_{kj} \big)
+- \frac14 \symbf{Y}^\top \symbf{P}\,\ddot{\symbf{V}}_{kj}\,\symbf{P}\symbf{Y}.
 \end{align}
 
 #### Simplification for Linear Variance Component Models
 
-In the common case where $\symbf{\Sigma}(\symbf{\theta}) = \sum_{t=1}^p \theta_t \symbf{V}_t$ with known matrices $\symbf{V}_t$, the second derivatives vanish: $\ddot{\symbf{\Sigma}}_{kj} = \symbf{0}$ for all $k,j$. The average information matrix then reduces to
+In the common case where $\symbf{V}(\symbf{\theta}) = \sum_{t=1}^p \theta_t \symbf{M}_t$ with known matrices $\symbf{M}_t$, the second derivatives vanish: $\ddot{\symbf{V}}_{kj} = \symbf{0}$ for all $k,j$. The average information matrix then reduces to
 \begin{equation}
 \label{eq-AI}
 \boxed{
-\mathcal{A}_{kj} = \frac12 \,\symbf{Y}^\top \symbf{P}\,\dot{\symbf{\Sigma}}_k\,\symbf{P}\,\dot{\symbf{\Sigma}}_j\,\symbf{P} \symbf{Y}
+\mathcal{A}_{kj} = \frac12 \,\symbf{Y}^\top \symbf{P}\,\dot{\symbf{V}}_k\,\symbf{P}\,\dot{\symbf{V}}_j\,\symbf{P} \symbf{Y}
 }.
 \end{equation}
 
@@ -659,21 +659,21 @@ This is the form commonly used in the AI-REML algorithm [@gilmour1995average], w
 
 <!-- Note that we use cholesky operation to avoid inverting large symmetric matrix.  -->
 
-<!-- 2. Another thing that commonly appears is the term P \dot{\symbf{\Sigma}}_k, when expand it looks like: -->
+<!-- 2. Another thing that commonly appears is the term P \dot{\symbf{V}}_k, when expand it looks like: -->
 
 <!-- <write the equation here> -->
 
 <!-- To compute such an equation, we need to compute -->
 
-<!-- a. Sigma^{-1} \dot{\symbf{\Sigma}}_k -->
-<!-- b. Sigma^{-1} X (X^\top Sigma^{-1} X)^{-1} X^\top Sigma^{-1} \dot{\symbf{\Sigma}}_k -->
+<!-- a. Sigma^{-1} \dot{\symbf{V}}_k -->
+<!-- b. Sigma^{-1} X (X^\top Sigma^{-1} X)^{-1} X^\top Sigma^{-1} \dot{\symbf{V}}_k -->
 
 <!-- 3. Then for the score function, we have enough ingredient to compute.  -->
-<!-- 0.5 * (Y^\top (P \dot{\symbf{\Sigma}}_k) (P Y) - tr(P \dot{\symbf{\Sigma}}_k)) -->
+<!-- 0.5 * (Y^\top (P \dot{\symbf{V}}_k) (P Y) - tr(P \dot{\symbf{V}}_k)) -->
 
 <!-- 4. And for the AI matrix, we also have enough ingredient to compute, and since the AI matrix is symmetric, we need to compute only half of the matrix and populate it to the full matrix. -->
 
-<!-- 0.5 * (Y (P \dot{\symbf{\Sigma}}_k) (P \dot{\symbf{\Sigma}}_j) (P Y)) -->
+<!-- 0.5 * (Y (P \dot{\symbf{V}}_k) (P \dot{\symbf{V}}_j) (P Y)) -->
 
 To update $\theta$, one needs to compute the score function and the AI matrix, note that the log likelihood function is not necessary. As derived above, the score function is given in Equation \eqref{eq-score}, and the AI matrix is given in Equation \eqref{eq-AI}. Both have some common terms that can be shared during computation.
 
@@ -681,43 +681,43 @@ During computation, we will avoid forming $\symbf{P}$ as it is a complex matrix,
 
 1. In both the score and AI matrix, the term $\symbf{P}\symbf{Y}$ commonly appears. Expanding it gives:
 \begin{equation}
-\symbf{P}\symbf{Y} = \symbf{\Sigma}^{-1}\symbf{Y} - \symbf{\Sigma}^{-1}\symbf{X}(\symbf{X}^\top\symbf{\Sigma}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{\Sigma}^{-1}\symbf{Y}
+\symbf{P}\symbf{Y} = \symbf{V}^{-1}\symbf{Y} - \symbf{V}^{-1}\symbf{X}(\symbf{X}^\top\symbf{V}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{V}^{-1}\symbf{Y}
 \label{eq:PY_expanded}
 \end{equation}
 Since $\symbf{P}$ is a residual operator, this is actually the weighted residuals. To compute Equation \eqref{eq:PY_expanded}, we need to compute:
 \begin{align}
-&\text{a. } \dot{\symbf{\Sigma}}_k \quad \text{(derivative of covariance matrix w.r.t. $\theta_k$)} \nonumber \\
-&\text{b. } \symbf{L}_{\symbf{\Sigma}} \quad \text{(Cholesky factor)} \nonumber \\
-&\text{c. } \symbf{\Sigma}^{-1} \symbf{Y} \nonumber \\
-&\text{d. } \symbf{\Sigma}^{-1} \symbf{X} \nonumber \\
-&\text{e. } \symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X} \nonumber \\
-&\text{f. } \symbf{L}_{\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X}} \quad \text{(Cholesky factor)} \nonumber \\
-&\text{g. } (\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{\Sigma}^{-1} \nonumber \\
-&\text{h. } \symbf{\Sigma}^{-1} \symbf{X} (\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{\Sigma}^{-1} \nonumber \\
-&\text{i. } \symbf{\Sigma}^{-1} \symbf{X} (\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{Y} \nonumber
+&\text{a. } \dot{\symbf{V}}_k \quad \text{(derivative of covariance matrix w.r.t. $\theta_k$)} \nonumber \\
+&\text{b. } \symbf{L}_{\symbf{V}} \quad \text{(Cholesky factor)} \nonumber \\
+&\text{c. } \symbf{V}^{-1} \symbf{Y} \nonumber \\
+&\text{d. } \symbf{V}^{-1} \symbf{X} \nonumber \\
+&\text{e. } \symbf{X}^\top \symbf{V}^{-1} \symbf{X} \nonumber \\
+&\text{f. } \symbf{L}_{\symbf{X}^\top \symbf{V}^{-1} \symbf{X}} \quad \text{(Cholesky factor)} \nonumber \\
+&\text{g. } (\symbf{X}^\top \symbf{V}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{V}^{-1} \nonumber \\
+&\text{h. } \symbf{V}^{-1} \symbf{X} (\symbf{X}^\top \symbf{V}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{V}^{-1} \nonumber \\
+&\text{i. } \symbf{V}^{-1} \symbf{X} (\symbf{X}^\top \symbf{V}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{V}^{-1} \symbf{Y} \nonumber
 \end{align}
 Note that we use Cholesky operations to avoid inverting large symmetric matrices. 
 
-2. Another term that commonly appears is $\symbf{P} \dot{\symbf{\Sigma}}_k$. Expanding it gives:
+2. Another term that commonly appears is $\symbf{P} \dot{\symbf{V}}_k$. Expanding it gives:
 \begin{equation}
-\symbf{P} \dot{\symbf{\Sigma}}_k = \symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k - \symbf{\Sigma}^{-1}\symbf{X}(\symbf{X}^\top\symbf{\Sigma}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{\Sigma}^{-1}\dot{\symbf{\Sigma}}_k
+\symbf{P} \dot{\symbf{V}}_k = \symbf{V}^{-1}\dot{\symbf{V}}_k - \symbf{V}^{-1}\symbf{X}(\symbf{X}^\top\symbf{V}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{V}^{-1}\dot{\symbf{V}}_k
 \label{eq:P_Sigma_expanded}
 \end{equation}
 To compute Equation \eqref{eq:P_Sigma_expanded}, we need to compute:
 \begin{align}
-&\text{a. } \symbf{\Sigma}^{-1} \dot{\symbf{\Sigma}}_k \nonumber \\
-&\text{b. } \symbf{\Sigma}^{-1} \symbf{X} (\symbf{X}^\top \symbf{\Sigma}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{\Sigma}^{-1} \dot{\symbf{\Sigma}}_k \nonumber
+&\text{a. } \symbf{V}^{-1} \dot{\symbf{V}}_k \nonumber \\
+&\text{b. } \symbf{V}^{-1} \symbf{X} (\symbf{X}^\top \symbf{V}^{-1} \symbf{X})^{-1} \symbf{X}^\top \symbf{V}^{-1} \dot{\symbf{V}}_k \nonumber
 \end{align}
 
 3. Then for the score function, we have enough ingredients to compute:
 \begin{equation}
-S_k = \frac{1}{2}\left[\symbf{Y}^\top (\symbf{P} \dot{\symbf{\Sigma}}_k) (\symbf{P}\symbf{Y}) - \operatorname{tr}(\symbf{P} \dot{\symbf{\Sigma}}_k)\right]
+S_k = \frac{1}{2}\left[\symbf{Y}^\top (\symbf{P} \dot{\symbf{V}}_k) (\symbf{P}\symbf{Y}) - \operatorname{tr}(\symbf{P} \dot{\symbf{V}}_k)\right]
 \label{eq:score_computed}
 \end{equation}
 
 4. For the AI matrix, we also have enough ingredients to compute it. Since the AI matrix is symmetric, we need to compute only half of the matrix and then populate it to the full matrix:
 \begin{equation}
-\mathcal{A}_{kj} = \frac{1}{2}\left[\symbf{Y}^\top (\symbf{P} \dot{\symbf{\Sigma}}_k) (\symbf{P} \dot{\symbf{\Sigma}}_j) (\symbf{P}\symbf{Y})\right]
+\mathcal{A}_{kj} = \frac{1}{2}\left[\symbf{Y}^\top (\symbf{P} \dot{\symbf{V}}_k) (\symbf{P} \dot{\symbf{V}}_j) (\symbf{P}\symbf{Y})\right]
 \label{eq:AI_computed}
 \end{equation}
 
@@ -727,9 +727,9 @@ During the update, if $\mathcal{A}$ is large, we can compute $\symbf{L}_{\mathca
 
 # Covariance Structure
 
-As defined in Equation \eqref{eq-sigma}, the covariance structure of the Gaussian linear mixed model depends on $\symbf{G}(\symbf{\theta})$ and $\symbf{R}(\symbf{\theta})$. The marginal covariance matrix $\symbf{\Sigma}$ can be decomposed into a sum of component-specific contributions. Specifically, the model can be written as
+As defined in Equation \eqref{eq-sigma}, the covariance structure of the Gaussian linear mixed model depends on $\symbf{G}(\symbf{\theta})$ and $\symbf{R}(\symbf{\theta})$. The marginal covariance matrix $\symbf{V}$ can be decomposed into a sum of component-specific contributions. Specifically, the model can be written as
 \begin{equation}
-\symbf{\Sigma} = \sum_{m=1}^{M} \symbf{Z}\symbf{G}_m(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta}).
+\symbf{V} = \sum_{m=1}^{M} \symbf{Z}\symbf{G}_m(\symbf{\theta})\symbf{Z}^\top + \symbf{R}(\symbf{\theta}).
 \end{equation}
 
 For each random-effect covariance component $\symbf{G}_m(\symbf{\theta})$ and the residual covariance $\symbf{R}(\symbf{\theta})$, a number of standard covariance structures are commonly employed. In the following, we summarise several of these structures together with their parameterisations and corresponding derivatives.
