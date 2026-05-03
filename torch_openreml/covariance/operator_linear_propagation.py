@@ -19,22 +19,22 @@ class LinearPropagation(Operator):
         if grad:
             self.reset_grad()
             
-            grad = []
+            grad_list = []
             dz = grad_groups[0]
             dg = grad_groups[1]
             
             if dz is not None:
                 dz = dz @ g @ z.T + z @ g @ dz.mT
-                grad.append(dz)
+                grad_list.append(dz)
                 self._grad_names.extend(grad_name_groups[0])
                 
             if dg is not None:
                 dg = z @ dg @ z.T
-                grad.append(dg)
+                grad_list.append(dg)
                 self._grad_names.extend(grad_name_groups[1])
                 
-            if len(grad) > 0:
-                self._grad = torch.cat(grad)
+            if len(grad_list) > 0:
+                self._grad = torch.cat(grad_list)
         
         self._shape = tuple(v.shape)
         return v
