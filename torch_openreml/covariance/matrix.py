@@ -101,6 +101,21 @@ class Matrix(ABC):
     @abstractmethod
     def build(self, params, grad=True):
         raise NotImplementedError
+
+    def __call__(self, params, grad=True):
+        """
+        Call :meth:`build` to construct the matrix from a flat parameter tensor.
+
+        Args:
+            params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary.
+            grad (bool): Whether to compute and store the Jacobian.
+                Defaults to ``True``.
+
+        Returns:
+            torch.Tensor: Constructed matrix of shape :attr:`shape`.
+        """
+        self.build(params, grad)
       
     def map_theta_to_v(self, theta):
         return self.build(theta, grad=True)
