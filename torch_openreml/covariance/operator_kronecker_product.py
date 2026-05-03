@@ -19,22 +19,22 @@ class KroneckerProduct(Operator):
         if grad:
             self.reset_grad()
             
-            grad = []
+            grad_list = []
             da = grad_groups[0]
             db = grad_groups[1]
             
             if da is not None:
                 da = torch.kron(da, b)
-                grad.append(da)
+                grad_list.append(da)
                 self._grad_names.extend(grad_name_groups[0])
                 
             if db is not None:
                 db = torch.kron(a, db)
-                grad.append(db)
+                grad_list.append(db)
                 self._grad_names.extend(grad_name_groups[1])
                 
-            if len(grad) > 0:
-                self._grad = torch.cat(grad)
+            if len(grad_list) > 0:
+                self._grad = torch.cat(grad_list)
         
         self._shape = tuple(v.shape)
         return v
