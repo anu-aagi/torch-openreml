@@ -45,6 +45,21 @@ class Operator(Matrix):
             "This operator only provides a view of no_grad_index. "
             "Set it on the covariance matrix that owns the parameters instead!"
         )
+
+    def trans_params(self, params):
+        params = self.from_param_dict(params)
+        self.check_params(params)
+
+        result = []
+
+        for name, operand in self.operands.items():
+            if isinstance(operand, Matrix):
+                operand_params = params[0:operand.num_params]
+                params = params[operand.num_params:]
+
+                result.append(operand.trans_params(operand_params))
+
+        return torch.cat(result)
     
     def build_operands(self, params, grad=True):
         params = self.from_param_dict(params)
