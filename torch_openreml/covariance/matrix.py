@@ -2,9 +2,8 @@
 Covariance matrix abstraction system.
 
 This module defines a flexible base class for constructing covariance matrices
-used in linear mixed-effects models. Implementations support both manual and
-automatic differentiation via :meth:`auto_grad`, enabling gradient-based
-optimization of model parameters.
+used in linear mixed-effects models. Implementations support both manual (:meth:`manual_grad`) and
+automatic differentiation (:meth:`auto_grad`).
 
 Classes:
   Matrix:
@@ -91,6 +90,36 @@ class Matrix(ABC):
         self.reset_intermediates()
 
     def set_intermediates(self, params, intermediates):
+        """
+        Cache intermediate computation results keyed by parameter hash.
+
+        Stores arbitrary intermediate values alongside a hash of the current
+        parameter tensor, dtype, and device. Cached values can be retrieved
+        via :meth:`get_intermediates` to avoid redundant computation across
+        multiple calls with identical parameters.
+
+        Args:
+            params (torch.Tensor or dict): Current parameter tensor or dictionary.
+                Converted to a flat tensor via :meth:`from_param_dict` before hashing.
+            intermediates: Arbitrary object to cache (e.g. Cholesky factors,
+                eigendecompositions, or any reusable computation).
+
+        Note:
+            If ``params`` has length 0 (no trainable parameters), this is a no-op.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            params = torch.tensor([0.0, 0.5, 1.0])
+            sigma2 = mat.trans_params(params)
+            mat.set_intermediates(params, {"sigma2": sigma2})
+            mat.get_intermediates(params)
+        """
         params = self.from_param_dict(params)
         device, dtype = self.check_params(params)
 
@@ -104,6 +133,36 @@ class Matrix(ABC):
         self._intermediates["intermediates"] = intermediates
 
     def get_intermediates(self, params):
+        """
+        Retrieve cached intermediate computation results if still valid.
+
+        Compares the hash, dtype, and device of ``params`` against the stored
+        cache from the last :meth:`set_intermediates` call. Returns the cached
+        value only if all three match, ensuring stale results are never returned
+        after a parameter update, device transfer, or dtype cast.
+
+        Args:
+            params (torch.Tensor or dict): Current parameter tensor or dictionary.
+                Converted to a flat tensor via :meth:`from_param_dict` before
+                comparison.
+
+        Returns:
+            The cached intermediate object if the cache is valid, or ``None`` if
+            the cache is missing, stale, or ``params`` has length 0.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            params = torch.tensor([0.0, 0.5, 1.0])
+            sigma2 = mat.trans_params(params)
+            mat.set_intermediates(params, {"sigma2": sigma2})
+            mat.get_intermediates(params)
+        """
         params = self.from_param_dict(params)
         device, dtype = self.check_params(params)
 
@@ -119,9 +178,64 @@ class Matrix(ABC):
         return None
 
     def reset_intermediates(self):
+        """
+        Clear the intermediate computation cache.
+
+        Resets all cached values set by :meth:`set_intermediates` to ``None``,
+        forcing subsequent calls to :meth:`get_intermediates` to return ``None``
+        until the cache is repopulated. Called automatically in :meth:`__init__`
+        and within :meth:`auto_grad` before triggering a fresh Jacobian computation.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            params = torch.tensor([0.0, 0.5, 1.0])
+            sigma2 = mat.trans_params(params)
+            mat.set_intermediates(params, {"sigma2": sigma2})
+            print(mat.get_intermediates(params))
+            mat.reset_intermediates()
+            print(mat.get_intermediates(params))
+        """
         self._intermediates = {"hash": None, "dtype": None, "device": None, "intermediates": None}
-    
+
     def set_no_grad(self, index=None, param_name=None):
+        """
+        Set the indices of parameters to exclude from gradient computation.
+
+        Replaces :attr:`no_grad_index` with the provided indices. Exactly one
+        of ``index`` or ``param_name`` must be supplied; providing both or neither
+        raises an error.
+
+        Args:
+            index (int or list of int, optional): Zero-based index or list of
+                indices into :attr:`param_names` to exclude from gradient
+                computation.
+            param_name (str or list of str, optional): Parameter name or list
+                of names to exclude. Names must exist in :attr:`param_names`.
+
+        Raises:
+            ValueError: If both or neither of ``index`` and ``param_name``
+                are provided, or if any index is out of range.
+            KeyError: If any name in ``param_name`` is not found in
+                :attr:`param_names`.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            mat.set_no_grad(index=0)
+            print(mat.no_grad_index)
+            print(mat.grad(torch.zeros(3)))
+        """
         if (index is None) == (param_name is None):
             raise ValueError("Provide exactly one of 'index' or 'param_name'!")
         
@@ -160,8 +274,20 @@ class Matrix(ABC):
             ValueError: If ``param_dict`` is a dictionary missing required keys
                 or containing unexpected keys, or if the tensor length does not
                 match the number of parameters.
-        """
 
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            param_dict = {"sigma^2_0": torch.tensor([0.0]),
+                          "sigma^2_1": torch.tensor([0.5]),
+                          "sigma^2_2": torch.tensor([1.0])}
+            mat.from_param_dict(param_dict)
+        """
         if not isinstance(param_dict, dict):
             return param_dict
         
@@ -174,8 +300,39 @@ class Matrix(ABC):
             raise ValueError(f"Unexpected parameters: {extra}!")
         
         return torch.cat([param_dict[name] for name in self._param_names])
-      
+
     def to_param_dict(self, params):
+        """
+        Convert a flat parameter tensor to a parameter dictionary.
+
+        Maps each element of a 1D parameter tensor to its corresponding name
+        in :attr:`param_names`, returning a dictionary of scalar tensors.
+        This is the inverse of :meth:`from_param_dict`.
+
+        Args:
+            params (torch.Tensor or dict): Either a flat 1D tensor of length
+                :attr:`num_params` (converted to a dict), or a dict (returned
+                as-is).
+
+        Returns:
+            dict: Mapping from each name in :attr:`param_names` to a
+            1D single-element tensor.
+
+        Raises:
+            ValueError: If ``params`` is a tensor whose length does not equal
+                :attr:`num_params`.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            params = torch.tensor([0.0, 0.5, 1.0])
+            mat.to_param_dict(params)
+        """
         if isinstance(params, dict):
             return params
         
@@ -185,6 +342,35 @@ class Matrix(ABC):
         return {name: tensor for name, tensor in zip(self.param_names, params.unsqueeze(-1))}
 
     def trans_params(self, params):
+        """
+        Apply parameter transforms to a flat parameter tensor.
+
+        Applies the transforms in :attr:`trans` element-wise to ``params``.
+        If :attr:`trans` is ``None`` or empty, returns ``params`` unchanged.
+        If :attr:`trans` has a single entry, that transform is broadcast and
+        applied to all parameters simultaneously. Otherwise, each transform
+        is applied to its corresponding parameter individually.
+
+        Args:
+            params (torch.Tensor or dict): Flat 1D parameter tensor or
+                dictionary. Converted via :meth:`from_param_dict` before
+                transformation.
+
+        Returns:
+            torch.Tensor: Transformed parameter tensor of the same shape
+            as ``params``.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            params = torch.tensor([0.0, 0.5, 1.0])
+            mat.trans_params(params)
+        """
         params = self.from_param_dict(params)
         _, _ = self.check_params(params)
 
@@ -197,11 +383,44 @@ class Matrix(ABC):
             return torch.cat([self.trans[i](x) for i, x in enumerate(params.unsqueeze(-1))])
 
     def trans_grad(self, params):
+        """
+        Compute the element-wise derivative of the parameter transforms.
+
+        Returns the Jacobian diagonal of :meth:`trans_params` with respect
+        to the raw (untransformed) parameters. Used in the chain rule when
+        computing gradients of the matrix with respect to the original
+        parameterisation.
+
+        If :attr:`trans` is ``None`` or empty, returns a tensor of ones
+        (identity derivative). If :attr:`trans` has a single entry, its
+        derivative is broadcast across all parameters. Otherwise, each
+        transform's derivative is evaluated at its corresponding parameter.
+
+        Args:
+            params (torch.Tensor or dict): Flat 1D parameter tensor or
+                dictionary. Converted via :meth:`from_param_dict` before
+                evaluation.
+
+        Returns:
+            torch.Tensor: 1D tensor of element-wise transform derivatives,
+            of the same length as ``params``.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            params = torch.tensor([0.0, 0.5, 1.0])
+            mat.trans_grad(params)
+        """
         params = self.from_param_dict(params)
-        _, _ = self.check_params(params)
+        device, dtype = self.check_params(params)
 
         if self.trans is None or len(self.trans) == 0:
-            return torch.tensor([1.0], dtype=params.dtype, device=params.device)
+            return torch.tensor([1.0], dtype=dtype, device=device)
 
         if len(self.trans) == 1:
             return self.trans[0].grad(params)
@@ -223,8 +442,20 @@ class Matrix(ABC):
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(`` :attr:`num_params` ``-len(`` :attr:`no_grad_index` ``), *`` :attr:`shape` ``)``, and
+            shape ``(num_params - len(no_grad_index), *shape)``, and
             ``grad_names`` has the same length as ``grad``.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(2)
+            params = torch.tensor([0.0, 0.5])
+            grad, grad_names = mat.auto_grad(params)
+            grad, grad_names
         """
         if len(self.no_grad_index) == self._num_params:
             return None, []
@@ -242,6 +473,43 @@ class Matrix(ABC):
         return grad, grad_names
 
     def manual_grad(self, params):
+        """
+        Compute the Jacobian of :meth:`__call__` with respect to trainable
+        parameters using a closed-form analytic expression.
+
+        This method is optional. When implemented by a subclass, :meth:`grad`
+        will invoke it in preference to :meth:`auto_grad` under the default
+        grad mode. If not implemented, calling this method raises
+        :class:`NotImplementedError` and :meth:`grad` falls back to automatic
+        differentiation.
+
+        Implementations must satisfy the following contract:
+
+        - Return ``(None, [])`` if all parameters are excluded via
+          :attr:`no_grad_index`.
+        - Return a 3D gradient tensor of shape
+          ``(num_params - len(no_grad_index), *shape)`` and a matching list
+          of parameter names, omitting any index in :attr:`no_grad_index`.
+        - Apply transform derivatives from :meth:`trans_grad` via the chain
+          rule so that gradients are with respect to the raw (untransformed)
+          parameters.
+
+        Args:
+            params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary.
+
+        Returns:
+            tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
+            shape ``(num_params - len(no_grad_index), *shape)`` and
+            ``grad_names`` is a list of the corresponding parameter names.
+            Returns ``(None, [])`` if all parameters are excluded from
+            gradient computation.
+
+        Raises:
+            NotImplementedError: If the subclass does not provide an analytic
+                gradient. :meth:`grad` catches this and falls back to
+                :meth:`auto_grad`.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -264,6 +532,40 @@ class Matrix(ABC):
         raise NotImplementedError
 
     def grad(self, params):
+        """
+        Compute the Jacobian of :meth:`__call__` with respect to trainable
+        parameters.
+
+        Dispatches to :meth:`manual_grad` or :meth:`auto_grad` according to
+        :attr:`grad_mode`:
+
+        - ``"default"``: attempts :meth:`manual_grad`, falling back to
+          :meth:`auto_grad` if not implemented.
+        - ``"auto"``: always uses :meth:`auto_grad`.
+
+        Args:
+            params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary.
+
+        Returns:
+            tuple: ``(grad, grad_names)`` as described in :meth:`manual_grad`
+            and :meth:`auto_grad`.
+
+        Raises:
+            RuntimeError: If :attr:`grad_mode` is not a recognised value.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(2)
+            params = torch.tensor([0.0, 0.5])
+            grad, grad_names = mat.grad(params)
+            grad, grad_names
+        """
         if self.grad_mode == "default":
             try:
                 return self.manual_grad(params)
