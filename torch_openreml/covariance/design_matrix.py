@@ -17,7 +17,7 @@ class DesignMatrix(Matrix):
 
         super().__init__((self._matrix.shape[0], self._matrix.shape[1]), [], [])
 
-    def build(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         return self._matrix
 
     @property
