@@ -9,21 +9,25 @@ class ScalarMatrix(Matrix):
         trans = trans or [TransformExpPow2()]
         super().__init__((n, n), param_names, trans, no_grad_index)
         
-    def _compute_grad(self, params, i_n):
-        self.reset_grad()
-        if len(self.no_grad_index) == 0:
-            self._grad = (self.trans_chain_rule_factor(params[0]) * i_n).unsqueeze(0)
-            self._grad_names = self.param_names
-        
-    def build(self, params, grad=True):
+    def __call__(self, params):
         params = self.from_param_dict(params)
         device, dtype = self.check_params(params)
-        sigma2 = self.trans_params(params)[0]
+        sigma2 = self.trans_params(params)
 
         i_n = torch.eye(self.shape[0], device=device, dtype=dtype)
         v = sigma2 * i_n
         
-        if grad:
-            self._compute_grad(params=params, i_n=i_n)
-        
         return v
+
+    def manual_grad(self, params):
+        if len(self.no_grad_index) > 0:
+            return None, []
+
+        params = self.from_param_dict(params)
+        device, dtype = self.check_params(params)
+
+        i_n = torch.eye(self.shape[0], device=device, dtype=dtype)
+        grad = (self.trans_grad(params) * i_n).unsqueeze(0)
+        grad_names = self.param_names
+
+        return grad, grad_names
