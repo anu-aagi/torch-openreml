@@ -9,18 +9,22 @@ class Sum(Operator):
           
         super().__init__(None, operands)
     
-    def build(self, params, grad=True):
-        v_groups, grad_groups, grad_name_groups = self.build_operands(params, grad)
-        
+    def __call__(self, params):
+        v_groups = self.build_operands(params)
         v = sum(v_groups)
-        if grad:
-            self.reset_grad()
-            
-            grad_groups = [grad for grad in grad_groups if grad is not None]
-            
-            if len(grad_groups) > 0:
-                self._grad = torch.cat(grad_groups)
-                self._grad_names = [name for group in grad_name_groups for name in group]
-        
         self._shape = tuple(v.shape)
+
         return v
+
+    def manual_grad(self, params):
+        grad_groups, grad_name_groups = self.operands_grad(params)
+
+        grad_groups = [grad for grad in grad_groups if grad is not None]
+
+        if len(grad_groups) > 0:
+            grad = torch.cat(grad_groups)
+            grad_names = [name for group in grad_name_groups for name in group]
+
+            return grad, grad_names
+        else:
+            return None, []
