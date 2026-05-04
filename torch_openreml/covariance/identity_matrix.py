@@ -7,5 +7,5 @@ class IdentityMatrix(Matrix):
         self._matrix = torch.eye(n, dtype=dtype, device=device)
         super().__init__((n, n), [], [])
 
-    def build(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         return self._matrix
