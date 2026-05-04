@@ -1,0 +1,1014 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="API Reference" href="api.html"><link rel="prev" title="torch-openreml documentation" href="index.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Technical Documentation - torch-openreml 0.1.0-alpha documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css?v=572af1d6" />
+    <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">torch-openreml 0.1.0-alpha documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">torch-openreml 0.1.0-alpha documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Technical Documentation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/reml.html">REML</a><input aria-label="Toggle navigation of REML" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.REML.html">torch_openreml.REML</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/covariance.html">Covariance</a><input aria-label="Toggle navigation of Covariance" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.Matrix.html">torch_openreml.covariance.Matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.AR1Matrix.html">torch_openreml.covariance.AR1Matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.CompoundSymmetricMatrix.html">torch_openreml.covariance.CompoundSymmetricMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.DesignMatrix.html">torch_openreml.covariance.DesignMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.DiagonalMatrix.html">torch_openreml.covariance.DiagonalMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.EquicorrelationMatrix.html">torch_openreml.covariance.EquicorrelationMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.IdentityMatrix.html">torch_openreml.covariance.IdentityMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.ScalarMatrix.html">torch_openreml.covariance.ScalarMatrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/operators.html">Operators</a><input aria-label="Toggle navigation of Operators" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.Operator.html">torch_openreml.covariance.Operator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.BlockDiagonal.html">torch_openreml.covariance.BlockDiagonal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.HadamardProduct.html">torch_openreml.covariance.HadamardProduct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.KroneckerProduct.html">torch_openreml.covariance.KroneckerProduct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.LinearPropagation.html">torch_openreml.covariance.LinearPropagation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.Sum.html">torch_openreml.covariance.Sum</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/transforms.html">Transforms</a><input aria-label="Toggle navigation of Transforms" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.Transform.html">torch_openreml.covariance.transform.Transform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.TransformChain.html">torch_openreml.covariance.transform.TransformChain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.TransformExp.html">torch_openreml.covariance.transform.TransformExp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.TransformExp2.html">torch_openreml.covariance.transform.TransformExp2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.TransformExp10.html">torch_openreml.covariance.transform.TransformExp10</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.TransformExpPow2.html">torch_openreml.covariance.transform.TransformExpPow2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.TransformIdentity.html">torch_openreml.covariance.transform.TransformIdentity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.TransformPow.html">torch_openreml.covariance.transform.TransformPow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.TransformScaleShift.html">torch_openreml.covariance.transform.TransformScaleShift</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.transform.TransformSigmoid.html">torch_openreml.covariance.transform.TransformSigmoid</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="api/utils.html">Utils</a><input aria-label="Toggle navigation of Utils" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.utils.get_device.html">torch_openreml.utils.get_device</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.utils.get_dtype.html">torch_openreml.utils.get_dtype</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.utils.numeric_to_design_matrix.html">torch_openreml.utils.numeric_to_design_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.utils.categorical_to_design_matrix.html">torch_openreml.utils.categorical_to_design_matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.utils.augment.html">torch_openreml.utils.augment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.utils.interaction.html">torch_openreml.utils.interaction</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/tech.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="technical-documentation">
+<h1>Technical Documentation<a class="headerlink" href="#technical-documentation" title="Link to this heading">¶</a></h1>
+<section id="gaussian-linear-mixed-model-formulation">
+<h2>Gaussian Linear Mixed Model Formulation<a class="headerlink" href="#gaussian-linear-mixed-model-formulation" title="Link to this heading">¶</a></h2>
+<p>Consider the linear mixed model</p>
+<div class="math-wrapper docutils container" id="equation-eq-main">
+<div class="math notranslate nohighlight" id="equation-eq-main">
+<span class="eqno">(1)<a class="headerlink" href="#equation-eq-main" title="Link to this equation">¶</a></span>\[\mathbf{Y} = \mathbf{X}\boldsymbol{\beta} + \mathbf{Z}\mathbf{b} + \boldsymbol{\varepsilon},\]</div>
+</div>
+<p>where:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\mathbf{Y} \in \mathbb{R}^{n \times 1}\)</span> is the response vector,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{X} \in \mathbb{R}^{n \times p}\)</span> is the fixed-effects design matrix,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\boldsymbol{\beta} \in \mathbb{R}^{p \times 1}\)</span> is the vector of fixed-effect coefficients,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{Z} \in \mathbb{R}^{n \times q}\)</span> is the random-effects design matrix,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mathbf{b} \in \mathbb{R}^{q \times 1}\)</span> is the vector of random effects,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\boldsymbol{\varepsilon} \in \mathbb{R}^{n \times 1}\)</span> is the vector of residual errors.</p></li>
+</ul>
+<p>We assume</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{b} \sim \mathcal{N}(\mathbf{0}, \mathbf{G}), \quad
+\boldsymbol{\varepsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{R}), \quad
+\mathbf{b} \perp \boldsymbol{\varepsilon},\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{G} \in \mathbb{R}^{q \times q}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{R} \in \mathbb{R}^{n \times n}\)</span> are covariance matrices.</p>
+<p>Let <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span> denote the collection of variance components that parameterise <span class="math notranslate nohighlight">\(\mathbf{G}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{R}\)</span>, i.e.,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{G} = \mathbf{G}(\boldsymbol{\theta}), \quad
+\mathbf{R} = \mathbf{R}(\boldsymbol{\theta}).\]</div>
+</div>
+<p>Under these assumptions, the marginal distribution of <span class="math notranslate nohighlight">\(\mathbf{Y}\)</span> is given by</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{Y} \sim \mathcal{N}\left(\mathbf{X}\boldsymbol{\beta},\; \mathbf{V}(\boldsymbol{\theta})\right),\]</div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container" id="equation-eq-sigma">
+<div class="math notranslate nohighlight" id="equation-eq-sigma">
+<span class="eqno">(2)<a class="headerlink" href="#equation-eq-sigma" title="Link to this equation">¶</a></span>\[\mathbf{V}(\boldsymbol{\theta}) = \mathbf{Z}\mathbf{G}(\boldsymbol{\theta})\mathbf{Z}^\top + \mathbf{R}(\boldsymbol{\theta}).\]</div>
+</div>
+<section id="blue">
+<h3>BLUE<a class="headerlink" href="#blue" title="Link to this heading">¶</a></h3>
+<p>Given <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>, the Best Linear Unbiased Estimator (BLUE) of <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span> is the linear unbiased estimator that minimises the variance among all such estimators. Under the linear mixed model with covariance matrix <span class="math notranslate nohighlight">\(\mathbf{V}(\boldsymbol{\theta})\)</span>, the BLUE of <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span> is given by</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\widehat{\boldsymbol{\beta}}(\boldsymbol{\theta})
+=
+\left(\mathbf{X}^\top \mathbf{V}(\boldsymbol{\theta})^{-1} \mathbf{X}\right)^{-1}
+\mathbf{X}^\top \mathbf{V}(\boldsymbol{\theta})^{-1} \mathbf{Y}.\]</div>
+</div>
+<p>This estimator is the generalised least squares (GLS) estimator of <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span>.</p>
+</section>
+<section id="blup">
+<h3>BLUP<a class="headerlink" href="#blup" title="Link to this heading">¶</a></h3>
+<p>Given <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>, we often wish to predict the random effects <span class="math notranslate nohighlight">\(\mathbf{b}\)</span>. The Best Linear Unbiased Predictor (BLUP) of <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> is given by:</p>
+<div class="math-wrapper docutils container" id="equation-eq-blup">
+<div class="math notranslate nohighlight" id="equation-eq-blup">
+<span class="eqno">(3)<a class="headerlink" href="#equation-eq-blup" title="Link to this equation">¶</a></span>\[\widehat{\mathbf{b}}(\boldsymbol{\theta}) = \mathbf{G}(\boldsymbol{\theta})\mathbf{Z}^\top \mathbf{V}^{-1}(\boldsymbol{\theta}) (\mathbf{Y} - \mathbf{X}\widehat{\boldsymbol{\beta}}).\]</div>
+</div>
+</section>
+<section id="ml-estimation">
+<h3>ML Estimation<a class="headerlink" href="#ml-estimation" title="Link to this heading">¶</a></h3>
+<p>Maximum likelihood (ML) estimation jointly estimates the fixed effects <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span> and variance components <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span> by maximising the marginal likelihood of the observed data. After integrating out the random effects <span class="math notranslate nohighlight">\(\mathbf{b}\)</span> from the joint model, the marginal distribution of <span class="math notranslate nohighlight">\(\mathbf{Y}\)</span> is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{Y} \sim \mathcal{N}\!\left(\mathbf{X}\boldsymbol{\beta},\; \mathbf{V}(\boldsymbol{\theta})\right),\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{V}(\boldsymbol{\theta}) = \mathbf{Z}\mathbf{G}(\boldsymbol{\theta})\mathbf{Z}^\top + \mathbf{R}(\boldsymbol{\theta})\)</span>. The corresponding log-likelihood is given by</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\ell(\boldsymbol{\beta}, \boldsymbol{\theta})
+=
+-\frac{1}{2}\left[
+n\log(2\pi)
++ \log\left|\mathbf{V}(\boldsymbol{\theta})\right|
++ (\mathbf{Y} - \mathbf{X}\boldsymbol{\beta})^\top
+\mathbf{V}(\boldsymbol{\theta})^{-1}
+(\mathbf{Y} - \mathbf{X}\boldsymbol{\beta})
+\right].\]</div>
+</div>
+<p>For fixed <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>, the log-likelihood is quadratic in <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span>, and the maximiser can be obtained in closed form by setting <span class="math notranslate nohighlight">\(\partial \ell / \partial \boldsymbol{\beta} = \mathbf{0}\)</span>. This yields the generalised least squares (GLS) estimator</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\widehat{\boldsymbol{\beta}}(\boldsymbol{\theta})
+=
+\left(
+\mathbf{X}^\top \mathbf{V}(\boldsymbol{\theta})^{-1} \mathbf{X}
+\right)^{-1}
+\mathbf{X}^\top \mathbf{V}(\boldsymbol{\theta})^{-1} \mathbf{Y}.\]</div>
+</div>
+<p>Substituting this expression back into the log-likelihood eliminates <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span> and produces the profile log-likelihood</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\ell_p(\boldsymbol{\theta})
+=
+-\frac{1}{2}\left[
+n\log(2\pi)
++ \log\left|\mathbf{V}(\boldsymbol{\theta})\right|
++ \mathbf{Y}^\top \mathbf{P}(\boldsymbol{\theta})\, \mathbf{Y}
+\right],\]</div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{P}(\boldsymbol{\theta})
+=
+\mathbf{V}(\boldsymbol{\theta})^{-1}
+-
+\mathbf{V}(\boldsymbol{\theta})^{-1}\mathbf{X}
+\left(
+\mathbf{X}^\top\mathbf{V}(\boldsymbol{\theta})^{-1}\mathbf{X}
+\right)^{-1}
+\mathbf{X}^\top\mathbf{V}(\boldsymbol{\theta})^{-1}\]</div>
+</div>
+<p>is the residual projection matrix. The resulting optimisation problem depends only on <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>.</p>
+<p>Since <span class="math notranslate nohighlight">\(\ell_p(\boldsymbol{\theta})\)</span> is nonlinear in <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span> and does not admit a closed-form maximiser, numerical optimisation methods are required. These methods rely on the score vector and a curvature approximation. Differentiating the profile log-likelihood with respect to a variance component <span class="math notranslate nohighlight">\(\theta_k\)</span> gives</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \ell_p}{\partial \theta_k}
+=
+-\frac{1}{2}\left[
+\operatorname{tr}\!\left(
+\mathbf{V}^{-1}\frac{\partial \mathbf{V}}{\partial \theta_k}
+\right)
+-
+\mathbf{Y}^\top \mathbf{P}
+\frac{\partial \mathbf{V}}{\partial \theta_k}
+\mathbf{P}\,\mathbf{Y}
+\right],\]</div>
+</div>
+<p>where the identity <span class="math notranslate nohighlight">\(\partial \log|\mathbf{V}|/\partial \theta_k = \operatorname{tr}(\mathbf{V}^{-1}\partial \mathbf{V}/\partial \theta_k)\)</span> has been used, together with <span class="math notranslate nohighlight">\(\partial \mathbf{P}/\partial \theta_k = -\mathbf{P}(\partial \mathbf{V}/\partial \theta_k)\mathbf{P}\)</span>.</p>
+<p>A common curvature approximation is given by the Fisher information matrix, whose <span class="math notranslate nohighlight">\((k,j)\)</span> entry is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathcal{I}_{kj}(\boldsymbol{\theta})
+=
+\frac{1}{2}\operatorname{tr}\!\left(
+\mathbf{V}^{-1}\frac{\partial\mathbf{V}}{\partial\theta_k}
+\mathbf{V}^{-1}\frac{\partial\mathbf{V}}{\partial\theta_j}
+\right).\]</div>
+</div>
+<p>Starting from an initial value <span class="math notranslate nohighlight">\(\boldsymbol{\theta}^{(0)}\)</span>, the Fisher scoring iteration updates <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span> according to</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\theta}^{(t+1)}
+=
+\boldsymbol{\theta}^{(t)}
++
+\mathcal{I}\!\left(\boldsymbol{\theta}^{(t)}\right)^{-1}
+\mathbf{s}\!\left(\boldsymbol{\theta}^{(t)}\right),\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{s}(\boldsymbol{\theta})\)</span> denotes the score vector. In practice, variance components are typically reparameterised (e.g. on a logarithmic scale) to ensure positivity during optimisation. Iterations are continued until convergence, for example when <span class="math notranslate nohighlight">\(\|\boldsymbol{\theta}^{(t+1)} - \boldsymbol{\theta}^{(t)}\| &lt; \varepsilon\)</span> for a prescribed tolerance <span class="math notranslate nohighlight">\(\varepsilon &gt; 0\)</span>.</p>
+<p>Upon convergence, the ML estimate of <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span> is <span class="math notranslate nohighlight">\(\widehat{\boldsymbol{\theta}}_{ML}\)</span>, and the ML estimate of <span class="math notranslate nohighlight">\(\boldsymbol{\beta}_{ML}\)</span> is recovered analytically as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\widehat{\boldsymbol{\beta}}_{ML}
+= \widehat{\boldsymbol{\beta}}\!\left(\widehat{\boldsymbol{\theta}}_{ML}\right)
+=
+\left(
+\mathbf{X}^\top
+\mathbf{V}(\widehat{\boldsymbol{\theta}}_{ML})^{-1}
+\mathbf{X}
+\right)^{-1}
+\mathbf{X}^\top
+\mathbf{V}(\widehat{\boldsymbol{\theta}}_{ML})^{-1}
+\mathbf{Y}.\]</div>
+</div>
+<div class="admonition-remark admonition">
+<p class="admonition-title">Remark</p>
+<p>ML treats <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span> and <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span> symmetrically in the likelihood and is therefore consistent as <span class="math notranslate nohighlight">\(n \to \infty\)</span>. However, in finite samples ML underestimates variance components because it does not account for the degrees of freedom consumed by estimating <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span>. This bias motivates restricted maximum likelihood (REML), which maximises a likelihood formed from residual contrasts that are orthogonal to the column space of <span class="math notranslate nohighlight">\(\mathbf{X}\)</span>, thereby adjusting for the estimation of fixed effects when recovering <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>.</p>
+</div>
+</section>
+</section>
+<section id="reml-estimation">
+<h2>REML Estimation<a class="headerlink" href="#reml-estimation" title="Link to this heading">¶</a></h2>
+<p>Restricted maximum likelihood (REML) constructs a likelihood based on linear combinations of <span class="math notranslate nohighlight">\(\mathbf{Y}\)</span> that are free of <span class="math notranslate nohighlight">\(\boldsymbol{\beta}\)</span>. Let <span class="math notranslate nohighlight">\(\mathbf{A}\)</span> be an <span class="math notranslate nohighlight">\((n-p)\times n\)</span> matrix satisfying <span class="math notranslate nohighlight">\(\mathbf{A}\mathbf{X}=\mathbf{0}\)</span> and <span class="math notranslate nohighlight">\(\operatorname{rank}(\mathbf{A})=n-p\)</span>. Then</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{A}\mathbf{Y} \sim \mathcal{N}\big(\mathbf{0},\; \mathbf{A}\mathbf{V}(\boldsymbol{\theta})\mathbf{A}^\top\big),\]</div>
+</div>
+<p>and the corresponding log-likelihood is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\ell_R(\boldsymbol{\theta})
+=
+-\frac{1}{2}\left[
+(n-p)\log(2\pi)
++ \log\big|\mathbf{A}\mathbf{V}(\boldsymbol{\theta})\mathbf{A}^\top\big|
++ (\mathbf{A}\mathbf{Y})^\top \big(\mathbf{A}\mathbf{V}(\boldsymbol{\theta})\mathbf{A}^\top\big)^{-1} (\mathbf{A}\mathbf{Y})
+\right].\]</div>
+</div>
+<p>Using standard matrix identities, this expression can be rewritten as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boxed{
+\ell_R(\boldsymbol{\theta})
+=
+-\frac{1}{2}\left[
+\log\big|\mathbf{V}(\boldsymbol{\theta})\big|
++ \log\big|\mathbf{X}^\top \mathbf{V}(\boldsymbol{\theta})^{-1} \mathbf{X}\big|
++ \mathbf{Y}^\top \mathbf{P}(\boldsymbol{\theta}) \mathbf{Y}
+\right]
++ C
+},\]</div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boxed{
+\mathbf{P}(\boldsymbol{\theta})
+=
+\mathbf{V}(\boldsymbol{\theta})^{-1}
+-
+\mathbf{V}(\boldsymbol{\theta})^{-1}\mathbf{X}
+\left(
+\mathbf{X}^\top \mathbf{V}(\boldsymbol{\theta})^{-1}\mathbf{X}
+\right)^{-1}
+\mathbf{X}^\top \mathbf{V}(\boldsymbol{\theta})^{-1}
+},\]</div>
+</div>
+<p>and <span class="math notranslate nohighlight">\(C\)</span> is a constant independent of <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>. Since additive constants do not affect maximisation with respect to <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>, the REML log-likelihood is taken to be the above expression up to an additive constant.</p>
+<section id="score-function">
+<h3>Score Function<a class="headerlink" href="#score-function" title="Link to this heading">¶</a></h3>
+<p>Let <span class="math notranslate nohighlight">\(\theta_k\)</span> denote the <span class="math notranslate nohighlight">\(k\)</span>-th component of <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>, and define</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{V}}_k
+=
+\frac{\partial \mathbf{V}(\boldsymbol{\theta})}{\partial \theta_k}.\]</div>
+</div>
+<p>Starting from</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\ell_R(\boldsymbol{\theta})
+=
+-\frac{1}{2}\left[
+\log|\mathbf{V}|
++ \log\big|\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}\big|
++ \mathbf{Y}^\top \mathbf{P}\mathbf{Y}
+\right]
++ C,\]</div>
+</div>
+<p>we differentiate each term with respect to <span class="math notranslate nohighlight">\(\theta_k\)</span>.</p>
+<p><strong>Derivative of</strong> <span class="math notranslate nohighlight">\(\log|\mathbf{V}|\)</span></p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial}{\partial \theta_k}\log|\mathbf{V}|
+=
+\operatorname{tr}\!\big(\mathbf{V}^{-1}\dot{\mathbf{V}}_k\big).\]</div>
+</div>
+<p><strong>Derivative of</strong> <span class="math notranslate nohighlight">\(\log|\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}|\)</span></p>
+<p>Set <span class="math notranslate nohighlight">\(\mathbf{M} = \mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}\)</span>. Then</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial}{\partial \theta_k}\log|\mathbf{M}|
+=
+\operatorname{tr}\!\big(\mathbf{M}^{-1} \dot{\mathbf{M}}_k\big),\]</div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{M}}_k
+=
+\frac{\partial}{\partial \theta_k}
+\big(\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}\big)
+=
+-\,\mathbf{X}^\top \mathbf{V}^{-1}
+\dot{\mathbf{V}}_k
+\mathbf{V}^{-1}\mathbf{X}.\]</div>
+</div>
+<p>Hence,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial}{\partial \theta_k}
+\log\big|\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}\big|
+=
+-\,\operatorname{tr}\!\Big(
+\big(\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}\big)^{-1}
+\mathbf{X}^\top \mathbf{V}^{-1}
+\dot{\mathbf{V}}_k
+\mathbf{V}^{-1}\mathbf{X}
+\Big).\]</div>
+</div>
+<p><strong>Derivative of</strong> <span class="math notranslate nohighlight">\(\mathbf{Y}^\top \mathbf{P}\mathbf{Y}\)</span></p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial}{\partial \theta_k}
+\big(\mathbf{Y}^\top \mathbf{P}\mathbf{Y}\big)
+=
+\mathbf{Y}^\top
+\frac{\partial \mathbf{P}}{\partial \theta_k}
+\mathbf{Y}.\]</div>
+</div>
+<p>Using</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial \mathbf{P}}{\partial \theta_k}
+=
+-\,\mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P},\]</div>
+</div>
+<p>we obtain</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial}{\partial \theta_k}
+\big(\mathbf{Y}^\top \mathbf{P}\mathbf{Y}\big)
+=
+-\,\mathbf{Y}^\top \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\mathbf{Y}.\]</div>
+</div>
+<p><strong>Compact Form</strong></p>
+<p>Combining the three components and noting that <span class="math notranslate nohighlight">\(C\)</span> does not depend on <span class="math notranslate nohighlight">\(\boldsymbol{\theta}\)</span>, the score function is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[S_k(\boldsymbol{\theta})
+=
+\frac{\partial \ell_R(\boldsymbol{\theta})}{\partial \theta_k}
+=
+-\frac{1}{2}
+\left[
+\operatorname{tr}\!\big(\mathbf{V}^{-1}\dot{\mathbf{V}}_k\big)
+-
+\operatorname{tr}\!\Big(
+\big(\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}\big)^{-1}
+\mathbf{X}^\top \mathbf{V}^{-1}
+\dot{\mathbf{V}}_k
+\mathbf{V}^{-1}\mathbf{X}
+\Big)
+-
+\mathbf{Y}^\top \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\mathbf{Y}
+\right].\]</div>
+</div>
+<p>To obtain a more compact form, recall the identity</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbf{P}
+=
+\mathbf{V}^{-1}
+-
+\mathbf{V}^{-1}\mathbf{X}
+\left(
+\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}
+\right)^{-1}
+\mathbf{X}^\top \mathbf{V}^{-1}.\]</div>
+</div>
+<p>Hence,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\operatorname{tr}\!\big(\mathbf{P}\,\dot{\mathbf{V}}_k\big)
+=
+\operatorname{tr}\!\big(\mathbf{V}^{-1}\dot{\mathbf{V}}_k\big)
+-
+\operatorname{tr}\!\Big(
+\mathbf{V}^{-1}\mathbf{X}
+\left(
+\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}
+\right)^{-1}
+\mathbf{X}^\top \mathbf{V}^{-1}
+\dot{\mathbf{V}}_k
+\Big).\]</div>
+</div>
+<p>Using the cyclic property of the trace, <span class="math notranslate nohighlight">\(\operatorname{tr}(\mathbf{D}\mathbf{A}\mathbf{B}\mathbf{C}) = \operatorname{tr}(\mathbf{A}\mathbf{B}\mathbf{C}\mathbf{D})\)</span>, the second term becomes</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\operatorname{tr}\!\Big(
+\mathbf{V}^{-1}\mathbf{X}
+\left(
+\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}
+\right)^{-1}
+\mathbf{X}^\top \mathbf{V}^{-1}
+\dot{\mathbf{V}}_k
+\Big)
+=
+\operatorname{tr}\!\Big(
+\left(
+\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}
+\right)^{-1}
+\mathbf{X}^\top \mathbf{V}^{-1}
+\dot{\mathbf{V}}_k
+\mathbf{V}^{-1}\mathbf{X}
+\Big).\]</div>
+</div>
+<p>Therefore,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\operatorname{tr}\!\big(\mathbf{P}\,\dot{\mathbf{V}}_k\big)
+=
+\operatorname{tr}\!\big(\mathbf{V}^{-1}\dot{\mathbf{V}}_k\big)
+-
+\operatorname{tr}\!\Big(
+\big(\mathbf{X}^\top \mathbf{V}^{-1}\mathbf{X}\big)^{-1}
+\mathbf{X}^\top \mathbf{V}^{-1}
+\dot{\mathbf{V}}_k
+\mathbf{V}^{-1}\mathbf{X}
+\Big).\]</div>
+</div>
+<p>Substituting this identity into the previous expression for <span class="math notranslate nohighlight">\(S_k(\boldsymbol{\theta})\)</span> yields</p>
+<div class="math-wrapper docutils container" id="equation-eq-score">
+<div class="math notranslate nohighlight" id="equation-eq-score">
+<span class="eqno">(4)<a class="headerlink" href="#equation-eq-score" title="Link to this equation">¶</a></span>\[\boxed{
+S_k(\boldsymbol{\theta})
+=
+\frac{1}{2}
+\left[
+\mathbf{Y}^\top \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\mathbf{Y}
+-
+\operatorname{tr}\!\big(\mathbf{P}\,\dot{\mathbf{V}}_k\big)
+\right]
+}.\]</div>
+</div>
+</section>
+</section>
+<section id="average-information-matrix">
+<h2>Average Information Matrix<a class="headerlink" href="#average-information-matrix" title="Link to this heading">¶</a></h2>
+<p>The score function for <span class="math notranslate nohighlight">\(\theta_k\)</span> is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[S_k(\boldsymbol{\theta})
+=
+\frac{1}{2}
+\left[
+\mathbf{Y}^\top \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\mathbf{Y}
+-
+\operatorname{tr}\!\big(\mathbf{P}\,\dot{\mathbf{V}}_k\big)
+\right],\]</div>
+</div>
+<p>where</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\dot{\mathbf{V}}_k
+=
+\frac{\partial \mathbf{V}(\boldsymbol{\theta})}{\partial \theta_k}.\]</div>
+</div>
+<section id="observed-information">
+<h3>Observed Information<a class="headerlink" href="#observed-information" title="Link to this heading">¶</a></h3>
+<p>Differentiating <span class="math notranslate nohighlight">\(S_k\)</span> with respect to <span class="math notranslate nohighlight">\(\theta_j\)</span> gives</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[-\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j}
+=
+-\frac{1}{2}
+\left[
+\mathbf{Y}^\top
+\frac{\partial}{\partial \theta_j}
+\big(\mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\big)
+\mathbf{Y}
+-
+\frac{\partial}{\partial \theta_j}
+\operatorname{tr}\!\big(\mathbf{P}\,\dot{\mathbf{V}}_k\big)
+\right].\]</div>
+</div>
+<p>For the quadratic term, using the product rule and <span class="math notranslate nohighlight">\(\partial \mathbf{P}/\partial \theta_j = -\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\)</span>, we obtain</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial}{\partial \theta_j}
+\big(\mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\big)
+=
+-\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}
+-
+\mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}
++
+\mathbf{P}\,\ddot{\mathbf{V}}_{kj}\,\mathbf{P}.\]</div>
+</div>
+<p>For the trace term,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\frac{\partial}{\partial \theta_j}
+\operatorname{tr}\!\big(\mathbf{P}\,\dot{\mathbf{V}}_k\big)
+=
+-\,\operatorname{tr}\!\big(
+\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\,\dot{\mathbf{V}}_k
+\big)
++
+\operatorname{tr}\!\big(
+\mathbf{P}\,\ddot{\mathbf{V}}_{kj}
+\big).\]</div>
+</div>
+<p>Putting everything together yields the observed information:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathcal{J}_{kj}(\boldsymbol{\theta}) = -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j}
+=
+\mathbf{Y}^\top
+\mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}
+\mathbf{Y}
+-\frac{1}{2}
+\operatorname{tr}\!\big(
+\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\,\dot{\mathbf{V}}_k
+\big)
++\frac{1}{2}
+\operatorname{tr}\!\big(
+\mathbf{P}\,\ddot{\mathbf{V}}_{kj}
+\big)
+- \frac{1}{2} \mathbf{Y}^\top \mathbf{P}\,\ddot{\mathbf{V}}_{kj}\,\mathbf{P}\mathbf{Y}.\]</div>
+</div>
+</section>
+<section id="expected-information">
+<h3>Expected Information<a class="headerlink" href="#expected-information" title="Link to this heading">¶</a></h3>
+<p>We now derive the expected Fisher information matrix by taking expectations of the negative second derivatives. Recall that under the model, <span class="math notranslate nohighlight">\(\mathbb{E}[\mathbf{Y}] = \mathbf{X}\boldsymbol{\beta}\)</span>. However, a fundamental property of the projection matrix <span class="math notranslate nohighlight">\(\mathbf{P}\)</span> is that <span class="math notranslate nohighlight">\(\mathbf{P}\mathbf{X} = \mathbf{0}\)</span>, which implies <span class="math notranslate nohighlight">\(\mathbf{P}\mathbf{Y} = \mathbf{P}(\mathbf{Y} - \mathbf{X}\boldsymbol{\beta})\)</span>. Consequently, when computing expectations of expressions involving <span class="math notranslate nohighlight">\(\mathbf{P}\)</span>, we may without loss of generality treat <span class="math notranslate nohighlight">\(\mathbf{Y}\)</span> as centered at zero. We therefore take <span class="math notranslate nohighlight">\(\mathbb{E}[\mathbf{Y}] = \mathbf{0}\)</span> and <span class="math notranslate nohighlight">\(\mathbb{E}[\mathbf{Y}\mathbf{Y}^\top] = \mathbf{V}\)</span> for the remainder of this derivation.</p>
+<p>The observed information matrix is given by</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[-\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j}
+=
+\underbrace{\mathbf{Y}^\top \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P} \mathbf{Y}}_{T_1}
+-\frac12 \underbrace{\operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\,\dot{\mathbf{V}}_k \big)}_{T_2}
++\frac12 \underbrace{\operatorname{tr}\!\big( \mathbf{P}\,\ddot{\mathbf{V}}_{kj} \big)}_{T_3}
+- \frac12 \underbrace{\mathbf{Y}^\top \mathbf{P}\,\ddot{\mathbf{V}}_{kj}\,\mathbf{P}\mathbf{Y}}_{T_4}.\]</div>
+</div>
+<p>We evaluate the expectation of each term in turn.</p>
+<p><strong>Expectation of</strong> <span class="math notranslate nohighlight">\(T_1\)</span></p>
+<p>The quantity <span class="math notranslate nohighlight">\(T_1\)</span> is a quadratic form in <span class="math notranslate nohighlight">\(\mathbf{Y}\)</span>. For a zero-mean random vector with covariance <span class="math notranslate nohighlight">\(\mathbf{V}\)</span>, the identity <span class="math notranslate nohighlight">\(\mathbb{E}[\mathbf{Y}^\top \mathbf{A} \mathbf{Y}] = \operatorname{tr}(\mathbf{A} \mathbf{V})\)</span> holds for any conformable matrix <span class="math notranslate nohighlight">\(\mathbf{A}\)</span>. Applying this with <span class="math notranslate nohighlight">\(\mathbf{A} = \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\)</span> yields</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbb{E}[T_1] = \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P} \, \mathbf{V} \big).\]</div>
+</div>
+<p>A key identity satisfied by <span class="math notranslate nohighlight">\(\mathbf{P}\)</span> is <span class="math notranslate nohighlight">\(\mathbf{P}\mathbf{V}\mathbf{P} = \mathbf{P}\)</span>, which can be verified by direct substitution of the definition <span class="math notranslate nohighlight">\(\mathbf{P} = \mathbf{V}^{-1} - \mathbf{V}^{-1}\mathbf{X}(\mathbf{X}^\top\mathbf{V}^{-1}\mathbf{X})^{-1}\mathbf{X}^\top\mathbf{V}^{-1}\)</span>. Using the cyclic property of the trace,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\begin{align*}
+\mathbb{E}[T_1] &amp;= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\, (\mathbf{P}\mathbf{V}) \big) \\
+&amp;= \operatorname{tr}\!\big( \dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\mathbf{V}\mathbf{P} \big) \quad \text{(cyclic permutation)} \\
+&amp;= \operatorname{tr}\!\big( \dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P} \big) \quad \text{(since $\mathbf{P}\mathbf{V}\mathbf{P} = \mathbf{P}$)} \\
+&amp;= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j \big) \quad \text{(cyclic permutation again)}.
+\end{align*}</div></div>
+<p>Thus</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbb{E}[T_1] = \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j \big).\]</div>
+</div>
+<p><strong>Expectation of</strong> <span class="math notranslate nohighlight">\(T_2\)</span></p>
+<p>The term <span class="math notranslate nohighlight">\(T_2\)</span> contains no random quantities; it is a deterministic function of the parameters. Hence</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbb{E}[T_2] = \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\,\dot{\mathbf{V}}_k \big).\]</div>
+</div>
+<p><strong>Expectation of</strong> <span class="math notranslate nohighlight">\(T_3\)</span></p>
+<p>Similarly, <span class="math notranslate nohighlight">\(T_3\)</span> is non-random, giving</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbb{E}[T_3] = \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\mathbf{V}}_{kj} \big).\]</div>
+</div>
+<p><strong>Expectation of</strong> <span class="math notranslate nohighlight">\(T_4\)</span></p>
+<p>The term <span class="math notranslate nohighlight">\(T_4\)</span> is again a quadratic form. Applying the same identity as for <span class="math notranslate nohighlight">\(T_1\)</span>,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathbb{E}[T_4] = \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\mathbf{V}}_{kj}\,\mathbf{P} \, \mathbf{V} \big).\]</div>
+</div>
+<p>Using the cyclic property followed by <span class="math notranslate nohighlight">\(\mathbf{P}\mathbf{V}\mathbf{P} = \mathbf{P}\)</span>,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\begin{align*}
+\mathbb{E}[T_4] &amp;= \operatorname{tr}\!\big( \ddot{\mathbf{V}}_{kj}\,\mathbf{P} \mathbf{V} \mathbf{P} \big) \\
+&amp;= \operatorname{tr}\!\big( \ddot{\mathbf{V}}_{kj}\,\mathbf{P} \big) \\
+&amp;= \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\mathbf{V}}_{kj} \big).
+\end{align*}</div></div>
+<p><strong>Combining the expectations</strong></p>
+<p>Assembling the four components,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\begin{align*}
+\mathbb{E}\!\left[ -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j} \right]
+&amp;= \mathbb{E}[T_1] - \frac12 \mathbb{E}[T_2] + \frac12 \mathbb{E}[T_3] - \frac12 \mathbb{E}[T_4] \\[4pt]
+&amp;= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j \big)
+- \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\,\dot{\mathbf{V}}_k \big) \\
+&amp;\quad + \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\mathbf{V}}_{kj} \big)
+- \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\mathbf{V}}_{kj} \big).
+\end{align*}</div></div>
+<p>The two terms involving the second derivatives <span class="math notranslate nohighlight">\(\ddot{\mathbf{V}}_{kj}\)</span> cancel identically. Moreover, the trace is symmetric in its matrix arguments, so</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P}\,\dot{\mathbf{V}}_k \big)
+= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j \big).\]</div>
+</div>
+<p>Substituting this into the expression above,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\begin{align*}
+\mathbb{E}\!\left[ -\frac{\partial^2 \ell_R}{\partial \theta_k \partial \theta_j} \right]
+&amp;= \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j \big)
+- \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j \big) \\[4pt]
+&amp;= \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j \big).
+\end{align*}</div></div>
+<p>This final expression defines the <span class="math notranslate nohighlight">\((k,j)\)</span>-th entry of the REML Fisher information matrix,</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathcal{I}_{kj}(\boldsymbol{\theta}) = \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j \big).\]</div>
+</div>
+</section>
+<section id="definition-of-the-average-information">
+<h3>Definition of the Average Information<a class="headerlink" href="#definition-of-the-average-information" title="Link to this heading">¶</a></h3>
+<p>The expected information (Fisher information) is</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathcal{I}_{kj}(\boldsymbol{\theta}) = \frac12 \operatorname{tr}\!\big( \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j \big).\]</div>
+</div>
+<p>The observed information is denoted <span class="math notranslate nohighlight">\(\mathcal{J}_{kj}(\boldsymbol{\theta})\)</span>, and the <em>average information</em> matrix is defined as</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\mathcal{A}_{kj}(\boldsymbol{\theta}) = \frac12 \Big( \mathcal{I}_{kj}(\boldsymbol{\theta}) + \mathcal{J}_{kj}(\boldsymbol{\theta}) \Big).\]</div>
+</div>
+<p>Substituting the expressions and simplifying, the trace terms cancel, yielding</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\begin{align*}
+\mathcal{A}_{kj} &amp;= \frac12 \mathbf{Y}^\top \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P} \mathbf{Y} \\
+&amp;\quad + \frac14 \operatorname{tr}\!\big( \mathbf{P}\,\ddot{\mathbf{V}}_{kj} \big)
+- \frac14 \mathbf{Y}^\top \mathbf{P}\,\ddot{\mathbf{V}}_{kj}\,\mathbf{P}\mathbf{Y}.
+\end{align*}</div></div>
+<section id="simplification-for-linear-variance-component-models">
+<h4>Simplification for Linear Variance Component Models<a class="headerlink" href="#simplification-for-linear-variance-component-models" title="Link to this heading">¶</a></h4>
+<p>In the common case where <span class="math notranslate nohighlight">\(\mathbf{V}(\boldsymbol{\theta}) = \sum_{t=1}^p \theta_t \mathbf{M}_t\)</span> with known matrices <span class="math notranslate nohighlight">\(\mathbf{M}_t\)</span>, the second derivatives vanish: <span class="math notranslate nohighlight">\(\ddot{\mathbf{V}}_{kj} = \mathbf{0}\)</span> for all <span class="math notranslate nohighlight">\(k,j\)</span>. The average information matrix then reduces to</p>
+<div class="math-wrapper docutils container" id="equation-eq-ai">
+<div class="math notranslate nohighlight" id="equation-eq-ai">
+<span class="eqno">(5)<a class="headerlink" href="#equation-eq-ai" title="Link to this equation">¶</a></span>\[\boxed{
+\mathcal{A}_{kj} = \frac12 \,\mathbf{Y}^\top \mathbf{P}\,\dot{\mathbf{V}}_k\,\mathbf{P}\,\dot{\mathbf{V}}_j\,\mathbf{P} \mathbf{Y}
+}.\]</div>
+</div>
+<p>This is the form commonly used in the AI-REML algorithm <a class="reference internal" href="#gilmour1995" id="id1"><span>[Gilmour1995]</span></a>, where the average information matrix is computed directly from the data without requiring second derivatives. The algorithm proceeds by iteratively solving</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\theta}^{(t+1)} = \boldsymbol{\theta}^{(t)} + \big( \mathcal{A}(\boldsymbol{\theta}^{(t)}) \big)^{-1} \mathbf{S}(\boldsymbol{\theta}^{(t)}).\]</div>
+</div>
+<p class="rubric">References</p>
+<div role="list" class="citation-list">
+<div class="citation" id="gilmour1995" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">Gilmour1995</a><span class="fn-bracket">]</span></span>
+<p>Gilmour, A. R., Thompson, R., &amp; Cullis, B. R. (1995). Average information REML: An efficient algorithm for variance parameter estimation in linear mixed models. <em>Biometrics</em>, 51(4), 1440-1450.</p>
+</div>
+</div>
+</section>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="api.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">API Reference</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="index.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Home</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2026, Patrick Li
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Technical Documentation</a><ul>
+<li><a class="reference internal" href="#gaussian-linear-mixed-model-formulation">Gaussian Linear Mixed Model Formulation</a><ul>
+<li><a class="reference internal" href="#blue">BLUE</a></li>
+<li><a class="reference internal" href="#blup">BLUP</a></li>
+<li><a class="reference internal" href="#ml-estimation">ML Estimation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reml-estimation">REML Estimation</a><ul>
+<li><a class="reference internal" href="#score-function">Score Function</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#average-information-matrix">Average Information Matrix</a><ul>
+<li><a class="reference internal" href="#observed-information">Observed Information</a></li>
+<li><a class="reference internal" href="#expected-information">Expected Information</a></li>
+<li><a class="reference internal" href="#definition-of-the-average-information">Definition of the Average Information</a><ul>
+<li><a class="reference internal" href="#simplification-for-linear-variance-component-models">Simplification for Linear Variance Component Models</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=f34cbc3c"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script src="_static/thebelab-helper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    </body>
+</html>

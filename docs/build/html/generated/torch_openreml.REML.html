@@ -9,7 +9,7 @@
         <title>torch_openreml.REML - torch-openreml 0.1.0-alpha documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
-    <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css?v=572af1d6" />
+    <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/thebelab.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
     
@@ -193,6 +193,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../tech.html">Gaussian Linear Mixed Model Formulation</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../api/reml.html">REML</a><input aria-label="Toggle navigation of REML" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">torch_openreml.REML</a></li>
@@ -362,17 +363,17 @@ provided, the Jacobian is computed via automatic differentiation.</p></li>
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-none notranslate"><div class="highlight"><pre><span></span>
-∥∇∥:       9.9613, ∥Δ∥: 0.0859, η: 1.00, ∥Δᶜ∥: 0.0859, log 𝓛: -33.2185
-∥∇∥:       0.8090, ∥Δ∥: 0.0083, η: 1.00, ∥Δᶜ∥: 0.0083, log 𝓛: -32.7670 (+0.4515)
-∥∇∥:       0.0067, ∥Δ∥: 0.0001, η: 1.00, ∥Δᶜ∥: 0.0001, log 𝓛: -32.7637 (+0.0034)
-∥∇∥:       0.0000, ∥Δ∥: 0.0000, η: 1.00, ∥Δᶜ∥: 0.0000, log 𝓛: -32.7637 (+0.0000)
+∥∇∥:      13.9393, ∥Δ∥: 0.1125, η: 1.00, ∥Δᶜ∥: 0.1125, log 𝓛: -34.7760
+∥∇∥:       1.4572, ∥Δ∥: 0.0147, η: 1.00, ∥Δᶜ∥: 0.0147, log 𝓛: -33.9361 (+0.8399)
+∥∇∥:       0.0213, ∥Δ∥: 0.0002, η: 1.00, ∥Δᶜ∥: 0.0002, log 𝓛: -33.9253 (+0.0108)
+∥∇∥:       0.0000, ∥Δ∥: 0.0000, η: 1.00, ∥Δᶜ∥: 0.0000, log 𝓛: -33.9253 (+0.0000)
 
 [∇: score, Δ: 𝐉⁻¹∇, η: learning rate, Δᶜ: clip(𝛉 + ηΔ, lb, ub) - 𝛉, 𝓛: restricted likelihood]
 
 ✓ Converged at iteration 4
 </pre></div>
 </div>
-<div class="output text_plain highlight-none notranslate"><div class="highlight"><pre><span></span>(tensor([0.0943]), tensor([-0.0138,  0.0483]))
+<div class="output text_plain highlight-none notranslate"><div class="highlight"><pre><span></span>(tensor([0.1275]), tensor([ 0.0941, -0.0798]))
 </pre></div>
 </div>
 </div>
