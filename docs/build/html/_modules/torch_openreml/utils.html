@@ -8,7 +8,7 @@
         <title>torch_openreml.utils - torch-openreml 0.1.0-alpha documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
-    <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css?v=572af1d6" />
     <link rel="stylesheet" type="text/css" href="../../_static/thebelab.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
     
@@ -275,19 +275,56 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for torch_openreml.utils</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">General utilities.</span>
 
-<div class="viewcode-block" id="map_z_g_r_to_v">
-<a class="viewcode-back" href="../../generated/torch_openreml.utils.map_z_g_r_to_v.html#torch_openreml.utils.map_z_g_r_to_v">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">map_z_g_r_to_v</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">z</span> <span class="o">@</span> <span class="n">g</span> <span class="o">@</span> <span class="n">z</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="n">r</span></div>
+<span class="sd">Functions:</span>
+<span class="sd">    get_device:</span>
+<span class="sd">        Validate and return the shared device of a collection of tensors.</span>
+<span class="sd">    get_dtype:</span>
+<span class="sd">        Validate and return the shared dtype of a collection of tensors.</span>
+<span class="sd">    numeric_to_design_matrix:</span>
+<span class="sd">        Construct a design matrix from one or more numeric vectors or tensors.</span>
+<span class="sd">    categorical_to_design_matrix:</span>
+<span class="sd">        Construct a one-hot encoded design matrix from a categorical vector.</span>
+<span class="sd">    augment:</span>
+<span class="sd">        Horizontally concatenate design matrices.</span>
+<span class="sd">    interaction:</span>
+<span class="sd">        Construct an interaction term from two or more categorical vectors.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
-  
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
 <div class="viewcode-block" id="get_device">
 <a class="viewcode-back" href="../../generated/torch_openreml.utils.get_device.html#torch_openreml.utils.get_device">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_device</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validate and return the shared device of a collection of tensors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        *args (torch.Tensor): Zero or more tensors. All must reside on</span>
+<span class="sd">            the same device.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.device: The shared device of all tensors, the PyTorch</span>
+<span class="sd">        default device if no tensors are provided.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If any tensor resides on a different device than the first.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. jupyter-execute::</span>
+
+<span class="sd">        import torch</span>
+<span class="sd">        from torch_openreml.utils import get_device</span>
+
+<span class="sd">        x = torch.tensor([1.0, 2.0])</span>
+<span class="sd">        y = torch.tensor([3.0, 4.0])</span>
+<span class="sd">        get_device(x, y)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;cpu&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_device</span><span class="p">()</span>
       
     <span class="n">device</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
@@ -300,6 +337,31 @@
 <div class="viewcode-block" id="get_dtype">
 <a class="viewcode-back" href="../../generated/torch_openreml.utils.get_dtype.html#torch_openreml.utils.get_dtype">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_dtype</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validate and return the shared dtype of a collection of tensors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        *args (torch.Tensor): Zero or more tensors. All must share the</span>
+<span class="sd">            same dtype.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.dtype: The shared dtype of all tensors, or the PyTorch</span>
+<span class="sd">        default dtype if no tensors are provided.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If any tensor has a different dtype than the first.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. jupyter-execute::</span>
+
+<span class="sd">        import torch</span>
+<span class="sd">        from torch_openreml.utils import get_dtype</span>
+
+<span class="sd">        x = torch.tensor([1.0, 2.0])</span>
+<span class="sd">        y = torch.tensor([3.0, 4.0])</span>
+<span class="sd">        get_dtype(x, y)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
     
@@ -314,6 +376,39 @@
 <div class="viewcode-block" id="numeric_to_design_matrix">
 <a class="viewcode-back" href="../../generated/torch_openreml.utils.numeric_to_design_matrix.html#torch_openreml.utils.numeric_to_design_matrix">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">numeric_to_design_matrix</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct a design matrix from one or more numeric vectors or tensors.</span>
+
+<span class="sd">    Each argument becomes one column of the resulting design matrix. All</span>
+<span class="sd">    inputs must have the same length along the first dimension.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        *args (torch.Tensor, list, or tuple): One or more numeric vectors</span>
+<span class="sd">            of equal length. Lists and tuples are converted to tensors.</span>
+<span class="sd">        dtype (torch.dtype, optional): Desired dtype of the matrix.</span>
+<span class="sd">                Defaults to the PyTorch default dtype.</span>
+<span class="sd">        device (torch.device, optional): Desired device of the matrix.</span>
+<span class="sd">            Defaults to the PyTorch default device.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Design matrix of shape ``(n, num_args)``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If no inputs are provided, or if inputs have</span>
+<span class="sd">            inconsistent lengths.</span>
+<span class="sd">        TypeError: If any input is not a tensor, list, or tuple.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. jupyter-execute::</span>
+
+<span class="sd">        import torch</span>
+<span class="sd">        from torch_openreml.utils import numeric_to_design_matrix</span>
+
+<span class="sd">        x1 = torch.tensor([1.0, 2.0, 3.0])</span>
+<span class="sd">        x2 = torch.tensor([4.0, 5.0, 6.0])</span>
+<span class="sd">        numeric_to_design_matrix(x1, x2)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;At least one input is required.&quot;</span><span class="p">)</span>
@@ -349,6 +444,45 @@
 <div class="viewcode-block" id="categorical_to_design_matrix">
 <a class="viewcode-back" href="../../generated/torch_openreml.utils.categorical_to_design_matrix.html#torch_openreml.utils.categorical_to_design_matrix">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">categorical_to_design_matrix</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drop_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct a one-hot encoded design matrix from a categorical vector.</span>
+
+<span class="sd">    Each unique level in ``x`` becomes one column in the output matrix.</span>
+<span class="sd">    The column ordering follows ``levels`` if provided, otherwise the</span>
+<span class="sd">    sorted unique values of ``x``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (list or tuple of str): Categorical vector of string labels.</span>
+<span class="sd">        levels (list of str, optional): Explicit level ordering. Must</span>
+<span class="sd">            contain exactly the same unique values as ``x``. Defaults to</span>
+<span class="sd">            the sorted unique values of ``x``.</span>
+<span class="sd">        drop_first (bool, optional): Whether to drop the first column to</span>
+<span class="sd">            avoid multicollinearity. Defaults to ``False``.</span>
+<span class="sd">        dtype (torch.dtype, optional): Desired dtype of the matrix.</span>
+<span class="sd">                Defaults to the PyTorch default dtype.</span>
+<span class="sd">        device (torch.device, optional): Desired device of the matrix.</span>
+<span class="sd">            Defaults to the PyTorch default device.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: One-hot encoded matrix of shape</span>
+<span class="sd">        ``(len(x), len(levels))`` or ``(len(x), len(levels) - 1)`` if</span>
+<span class="sd">        ``drop_first=True``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``levels`` does not match the number of unique</span>
+<span class="sd">            values in ``x``.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. jupyter-execute::</span>
+
+<span class="sd">        import torch</span>
+<span class="sd">        from torch_openreml.utils import categorical_to_design_matrix</span>
+
+<span class="sd">        print(categorical_to_design_matrix([&quot;a&quot;, &quot;b&quot;, &quot;a&quot;, &quot;c&quot;]))</span>
+
+<span class="sd">        print(categorical_to_design_matrix([&quot;a&quot;, &quot;b&quot;, &quot;a&quot;, &quot;c&quot;], drop_first=True))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">device</span> <span class="ow">or</span> <span class="s2">&quot;cpu&quot;</span>
@@ -374,12 +508,68 @@
 <div class="viewcode-block" id="augment">
 <a class="viewcode-back" href="../../generated/torch_openreml.utils.augment.html#torch_openreml.utils.augment">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">augment</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Horizontally concatenate two or more design matrices.</span>
+
+<span class="sd">    A convenience wrapper around :func:`torch.cat` along the column</span>
+<span class="sd">    dimension. Useful for combining numeric and categorical design</span>
+<span class="sd">    matrices into a single matrix.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        *args (torch.Tensor): Two or more design matrices with the same</span>
+<span class="sd">            number of rows.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: Concatenated matrix of shape</span>
+<span class="sd">        ``(n, sum of columns across all inputs)``.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. jupyter-execute::</span>
+
+<span class="sd">        import torch</span>
+<span class="sd">        from torch_openreml.utils import augment</span>
+
+<span class="sd">        x1 = torch.ones(4, 2)</span>
+<span class="sd">        x2 = torch.zeros(4, 3)</span>
+<span class="sd">        augment(x1, x2)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="interaction">
 <a class="viewcode-back" href="../../generated/torch_openreml.utils.interaction.html#torch_openreml.utils.interaction">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">interaction</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\u22C8</span><span class="s2">&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct an interaction term from two or more categorical vectors.</span>
+
+<span class="sd">    Joins the corresponding elements of each input vector into a single</span>
+<span class="sd">    string separated by ``sep``, producing a new categorical vector whose</span>
+<span class="sd">    levels represent combined factor combinations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        *args (list or tuple of str): Two or more categorical vectors of</span>
+<span class="sd">            equal length.</span>
+<span class="sd">        sep (str, optional): Separator inserted between joined levels.</span>
+<span class="sd">            Defaults to ``&quot;⋈&quot;`` (U+22C8, the bowtie symbol).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list of str: Interaction vector of the same length as the inputs.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If no inputs are provided.</span>
+<span class="sd">        TypeError: If any input is not a list or tuple of strings.</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    .. jupyter-execute::</span>
+
+<span class="sd">        from torch_openreml.utils import interaction</span>
+
+<span class="sd">        a = [&quot;control&quot;, &quot;control&quot;, &quot;treatment&quot;]</span>
+<span class="sd">        b = [&quot;male&quot;, &quot;female&quot;, &quot;male&quot;]</span>
+<span class="sd">        interaction(a, b)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;At least one input is required.&quot;</span><span class="p">)</span>
 

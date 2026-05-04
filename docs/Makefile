@@ -7,6 +7,7 @@ SPHINXOPTS    ?=
 SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
+BUILDDIR2      = ../../torch-openreml-docs/docs/
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -18,3 +19,5 @@ help:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@rm -rf $(BUILDDIR2)
+	@cp -r $(BUILDDIR) $(BUILDDIR2)
