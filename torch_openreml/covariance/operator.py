@@ -15,7 +15,7 @@ class Operator(Matrix):
             for name in getattr(operand, "param_names", [])
         ]
         
-        super().__init__(shape, param_names, ())
+        super().__init__(shape, param_names, [])
         
         del self._no_grad_index
         
@@ -61,33 +61,48 @@ class Operator(Matrix):
 
         return torch.cat(result)
     
-    def build_operands(self, params, grad=True):
+    def build_operands(self, params):
         params = self.from_param_dict(params)
         self.check_params(params)
         
         v_groups = []
-        grad_groups = []
-        grad_name_groups = []
         
         for name, operand in self.operands.items():
             if isinstance(operand, Matrix):
                 operand_params = params[0:operand.num_params]
                 params = params[operand.num_params:]
-                
-                v_groups.append(operand.build(operand_params, grad))
-                
-                if grad:
-                    grad_groups.append(operand.grad)
-                    grad_name_groups.append([f"{name}/{grad_name}" for grad_name in operand.grad_names])
+
+                v_groups.append(operand(operand_params))
+            else:
+                v_groups.append(operand)
+        
+        return v_groups
+
+    def operands_grad(self, params):
+        params = self.from_param_dict(params)
+        self.check_params(params)
+
+        grad_groups = []
+        grad_name_groups = []
+
+        for name, operand in self.operands.items():
+            if isinstance(operand, Matrix):
+                operand_params = params[0:operand.num_params]
+                params = params[operand.num_params:]
+
+                grad, grad_names = operand.grad(operand_params)
+
+                if grad is not None:
+                    grad_groups.append(grad)
+                    grad_name_groups.append([f"{name}/{grad_name}" for grad_name in grad_names])
                 else:
                     grad_groups.append(None)
                     grad_name_groups.append([])
             else:
-                v_groups.append(operand)
                 grad_groups.append(None)
                 grad_name_groups.append([])
-        
-        return v_groups, grad_groups, grad_name_groups
+
+        return grad_groups, grad_name_groups
         
     @property
     def operands(self):
