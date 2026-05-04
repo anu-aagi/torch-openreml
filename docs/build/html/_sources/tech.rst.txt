@@ -461,7 +461,7 @@ Substituting this identity into the previous expression for :math:`S_k(\boldsymb
    }.
 
 Average Information Matrix
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The score function for :math:`\theta_k` is
 
