@@ -1,17 +1,77 @@
+"""
+Covariance matrix abstraction system.
+
+This module defines a flexible base class for constructing covariance matrices
+used in linear mixed-effects models. Implementations support both manual and
+automatic differentiation via :meth:`auto_grad`, enabling gradient-based
+optimization of model parameters.
+
+Classes:
+  Matrix:
+      Base class providing parameter validation, transform application,
+      and Jacobian computation utilities for all covariance matrix
+      implementations.
+"""
+
 import torch
-from functools import partial
 from abc import ABC, abstractmethod
 from torch_openreml.covariance.transform import Transform
 
+
 class Matrix(ABC):
+    r"""
+    Abstract base class for covariance matrices with parameterized structure.
+
+    .. math::
+        \symbf{V} = \symbf{V}(\symbf{\theta})
+
+    where :math:`\symbf{\theta}` denotes the collection of variance component
+    parameters that define the matrix entries.
+
+    This class provides utilities for parameter validation, transform application,
+    and Jacobian computation (both manual and automatic).
+    Subclasses must implement :meth:`build` to construct their specific matrix
+    structure from the provided parameters.
+    """
   
     _repr_single_line = True
-  
-    def __init__(self, shape, param_names, trans, no_grad_index=None):
+
+    def __init__(self, shape, param_names, trans=None, no_grad_index=None):
+        r"""
+        Initialize a covariance matrix with optional parameter transforms.
+
+        Args:
+            shape (tuple or None): Expected output dimensions of the constructed matrix.
+                Used for validation; the actual shape may be set by subclasses.
+            param_names (list of str): Ordered names of parameters in :attr:`params`.
+                Empty list if no trainable parameters (e.g., fixed matrices).
+            trans (list of Transform or None): List of transforms applied to each
+                parameter before constructing the matrix. If None, no transforms are used.
+                Typically used for variance (:math:`\exp(2\theta) > 0`) or correlation
+                constraints (:math:`\rho \in (-1, 1)`).
+            no_grad_index (list of int): Indices to exclude from gradient computation.
+                Parameters at these indices will be omitted from :attr:`grad` and
+                :attr:`grad_names`. Use :meth:`set_no_grad` instead for convenience.
+
+        Note:
+            The transform applies as
+
+            .. math::
+                \symbf{V} = \left[f_0(\theta_0), \ldots, f_{p-1}(\theta_{p-1}) \right]^\top,
+
+            where each :math:`f_i` is the i-th transform in :attr:`trans`.
+            If :attr:`trans` has length 1, the single transform is broadcast and applied elementwise to all parameters.
+
+        Raises:
+            TypeError: If ``param_names`` is not a list of strings, or if
+                transforms contain non-Transform objects.
+            ValueError: If parameter names are not unique, or if indices in
+                ``no_grad_index`` are out of range.
+        """
+
         self._check_shape(shape)
         self._shape = tuple(shape or ())
-        
-        self.reset_grad()
+
         self._check_no_grad_index(no_grad_index)
         
         self._check_param_names(param_names)
@@ -22,10 +82,44 @@ class Matrix(ABC):
         self._trans = trans
 
         self._no_grad_index = list(set(no_grad_index or []))
-    
-    def reset_grad(self):
-        self._grad = None
-        self._grad_names = []
+
+        #: Gradient computation mode: ``"manual"`` uses a class-defined manual gradient,
+        # ``"auto"`` uses automatic differentiation, and ``"default"`` uses the manual
+        # gradient if :meth:`manual_grad` is defined, otherwise automatic differentiation.
+        self.grad_mode = "default"
+
+        self.reset_intermediates()
+
+    def set_intermediates(self, params, intermediates):
+        params = self.from_param_dict(params)
+        device, dtype = self.check_params(params)
+
+        if params.shape[0] == 0:
+            return None
+
+        h = torch.hash_tensor(params).item()
+        self._intermediates["hash"] = h
+        self._intermediates["dtype"] = dtype
+        self._intermediates["device"] = device
+        self._intermediates["intermediates"] = intermediates
+
+    def get_intermediates(self, params):
+        params = self.from_param_dict(params)
+        device, dtype = self.check_params(params)
+
+        if params.shape[0] == 0:
+            return None
+
+        h = torch.hash_tensor(params).item()
+        if self._intermediates["hash"] == h:
+            if self._intermediates["dtype"] == dtype:
+                if self._intermediates["device"] == device:
+                    return self._intermediates["intermediates"]
+
+        return None
+
+    def reset_intermediates(self):
+        self._intermediates = {"hash": None, "dtype": None, "device": None, "intermediates": None}
     
     def set_no_grad(self, index=None, param_name=None):
         if (index is None) == (param_name is None):
@@ -43,8 +137,31 @@ class Matrix(ABC):
             index_map = {name: i for i, name in enumerate(self._param_names)}
             index = [index_map[name] for name in param_name]
             self._no_grad_index = list(set(index))
-            
+
     def from_param_dict(self, param_dict):
+        r"""
+        Extract parameter tensors from a dictionary into a flat 1D tensor.
+
+        Converts a parameter dictionary to a concatenated 1D tensor ordered
+        according to :attr:`param_names`. The inverse operation is provided
+        by :meth:`to_param_dict`.
+
+        Args:
+            param_dict (torch.Tensor or dict): Either a flat parameter tensor
+                (returned as-is), or a dictionary mapping parameter names to
+                tensors. All keys must exist in :attr:`param_names` and no
+                extra keys are allowed.
+
+        Returns:
+            torch.Tensor: Concatenated 1D tensor containing all parameters
+                in the order specified by :attr:`param_names`.
+
+        Raises:
+            ValueError: If ``param_dict`` is a dictionary missing required keys
+                or containing unexpected keys, or if the tensor length does not
+                match the number of parameters.
+        """
+
         if not isinstance(param_dict, dict):
             return param_dict
         
@@ -65,67 +182,132 @@ class Matrix(ABC):
         if len(params) != len(self._param_names):
             raise ValueError(f"Expected {len(self._param_names)} parameters, got {len(params)}!")
         
-        return {name: tensor for name, tensor in zip(self.param_names, params)}
+        return {name: tensor for name, tensor in zip(self.param_names, params.unsqueeze(-1))}
 
     def trans_params(self, params):
-        if len(self.trans) == 0:
+        params = self.from_param_dict(params)
+        _, _ = self.check_params(params)
+
+        if self.trans is None or len(self.trans) == 0:
             return params
 
         if len(self.trans) == 1:
             return self.trans[0](params)
         else:
-            return torch.stack([self.trans[i](x) for i, x in enumerate(params)])
+            return torch.cat([self.trans[i](x) for i, x in enumerate(params.unsqueeze(-1))])
 
-    def trans_chain_rule_factor(self, params):
-        if len(self.trans) == 0:
-            return 1.0
+    def trans_grad(self, params):
+        params = self.from_param_dict(params)
+        _, _ = self.check_params(params)
+
+        if self.trans is None or len(self.trans) == 0:
+            return torch.tensor([1.0], dtype=params.dtype, device=params.device)
 
         if len(self.trans) == 1:
-            return self.trans[0].chain_rule_factor(params)
+            return self.trans[0].grad(params)
         else:
-            return torch.stack([self.trans[i].chain_rule_factor(x) for i, x in enumerate(params)])
+            return torch.cat([self.trans[i].grad(x) for i, x in enumerate(params.unsqueeze(-1))])
       
     def auto_grad(self, params):
-        jacobian = torch.func.jacrev(partial(self.build, grad=False))(params)
+        """
+        Compute the Jacobian of :meth:`build` with respect to
+        trainable parameters using automatic differentiation.
+
+        Uses :func:`torch.func.jacrev` to compute the full Jacobian, then
+        masks out parameters listed in :attr:`no_grad_index`.
+
+        If all parameters are excluded via ``no_grad_index``, returns ``(None, [])``
+
+        Args:
+            params (torch.Tensor): Flat 1D parameter tensor.
+
+        Returns:
+            tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
+            shape ``(`` :attr:`num_params` ``-len(`` :attr:`no_grad_index` ``), *`` :attr:`shape` ``)``, and
+            ``grad_names`` has the same length as ``grad``.
+        """
+        if len(self.no_grad_index) == self._num_params:
+            return None, []
+
+        self.reset_intermediates()
+
+        jacobian = torch.func.jacrev(self.__call__)(params)
         jacobian = jacobian.permute(2, 0, 1)
 
-        if len(self.no_grad_index) == self._num_params:
-            self._grad = None
-            self._grad_names = self.param_names
-        else:
-            mask = torch.ones(self.num_params, dtype=torch.bool)
-            mask[self.no_grad_index] = False
-            self._grad = jacobian[mask]
-            self._grad_names = [name for i, name in enumerate(self.param_names) if i not in self.no_grad_index]
+        mask = torch.ones(self.num_params, dtype=torch.bool)
+        mask[self.no_grad_index] = False
+        grad = jacobian[mask]
+        grad_names = [name for i, name in enumerate(self.param_names) if i not in self.no_grad_index]
 
-    @abstractmethod
-    def build(self, params, grad=True):
+        return grad, grad_names
+
+    def manual_grad(self, params):
         raise NotImplementedError
 
-    def __call__(self, params, grad=True):
+    @abstractmethod
+    def __call__(self, params):
         """
-        Call :meth:`build` to construct the matrix from a flat parameter tensor.
+        Construct the matrix from a flat parameter tensor.
+
+        Must be implemented by subclasses. Implementations should convert
+        ``params`` via :meth:`from_param_dict` or :meth:`to_param_dict`,
+        then call :meth:`check_params` to validate and :meth:`trans_params`
+        to apply transforms before any computation.
 
         Args:
             params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
-            grad (bool): Whether to compute and store the Jacobian.
-                Defaults to ``True``.
 
         Returns:
             torch.Tensor: Constructed matrix of shape :attr:`shape`.
         """
-        self.build(params, grad)
+        raise NotImplementedError
+
+    def grad(self, params):
+        if self.grad_mode == "default":
+            try:
+                return self.manual_grad(params)
+            except NotImplementedError:
+                return self.auto_grad(params)
+        elif self.grad_mode == "auto":
+            return self.auto_grad(params)
+        else:
+            raise RuntimeError(f"Unknown grad mode '{self.grad_mode}'")
       
     def map_theta_to_v(self, theta):
-        return self.build(theta, grad=True)
+        """
+        An interface compatible with :class:`torch_openreml.REML` that maps
+        parameters to a matrix.
+
+        Invokes :meth:`__call__`.
+
+        Args:
+            theta (torch.Tensor): Flat 1D parameter tensor.
+
+        Returns:
+            torch.Tensor: Constructed matrix.
+        """
+        return self(theta)
       
     def map_theta_to_dv(self, theta):
-        if self.grad is None and len(self.no_grad_index) < self.num_params:
-            self.build(grad=True)
-        return self.grad
+        """
+        An interface compatible with :class:`torch_openreml.REML` that maps parameters
+        to the matrix Jacobian.
+
+        Invokes :meth:`grad`.
+
+        Args:
+            theta (torch.Tensor): Flat 1D parameter tensor.
+
+        Returns:
+            torch.Tensor or None: Jacobian tensor of shape
+            ``(num_grad_params, *shape)``, or ``None`` if all parameters
+            are excluded from gradient computation.
+        """
+        grad, grad_name = self.grad(theta)
+        return grad
     
-    def check_n(self, n):
+    def _check_n(self, n):
         if not isinstance(n, int):
             raise TypeError("'n' must be an int!")
           
@@ -142,6 +324,9 @@ class Matrix(ABC):
             raise TypeError("All elements of 'shape' must be positive int!")
 
     def _check_trans(self, trans):
+        if trans is None or len(trans) == 0:
+            return
+
         if isinstance(trans, (list, tuple)):
             for t in trans:
                 if not isinstance(t, Transform):
@@ -158,6 +343,22 @@ class Matrix(ABC):
                 raise ValueError("Parameter index outside range!")
               
     def check_params(self, params):
+        """
+        Validate a parameter tensor and return its device and dtype.
+
+        Accepts a parameter dictionary and converts it to a flat tensor
+        via :meth:`from_param_dict` before validation.
+
+        Args:
+            params (torch.Tensor or dict): Parameters to validate.
+
+        Returns:
+            tuple: ``(device, dtype)`` of the parameter tensor.
+
+        Raises:
+            TypeError: If ``params`` is not a tensor.
+            ValueError: If ``params`` is not 1D or has the wrong length.
+        """
         params = self.from_param_dict(params)
         
         if not torch.is_tensor(params):
@@ -240,33 +441,31 @@ class Matrix(ABC):
         
     @property
     def shape(self):
+        """tuple: Output matrix shape."""
         return self._shape
-
-    @property
-    def grad(self):
-        return self._grad
-    
-    @property
-    def grad_names(self):
-        return self._grad_names
       
     @property  
     def param_names(self):
+        """list of str: Ordered parameter names."""
         return self._param_names
     
     @property
     def num_params(self):
+        """int: Total number of parameters."""
         return self._num_params
 
     @property
     def trans(self):
+        """list of Transform: Parameter transforms."""
         return self._trans
     
     @property
     def no_grad_index(self):
+        """list of int: Indices of parameters excluded from gradient computation."""
         return self._no_grad_index
     
     @property
     def repr_dict(self):
+        """dict: Key-value pairs used to build the string representation."""
         return {"shape": self._shape, "param_names": self._param_names, "trans": self._trans, "no_grad_index": self._no_grad_index}
 
