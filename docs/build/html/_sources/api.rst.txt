@@ -1,3 +1,5 @@
+.. _api:
+
 API Reference
 =============
 
@@ -9,3 +11,4 @@ API Reference
    api/operators
    api/transforms
    api/utils
+   api/example_data

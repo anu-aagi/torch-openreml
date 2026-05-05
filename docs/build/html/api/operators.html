@@ -12,6 +12,7 @@
     <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
     <link rel="stylesheet" type="text/css" href="../_static/thebelab.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=df86a2a8" />
     
     
 
@@ -193,7 +194,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../tech.html">Gaussian Linear Mixed Model Formulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tech.html">Technical Documentation</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2 has-children"><a class="reference internal" href="reml.html">REML</a><input aria-label="Toggle navigation of REML" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.REML.html">torch_openreml.REML</a></li>
@@ -215,7 +216,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.BlockDiagonal.html">torch_openreml.covariance.BlockDiagonal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.HadamardProduct.html">torch_openreml.covariance.HadamardProduct</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.KroneckerProduct.html">torch_openreml.covariance.KroneckerProduct</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.LinearPropagation.html">torch_openreml.covariance.LinearPropagation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.CovariancePropagation.html">torch_openreml.covariance.CovariancePropagation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.Sum.html">torch_openreml.covariance.Sum</a></li>
 </ul>
 </li>
@@ -241,6 +242,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.utils.interaction.html">torch_openreml.utils.interaction</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="example_data.html">Example Datasets</a></li>
 </ul>
 </li>
 </ul>
@@ -263,12 +265,16 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/api/operators.rst.txt" title="View this page">
+  <a class="muted-link" href="https://github.com/anu-aagi/torch-openreml/blob/main/docs/source/api/operators.rst?plain=true" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
-</div>
-<div class="theme-toggle-container theme-toggle-content">
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/anu-aagi/torch-openreml/edit/main/docs/source/api/operators.rst" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
               <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
               <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
@@ -286,10 +292,10 @@
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator" title="torch_openreml.covariance.Operator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.Operator</span></code></a>(shape, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator" title="torch_openreml.covariance.Operator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.Operator</span></code></a>(*args, ...)</p></td>
 <td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.BlockDiagonal.html#torch_openreml.covariance.BlockDiagonal" title="torch_openreml.covariance.BlockDiagonal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.BlockDiagonal</span></code></a>(operands)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.BlockDiagonal.html#torch_openreml.covariance.BlockDiagonal" title="torch_openreml.covariance.BlockDiagonal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.BlockDiagonal</span></code></a>(...)</p></td>
 <td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.HadamardProduct.html#torch_openreml.covariance.HadamardProduct" title="torch_openreml.covariance.HadamardProduct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.HadamardProduct</span></code></a>(...)</p></td>
@@ -298,10 +304,10 @@
 <tr class="row-even"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.KroneckerProduct.html#torch_openreml.covariance.KroneckerProduct" title="torch_openreml.covariance.KroneckerProduct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.KroneckerProduct</span></code></a>(...)</p></td>
 <td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.LinearPropagation.html#torch_openreml.covariance.LinearPropagation" title="torch_openreml.covariance.LinearPropagation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.LinearPropagation</span></code></a>(...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.CovariancePropagation.html#torch_openreml.covariance.CovariancePropagation" title="torch_openreml.covariance.CovariancePropagation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.CovariancePropagation</span></code></a>(...)</p></td>
 <td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.Sum.html#torch_openreml.covariance.Sum" title="torch_openreml.covariance.Sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.Sum</span></code></a>(operands)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.Sum.html#torch_openreml.covariance.Sum" title="torch_openreml.covariance.Sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.Sum</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
 </tr>
 </tbody>
@@ -346,7 +352,14 @@
             
           </div>
           <div class="right-details">
-            
+            <div class="icons">
+              <a class="muted-link " href="https://github.com/anu-aagi/torch-openreml" aria-label="GitHub">
+                                      <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 16 16">
+                                          <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path>
+                                      </svg>
+                                  </a>
+              
+            </div>
           </div>
         </div>
         

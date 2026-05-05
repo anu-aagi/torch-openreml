@@ -1,3 +1,5 @@
+.. _tech:
+
 Technical Documentation
 ========================================
 
