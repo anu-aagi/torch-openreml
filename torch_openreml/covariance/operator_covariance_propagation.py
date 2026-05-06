@@ -2,13 +2,14 @@ from torch_openreml.covariance.operator import Operator
 import torch
 
 
-class LinearPropagation(Operator):
+class CovariancePropagation(Operator):
 
-    def __init__(self, operands):
-        if len(operands) != 2:
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        if len(self.operands) != 2:
             raise ValueError("Two operands are required")
-
-        super().__init__(None, operands)
 
     def _get_or_build_intermediates(self, params):
         cache = self.get_intermediates(params)
