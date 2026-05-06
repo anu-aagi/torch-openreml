@@ -3,11 +3,12 @@ import torch
 
 class Sum(Operator):
     
-    def __init__(self, operands):
-        if len(operands) < 2:
-            raise ValueError("At least two operands are required")
+    def __init__(self, *args, **kwargs):
           
-        super().__init__(None, operands)
+        super().__init__(*args, **kwargs)
+
+        if len(self.operands) < 2:
+            raise ValueError("At least two operands are required")
     
     def __call__(self, params):
         v_groups = self.build_operands(params)
