@@ -5,7 +5,19 @@ class Operator(Matrix):
   
     _repr_single_line = False
     
-    def __init__(self, shape, operands):
+    def __init__(self, *args, **kwargs):
+
+        if len(args) > 0 and len(kwargs) > 0:
+            raise ValueError('Operands must be provided either as keyword arguments or as positional arguments, but not both!')
+
+        if len(args) > 0:
+            if len(args) == 1 and isinstance(args[0], dict):
+                operands = args[0]
+            else:
+                operands = {f"op_{i}": arg for i, arg in enumerate(args)}
+        else:
+            operands = kwargs
+
         self.check_operands(operands)
         self._operands = operands
         
@@ -15,7 +27,7 @@ class Operator(Matrix):
             for name in getattr(operand, "param_names", [])
         ]
         
-        super().__init__(shape, param_names, [])
+        super().__init__(None, param_names, [])
         
         del self._no_grad_index
         
