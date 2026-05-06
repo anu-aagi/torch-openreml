@@ -4,11 +4,12 @@ import torch
 
 class HadamardProduct(Operator):
 
-    def __init__(self, operands):
-        if len(operands) != 2:
-            raise ValueError("Two operands are required")
+    def __init__(self, *args, **kwargs):
 
-        super().__init__(None, operands)
+        super().__init__(*args, **kwargs)
+
+        if len(self.operands) != 2:
+            raise ValueError("Two operands are required")
 
     def _get_or_build_intermediates(self, params):
         cache = self.get_intermediates(params)
