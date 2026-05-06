@@ -70,7 +70,7 @@ print(manual_grad.shape == auto_grad.shape)
 
 Z = torch.cat([torch.eye(3), torch.eye(3)])
 G = torch_openreml.covariance.ScalarMatrix(3)
-S = torch_openreml.covariance.LinearPropagation({"Z": Z, "G": G})
+S = torch_openreml.covariance.CovariancePropagation({"Z": Z, "G": G})
 S
 S.param_names
 x = torch.tensor([1.0])
