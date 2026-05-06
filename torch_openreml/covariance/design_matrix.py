@@ -12,8 +12,10 @@ Classes:
 """
 
 import torch
+import pandas as pd
 from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.utils import numeric_to_design_matrix, categorical_to_design_matrix
+
 
 class DesignMatrix(Matrix):
     r"""
@@ -37,7 +39,7 @@ class DesignMatrix(Matrix):
         Initialize a fixed design matrix from numeric or categorical input.
 
         Args:
-            x (torch.Tensor, list, or tuple): Input data. Either a numeric
+            x (torch.Tensor, list, tuple, or pandas.Series): Input data. Either a numeric
                 tensor or list, or a list of strings for categorical data.
             levels (list, optional): Explicit level ordering for categorical
                 input, or bin edges for numeric input.
@@ -66,8 +68,11 @@ class DesignMatrix(Matrix):
             mat = DesignMatrix(["a", "b", "a", "c"], levels=["c", "b", "a"])
             print(mat())
         """
-        if not isinstance(x, (torch.Tensor, list, tuple)):
-            raise TypeError("'x' must be a torch.Tensor, a list or a tuple!")
+        if not isinstance(x, (torch.Tensor, list, tuple, pd.Series)):
+            raise TypeError("'x' must be a torch.Tensor, a list,  a tuple or a pandas.Series!")
+
+        if isinstance(x, pd.Series):
+            x = x.to_list()
 
         if torch.is_tensor(x):
             self._matrix = numeric_to_design_matrix(x, dtype=dtype or x.dtype, device=device or x.device)
