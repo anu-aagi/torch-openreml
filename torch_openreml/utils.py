@@ -17,6 +17,7 @@ Functions:
 """
 
 import torch
+import pandas as pd
 
 def get_device(*args):
     """
@@ -98,8 +99,8 @@ def numeric_to_design_matrix(*args, dtype=None, device=None):
     inputs must have the same length along the first dimension.
 
     Args:
-        *args (torch.Tensor, list, or tuple): One or more numeric vectors
-            of equal length. Lists and tuples are converted to tensors.
+        *args (torch.Tensor, list, tuple or pd.Series): One or more numeric vectors
+            of equal length. Lists, tuples and pd.Series are converted to tensors.
         dtype (torch.dtype, optional): Desired dtype of the matrix.
                 Defaults to the PyTorch default dtype.
         device (torch.device, optional): Desired device of the matrix.
@@ -131,10 +132,13 @@ def numeric_to_design_matrix(*args, dtype=None, device=None):
     cols = []
     n = None
 
-    dtype = dtype or torch.float32
-    device = device or "cpu"
+    dtype = dtype or torch.get_default_dtype()
+    device = device or torch.get_default_device()
 
     for i, x in enumerate(args):
+
+        if isinstance(x, pd.Series):
+            x = x.to_list()
 
         if torch.is_tensor(x):
             x = x.to(dtype=dtype, device=device)
@@ -164,7 +168,7 @@ def categorical_to_design_matrix(x, levels=None, drop_first=False, dtype=None, d
     sorted unique values of ``x``.
 
     Args:
-        x (list or tuple of str): Categorical vector of string labels.
+        x (list or tuple of str or pd.Series): Categorical vector of string labels.
         levels (list of str, optional): Explicit level ordering. Must
             contain exactly the same unique values as ``x``. Defaults to
             the sorted unique values of ``x``.
@@ -196,8 +200,11 @@ def categorical_to_design_matrix(x, levels=None, drop_first=False, dtype=None, d
         print(categorical_to_design_matrix(["a", "b", "a", "c"], drop_first=True))
     """
 
-    dtype = dtype or torch.float32
-    device = device or "cpu"
+    dtype = dtype or torch.get_default_dtype()
+    device = device or torch.get_default_device()
+
+    if isinstance(x, pd.Series):
+        x = x.to_list()
 
     if levels is None:
         levels = sorted(set(x))
@@ -284,3 +291,29 @@ def interaction(*args, sep="\u22C8"):
             raise TypeError(f"Argument {i} is not list/tuple of strings!")
 
     return [sep.join(parts) for parts in zip(*args)]
+
+def n_distinct(x):
+    """
+    Count the unique elements of a list/tuple of strings.
+
+    Args:
+        x (list or tuple): Input.
+
+    Returns:
+        int: Number of unique elements.
+
+    Example:
+
+    .. jupyter-execute::
+
+        from torch_openreml.utils import n_distinct
+
+        n_distinct(["a", "b", "a", "c"])
+    """
+    if isinstance(x, pd.Series):
+        x = x.to_list()
+
+    if isinstance(x, (list, tuple)):
+        return len(set(x))
+    else:
+        raise TypeError(f"Argument x is not a list/tuple of strings!")
