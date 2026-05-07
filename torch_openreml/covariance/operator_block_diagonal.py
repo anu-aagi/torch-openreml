@@ -1,10 +1,60 @@
+"""
+Block diagonal covariance matrix operator.
+
+This module provides a block diagonal covariance matrix formed from two
+or more constituent covariance matrices, for use in linear mixed-effects
+models.
+
+Classes:
+    BlockDiagonal:
+        A block diagonal covariance matrix operator.
+"""
+
 from torch_openreml.covariance.operator import Operator
 import torch
 
 
 class BlockDiagonal(Operator):
+    r"""
+   Block diagonal covariance matrix formed from two or more operands.
+
+   .. math::
+       \symbf{V} = \mathrm{blockdiag}(\symbf{V}_0, \symbf{V}_1, \ldots)
+
+   Each operand contributes a contiguous block along the diagonal.
+   Parameters and gradients are namespaced by operand name and aggregated
+   into a single joint parameter tensor, following the convention of
+   :class:`~torch_openreml.covariance.operator.Operator`.
+   """
 
     def __init__(self, *args, **kwargs):
+        """
+        Initialize a block diagonal operator from two or more operands.
+
+        Args:
+           \*args: Two or more operands as positional arguments, each a
+               :class:`~torch_openreml.covariance.matrix.Matrix` or
+               :class:`torch.Tensor`. A single dict argument is also accepted.
+
+           \**kwargs: Two or more operands as keyword arguments.
+
+        Raises:
+           ValueError: If fewer than two operands are provided.
+
+        Example:
+
+        .. jupyter-execute::
+
+           import torch
+           from torch_openreml.covariance import ScalarMatrix, DiagonalMatrix, BlockDiagonal
+
+           block = BlockDiagonal(
+               residual=ScalarMatrix(3),
+               random=DiagonalMatrix(2)
+           )
+           params = torch.tensor([0.5, 0.0, 1.0])
+           block(params)
+        """
 
         super().__init__(*args, **kwargs)
 
@@ -49,6 +99,21 @@ class BlockDiagonal(Operator):
         return v
 
     def manual_grad(self, params):
+        """
+        Compute the Jacobian of :meth:`__call__` with respect to trainable
+        parameters using a closed-form analytic expression.
+
+        Args:
+            params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary.
+
+        Returns:
+            tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
+            shape ``(num_params - len(no_grad_index), *shape)`` and
+            ``grad_names`` is a list of the corresponding parameter names.
+            Returns ``(None, [])`` if all parameters are excluded from
+            gradient computation.
+        """
         grad_groups, grad_name_groups = self.operands_grad(params)
 
         cache = self._get_or_build_intermediates(params)
