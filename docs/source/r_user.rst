@@ -1,8 +1,8 @@
 For R Users
 ===========
 
-torch-openreml can be used in R via ``reticulate``, we recommend using
-torch-openreml in a conda environment.
+torch-openreml can be used in R through the ``reticulate`` package.
+We recommend installing torch-openreml inside a dedicated conda environment.
 
 Installation
 ------------
@@ -10,7 +10,7 @@ Installation
 1. Install Conda
 ~~~~~~~~~~~~~~~~
 
-You can safely skip this step if you have conda in your system
+You can skip this step if conda is already installed on your system.
 
 .. code-block:: R
 
@@ -36,14 +36,16 @@ You can safely skip this step if you have conda in your system
 .. code-block:: R
 
     reticulate::conda_install("torch-openreml",
-                               pip = TRUE,
-                               packages = c("torch-openreml")))
+                              pip = TRUE,
+                              packages = c("torch-openreml")))
 
 
 Usage
 -----
 
-We will illustrate the usage using the same example in the getting started.
+The following example mirrors the Getting Started example.
+In R, it is often more convenient to construct design matrices directly
+using ``model.matrix()``.
 
 .. code-block:: R
 
@@ -81,9 +83,13 @@ We will illustrate the usage using the same example in the getting started.
     fit_openreml <- REML(V)
     result <- fit_openreml$optimize(y, X, torch$zeros(3L), verbose = 2L)
 
+    print(py_to_r(fit_openreml$get_theta()$numpy()))
+    print(py_to_r(V$trans_params(fit_openreml$get_theta())$numpy()))
+    print(py_to_r(fit_openreml$get_beta()$numpy()))
 
 .. jupyter-execute::
     :hide-code:
 
-    !Rscript -e "print(c(1,2,3))"
-    !ls
+    !Rscript source/r_user/code.R > source/r_user/output.txt 2>/dev/null
+    !cat source/r_user/output.txt
+
