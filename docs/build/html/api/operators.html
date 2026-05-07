@@ -194,6 +194,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../r_user.html">For R Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tech.html">Technical Documentation</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2 has-children"><a class="reference internal" href="reml.html">REML</a><input aria-label="Toggle navigation of REML" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -204,7 +205,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.Matrix.html">torch_openreml.covariance.Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.AR1Matrix.html">torch_openreml.covariance.AR1Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.CompoundSymmetricMatrix.html">torch_openreml.covariance.CompoundSymmetricMatrix</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.DesignMatrix.html">torch_openreml.covariance.DesignMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.DummyMatrix.html">torch_openreml.covariance.DummyMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.DiagonalMatrix.html">torch_openreml.covariance.DiagonalMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.EquicorrelationMatrix.html">torch_openreml.covariance.EquicorrelationMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/torch_openreml.covariance.IdentityMatrix.html">torch_openreml.covariance.IdentityMatrix</a></li>
@@ -293,22 +294,22 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator" title="torch_openreml.covariance.Operator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.Operator</span></code></a>(*args, ...)</p></td>
-<td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
+<td><p>Abstract base class for composite covariance matrix operators.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.BlockDiagonal.html#torch_openreml.covariance.BlockDiagonal" title="torch_openreml.covariance.BlockDiagonal"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.BlockDiagonal</span></code></a>(...)</p></td>
-<td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
+<td><p>Block diagonal covariance matrix formed from two or more operands.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.HadamardProduct.html#torch_openreml.covariance.HadamardProduct" title="torch_openreml.covariance.HadamardProduct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.HadamardProduct</span></code></a>(...)</p></td>
-<td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
+<td><p>Hadamard (element-wise) product of two covariance matrices.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.KroneckerProduct.html#torch_openreml.covariance.KroneckerProduct" title="torch_openreml.covariance.KroneckerProduct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.KroneckerProduct</span></code></a>(...)</p></td>
-<td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
+<td><p>Kronecker product of two covariance matrices.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.CovariancePropagation.html#torch_openreml.covariance.CovariancePropagation" title="torch_openreml.covariance.CovariancePropagation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.CovariancePropagation</span></code></a>(...)</p></td>
-<td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
+<td><p>Covariance propagation operator.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../generated/torch_openreml.covariance.Sum.html#torch_openreml.covariance.Sum" title="torch_openreml.covariance.Sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_openreml.covariance.Sum</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Initialize a covariance matrix with optional parameter transforms.</p></td>
+<td><p>Sum of multiple covariance matrices.</p></td>
 </tr>
 </tbody>
 </table>

@@ -194,6 +194,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../r_user.html">For R Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tech.html">Technical Documentation</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2 has-children"><a class="reference internal" href="../api/reml.html">REML</a><input aria-label="Toggle navigation of REML" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -204,7 +205,7 @@
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.Matrix.html">torch_openreml.covariance.Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.AR1Matrix.html">torch_openreml.covariance.AR1Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.CompoundSymmetricMatrix.html">torch_openreml.covariance.CompoundSymmetricMatrix</a></li>
-<li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.DesignMatrix.html">torch_openreml.covariance.DesignMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.DummyMatrix.html">torch_openreml.covariance.DummyMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.DiagonalMatrix.html">torch_openreml.covariance.DiagonalMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.EquicorrelationMatrix.html">torch_openreml.covariance.EquicorrelationMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.IdentityMatrix.html">torch_openreml.covariance.IdentityMatrix</a></li>
@@ -293,44 +294,51 @@
 <dt class="sig sig-object py" id="torch_openreml.covariance.KroneckerProduct">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">torch_openreml.covariance.</span></span><span class="sig-name descname"><span class="pre">KroneckerProduct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torch_openreml/covariance/operator_kronecker_product.html#KroneckerProduct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_openreml.covariance.KroneckerProduct" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator" title="torch_openreml.covariance.operator.Operator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Operator</span></code></a></p>
-<p>Initialize a covariance matrix with optional parameter transforms.</p>
+<p>Kronecker product of two covariance matrices.</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\symbf{V} = \symbf{A} \otimes \symbf{B}\]</div>
+</div>
+<p>If <span class="math notranslate nohighlight">\(\symbf{A}\)</span> is <span class="math notranslate nohighlight">\(m \times m\)</span> and <span class="math notranslate nohighlight">\(\symbf{B}\)</span> is
+<span class="math notranslate nohighlight">\(n \times n\)</span>, the result is an <span class="math notranslate nohighlight">\(mn \times mn\)</span> matrix. Either
+or both operands may be trainable
+<a class="reference internal" href="torch_openreml.covariance.Matrix.html#torch_openreml.covariance.Matrix" title="torch_openreml.covariance.matrix.Matrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">Matrix</span></code></a> instances or fixed
+<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code> values.</p>
+<p>Initialize a Kronecker product operator from exactly two operands.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>shape</strong> (<em>tuple</em><em> or </em><em>None</em>) – Expected output dimensions of the constructed matrix.
-Used for validation; the actual shape may be set by subclasses.</p></li>
-<li><p><strong>param_names</strong> (<em>list</em><em> of </em><em>str</em>) – Ordered names of parameters in <code class="xref py py-attr docutils literal notranslate"><span class="pre">params</span></code>.
-Empty list if no trainable parameters (e.g., fixed matrices).</p></li>
-<li><p><strong>trans</strong> (<em>list</em><em> of </em><a class="reference internal" href="torch_openreml.covariance.transform.Transform.html#torch_openreml.covariance.transform.Transform" title="torch_openreml.covariance.transform.Transform"><em>Transform</em></a><em> or </em><em>None</em>) – List of transforms applied to each
-parameter before constructing the matrix. If None, no transforms are used.
-Typically used for variance (<span class="math notranslate nohighlight">\(\exp(2\theta) &gt; 0\)</span>) or correlation
-constraints (<span class="math notranslate nohighlight">\(\rho \in (-1, 1)\)</span>).</p></li>
-<li><p><strong>no_grad_index</strong> (<em>list</em><em> of </em><em>int</em>) – Indices to exclude from gradient computation.
-Parameters at these indices will be omitted from <code class="xref py py-attr docutils literal notranslate"><span class="pre">grad</span></code> and
-<code class="xref py py-attr docutils literal notranslate"><span class="pre">grad_names</span></code>. Use <code class="xref py py-meth docutils literal notranslate"><span class="pre">set_no_grad()</span></code> instead for convenience.</p></li>
+<li><p><strong>*args</strong> – Exactly two operands as positional arguments or a single
+dict. The first is <span class="math notranslate nohighlight">\(\symbf{A}\)</span>, the second
+<span class="math notranslate nohighlight">\(\symbf{B}\)</span>.</p></li>
+<li><p><strong>**kwargs</strong> – Exactly two operands as keyword arguments.</p></li>
 </ul>
 </dd>
-</dl>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The transform applies as</p>
-<div class="math-wrapper docutils container">
-<div class="math notranslate nohighlight">
-\[\symbf{V} = \left[f_0(\theta_0), \ldots, f_{p-1}(\theta_{p-1}) \right]^\top,\]</div>
-</div>
-<p>where each <span class="math notranslate nohighlight">\(f_i\)</span> is the i-th transform in <code class="xref py py-attr docutils literal notranslate"><span class="pre">trans</span></code>.
-If <code class="xref py py-attr docutils literal notranslate"><span class="pre">trans</span></code> has length 1, the single transform is broadcast and applied elementwise to all parameters.</p>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>TypeError</strong> – If <code class="docutils literal notranslate"><span class="pre">param_names</span></code> is not a list of strings, or if
-    transforms contain non-Transform objects.</p></li>
-<li><p><strong>ValueError</strong> – If parameter names are not unique, or if indices in
-    <code class="docutils literal notranslate"><span class="pre">no_grad_index</span></code> are out of range.</p></li>
-</ul>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the number of operands is not exactly two.</p>
 </dd>
 </dl>
+<p>Example:</p>
+<div class="jupyter_cell jupyter_container docutils container">
+<div class="cell_input code_cell docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.covariance</span><span class="w"> </span><span class="kn">import</span> <span class="n">AR1Matrix</span><span class="p">,</span> <span class="n">ScalarMatrix</span><span class="p">,</span> <span class="n">KroneckerProduct</span>
+
+<span class="n">op</span> <span class="o">=</span> <span class="n">KroneckerProduct</span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">AR1Matrix</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">subject</span><span class="o">=</span><span class="n">ScalarMatrix</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+<span class="n">params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>
+<span class="n">op</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-none notranslate"><div class="highlight"><pre><span></span>tensor([[54.5982,  0.0000, 25.2307,  0.0000],
+        [ 0.0000, 54.5982,  0.0000, 25.2307],
+        [25.2307,  0.0000, 54.5982,  0.0000],
+        [ 0.0000, 25.2307,  0.0000, 54.5982]])
+</pre></div>
+</div>
+</div>
+</div>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -342,10 +350,10 @@ If <code class="xref py py-attr docutils literal notranslate"><span class="pre">
 <td><p>Compute the Jacobian of <code class="xref py py-meth docutils literal notranslate"><span class="pre">build()</span></code> with respect to trainable parameters using automatic differentiation.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_operands</span></code>(params)</p></td>
-<td><p></p></td>
+<td><p>Evaluate each operand at the current parameters.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_operands</span></code>(operands)</p></td>
-<td><p></p></td>
+<td><p>Validate the operand dictionary.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_params</span></code>(params)</p></td>
 <td><p>Validate a parameter tensor and return its device and dtype.</p></td>
@@ -369,7 +377,7 @@ If <code class="xref py py-attr docutils literal notranslate"><span class="pre">
 <td><p>An interface compatible with <a class="reference internal" href="torch_openreml.REML.html#torch_openreml.REML" title="torch_openreml.REML"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch_openreml.REML</span></code></a> that maps parameters to a matrix.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">operands_grad</span></code>(params)</p></td>
-<td><p></p></td>
+<td><p>Compute the Jacobian of each operand with respect to its parameters.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_intermediates</span></code>()</p></td>
 <td><p>Clear the intermediate computation cache.</p></td>
@@ -378,7 +386,7 @@ If <code class="xref py py-attr docutils literal notranslate"><span class="pre">
 <td><p>Cache intermediate computation results keyed by parameter hash.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_no_grad</span></code>([index, param_name])</p></td>
-<td><p>Set the indices of parameters to exclude from gradient computation.</p></td>
+<td><p>Disabled — <code class="docutils literal notranslate"><span class="pre">no_grad_index</span></code> is managed by each operand directly.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_param_dict</span></code>(params)</p></td>
 <td><p>Convert a flat parameter tensor to a parameter dictionary.</p></td>
@@ -387,7 +395,7 @@ If <code class="xref py py-attr docutils literal notranslate"><span class="pre">
 <td><p>Compute the element-wise derivative of the parameter transforms.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trans_params</span></code>(params)</p></td>
-<td><p>Apply parameter transforms to a flat parameter tensor.</p></td>
+<td><p>Apply each operand's parameter transforms to the joint parameter tensor.</p></td>
 </tr>
 </tbody>
 </table>
@@ -397,13 +405,13 @@ If <code class="xref py py-attr docutils literal notranslate"><span class="pre">
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">no_grad_index</span></code></p></td>
-<td><p>Indices of parameters excluded from gradient computation.</p></td>
+<td><p>Aggregated indices of parameters excluded from gradient computation, derived from each operand's <code class="xref py py-attr docutils literal notranslate"><span class="pre">no_grad_index</span></code> and offset by the cumulative parameter count of preceding operands.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">num_params</span></code></p></td>
 <td><p>Total number of parameters.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">operands</span></code></p></td>
-<td><p></p></td>
+<td><p>Mapping from operand names to operand matrices or tensors.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">param_names</span></code></p></td>
 <td><p>Ordered parameter names.</p></td>
@@ -447,22 +455,6 @@ parameter dictionary.</p>
 <span class="sig-name descname"><span class="pre">manual_grad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torch_openreml/covariance/operator_kronecker_product.html#KroneckerProduct.manual_grad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_openreml.covariance.KroneckerProduct.manual_grad" title="Link to this definition">¶</a></dt>
 <dd><p>Compute the Jacobian of <a class="reference internal" href="#torch_openreml.covariance.KroneckerProduct.__call__" title="torch_openreml.covariance.KroneckerProduct.__call__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code></a> with respect to trainable
 parameters using a closed-form analytic expression.</p>
-<p>This method is optional. When implemented by a subclass, <code class="xref py py-meth docutils literal notranslate"><span class="pre">grad()</span></code>
-will invoke it in preference to <code class="xref py py-meth docutils literal notranslate"><span class="pre">auto_grad()</span></code> under the default
-grad mode. If not implemented, calling this method raises
-<code class="xref py py-class docutils literal notranslate"><span class="pre">NotImplementedError</span></code> and <code class="xref py py-meth docutils literal notranslate"><span class="pre">grad()</span></code> falls back to automatic
-differentiation.</p>
-<p>Implementations must satisfy the following contract:</p>
-<ul class="simple">
-<li><p>Return <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">[])</span></code> if all parameters are excluded via
-<code class="xref py py-attr docutils literal notranslate"><span class="pre">no_grad_index</span></code>.</p></li>
-<li><p>Return a 3D gradient tensor of shape
-<code class="docutils literal notranslate"><span class="pre">(num_params</span> <span class="pre">-</span> <span class="pre">len(no_grad_index),</span> <span class="pre">*shape)</span></code> and a matching list
-of parameter names, omitting any index in <code class="xref py py-attr docutils literal notranslate"><span class="pre">no_grad_index</span></code>.</p></li>
-<li><p>Apply transform derivatives from <code class="xref py py-meth docutils literal notranslate"><span class="pre">trans_grad()</span></code> via the chain
-rule so that gradients are with respect to the raw (untransformed)
-parameters.</p></li>
-</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>params</strong> (<em>torch.Tensor</em><em> or </em><em>dict</em>) – Flat 1D parameter tensor or
@@ -477,11 +469,6 @@ gradient computation.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tuple</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>NotImplementedError</strong> – If the subclass does not provide an analytic
-    gradient. <code class="xref py py-meth docutils literal notranslate"><span class="pre">grad()</span></code> catches this and falls back to
-    <code class="xref py py-meth docutils literal notranslate"><span class="pre">auto_grad()</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>

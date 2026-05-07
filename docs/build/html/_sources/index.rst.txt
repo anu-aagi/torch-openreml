@@ -98,8 +98,8 @@ Installation
 
 **Dependencies:** ``torch``, ``pandas``, ``tqdm`` (Python 3.12).
 
-Quick Start
------------
+Getting Started
+---------------
 
 Dataset
 ~~~~~~~
@@ -149,8 +149,9 @@ For the present model, which includes two random intercept components and their 
 
     \mathbf{Z}\mathbf{G}\mathbf{Z}^\top =
     \mathbf{Z}_{gen}\mathbf{G}_{gen}\mathbf{Z}_{gen}^\top +
-    \left(\mathbf{Z}_{rep}\mathbf{G}_{rep}\mathbf{Z}_{rep}^\top\right) \odot
-    \left(\mathbf{Z}_{block}\mathbf{G}_{block}\mathbf{Z}_{block}^\top\right)
+    \mathbf{Z}_{rep:block}
+    \left(\mathbf{G}_{rep} \otimes \mathbf{G}_{block}\right)
+    \mathbf{Z}_{rep:block}^\top
 
 where :math:`\mathbf{G}_{rep} = \mathbf{I}` is fixed as the identity matrix for identifiability.
 
@@ -164,17 +165,17 @@ We begin by importing the required modules.
     import torch
     from torch_openreml import REML
     from torch_openreml.utils import augment, n_distinct
-    from torch_openreml.covariance import DesignMatrix, IdentityMatrix, ScalarMatrix, Sum, CovariancePropagation, HadamardProduct
+    from torch_openreml.covariance import DummyMatrix, IdentityMatrix, ScalarMatrix, Sum, CovariancePropagation, KroneckerProduct
     from torch_openreml.example_data import john_alpha
 
 Covariance Builder
 ~~~~~~~~~~~~~~~~~~
 
-Next, we construct :math:`\mathbf{y}`, :math:`\mathbf{X}`, and the components required to define :math:`\mathbf{V}`. Both :math:`\mathbf{y}` and :math:`\mathbf{X}` are represented as torch tensors. The :py:class:`DesignMatrix <torch_openreml.covariance.DesignMatrix>` class serves as a matrix builder: it constructs the design matrix upon evaluation and accepts either `pandas.Series` or lists of integers or strings as input. The argument ``drop_first=True`` removes the first column of the design matrix to avoid redundancy, as an intercept term is already included.
+Next, we construct :math:`\mathbf{y}`, :math:`\mathbf{X}`, and the components required to define :math:`\mathbf{V}`. Both :math:`\mathbf{y}` and :math:`\mathbf{X}` are represented as torch tensors. The :py:class:`DummyMatrix <torch_openreml.covariance.DummyMatrix>` class serves as a matrix builder: it constructs the dummy matrix upon evaluation and accepts either `pandas.Series` or lists of strings as input. The argument ``drop_first=True`` removes the first column of the dummy matrix to avoid redundancy, as an intercept term is already included.
 
 The classes :py:class:`ScalarMatrix <torch_openreml.covariance.ScalarMatrix>` and :py:class:`IdentityMatrix <torch_openreml.covariance.IdentityMatrix>` are also matrix builders, parameterized by the required matrix dimension.
 
-We then assemble the covariance structure using composable operators. The :py:class:`CovariancePropagation <torch_openreml.covariance.CovariancePropagation>` operator represents the transformation :math:`\mathbf{Z}\mathbf{G}\mathbf{Z}^\top`. The :py:class:`HadamardProduct <torch_openreml.covariance.HadamardProduct>` operator computes the element-wise (Hadamard) product of two matrices, and :py:class:`Sum <torch_openreml.covariance.Sum>` aggregates multiple matrix components.
+We then assemble the covariance structure using composable operators. The :py:class:`CovariancePropagation <torch_openreml.covariance.CovariancePropagation>` operator represents the transformation :math:`\mathbf{Z}\mathbf{G}\mathbf{Z}^\top`. The :py:class:`KroneckerProduct <torch_openreml.covariance.KroneckerProduct>` operator computes the direct (Kronecker) product of two matrices, and :py:class:`Sum <torch_openreml.covariance.Sum>` aggregates multiple matrix components.
 
 Altogether, the covariance structure can be written as:
 
@@ -182,11 +183,14 @@ Altogether, the covariance structure can be written as:
 
     \mathbf{V} =
     \mathbf{Z}_{gen}\mathbf{G}_{gen}\mathbf{Z}_{gen}^\top +
-    \left(\mathbf{Z}_{rep}\mathbf{G}_{rep}\mathbf{Z}_{rep}^\top\right) \odot
-    \left(\mathbf{Z}_{block}\mathbf{G}_{block}\mathbf{Z}_{block}^\top\right) +
+    \mathbf{Z}_{rep:block}
+    \left(\mathbf{G}_{rep} \otimes \mathbf{G}_{block}\right)
+    \mathbf{Z}_{rep:block}^\top +
     \sigma^2_{\varepsilon}\mathbf{I}
 
-where :math:`\mathbf{G}_{rep} = \mathbf{I}`, :math:`\mathbf{G}_{gen} = \sigma^2_{gen}\mathbf{I}`, and :math:`\mathbf{G}_{block} = \sigma^2_{block}\mathbf{I}`.
+where :math:`\mathbf{G}_{rep} = \mathbf{I}`,
+:math:`\mathbf{G}_{gen} = \sigma^2_{gen}\mathbf{I}`,
+and :math:`\mathbf{G}_{block} = \sigma^2_{block}\mathbf{I}`.
 
 The model parameters are defined as:
 
@@ -205,11 +209,10 @@ The logarithmic parameterization ensures that the variance components remain pos
 
     y = torch.tensor(john_alpha["yield"].values)
     X = augment(torch.ones(len(john_alpha), 1),
-                DesignMatrix(john_alpha["rep"], drop_first=True)())
+                DummyMatrix(john_alpha["rep"], drop_first=True)())
 
-    Z_gen = DesignMatrix(john_alpha["gen"])
-    Z_rep = DesignMatrix(john_alpha["rep"])
-    Z_block = DesignMatrix(john_alpha["block"])
+    Z_gen = DummyMatrix(john_alpha["gen"])
+    Z_rep_block = DummyMatrix(john_alpha["rep"], john_alpha["block"])
 
     G_gen = ScalarMatrix(n_distinct(john_alpha["gen"]))
     G_rep = IdentityMatrix(n_distinct(john_alpha["rep"]))
@@ -219,9 +222,9 @@ The logarithmic parameterization ensures that the variance components remain pos
 
     V = Sum(
         CovariancePropagation(Z_gen, G_gen),
-        HadamardProduct(
-            CovariancePropagation(Z_rep, G_rep),
-            CovariancePropagation(Z_block, G_block)
+        CovariancePropagation(
+            Z_rep_block,
+            KroneckerProduct(G_rep, G_block)
         ),
         R
     )
@@ -264,9 +267,6 @@ Documentation
 Citing
 ------
 
-**TODO:** Add a citation guideline or BibTeX entry here if you want others
-to cite your work.
-
 .. code-block:: bibtex
 
    @software{torch_openreml,
@@ -281,5 +281,6 @@ to cite your work.
 .. toctree::
    :hidden:
 
+   r_user
    tech
    api

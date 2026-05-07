@@ -194,6 +194,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../r_user.html">For R Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tech.html">Technical Documentation</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../api/reml.html">REML</a><input aria-label="Toggle navigation of REML" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
@@ -204,7 +205,7 @@
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.Matrix.html">torch_openreml.covariance.Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.AR1Matrix.html">torch_openreml.covariance.AR1Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.CompoundSymmetricMatrix.html">torch_openreml.covariance.CompoundSymmetricMatrix</a></li>
-<li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.DesignMatrix.html">torch_openreml.covariance.DesignMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.DummyMatrix.html">torch_openreml.covariance.DummyMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.DiagonalMatrix.html">torch_openreml.covariance.DiagonalMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.EquicorrelationMatrix.html">torch_openreml.covariance.EquicorrelationMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.IdentityMatrix.html">torch_openreml.covariance.IdentityMatrix</a></li>
@@ -369,17 +370,17 @@ provided, the Jacobian is computed via automatic differentiation.</p></li>
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-none notranslate"><div class="highlight"><pre><span></span>
-∥∇∥:       7.2517, ∥Δ∥: 0.0890, η: 1.00, ∥Δᶜ∥: 0.0890, log 𝓛: -24.1558
-∥∇∥:       0.6853, ∥Δ∥: 0.0070, η: 1.00, ∥Δᶜ∥: 0.0070, log 𝓛: -23.8532 (+0.3026)
-∥∇∥:       0.0048, ∥Δ∥: 0.0001, η: 1.00, ∥Δᶜ∥: 0.0001, log 𝓛: -23.8507 (+0.0024)
-∥∇∥:       0.0000, ∥Δ∥: 0.0000, η: 1.00, ∥Δᶜ∥: 0.0000, log 𝓛: -23.8507 (+0.0000)
+∥∇∥:       3.3765, ∥Δ∥: 0.0329, η: 1.00, ∥Δᶜ∥: 0.0329, log 𝓛: -29.6050
+∥∇∥:       0.1086, ∥Δ∥: 0.0011, η: 1.00, ∥Δᶜ∥: 0.0011, log 𝓛: -29.5483 (+0.0567)
+∥∇∥:       0.0001, ∥Δ∥: 0.0000, η: 1.00, ∥Δᶜ∥: 0.0000, log 𝓛: -29.5483 (+0.0001)
+∥∇∥:       0.0000, ∥Δ∥: 0.0000, η: 1.00, ∥Δᶜ∥: 0.0000, log 𝓛: -29.5483 (+0.0000)
 
 [∇: score, Δ: 𝐉⁻¹∇, η: learning rate, Δᶜ: clip(𝛉 + ηΔ, lb, ub) - 𝛉, 𝓛: restricted likelihood]
 
 ✓ Converged at iteration 4
 </pre></div>
 </div>
-<div class="output text_plain highlight-none notranslate"><div class="highlight"><pre><span></span>(tensor([-0.0819]), tensor([-0.1404, -0.1434]))
+<div class="output text_plain highlight-none notranslate"><div class="highlight"><pre><span></span>(tensor([0.0340]), tensor([-0.1204, -0.0761]))
 </pre></div>
 </div>
 </div>

@@ -193,6 +193,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../r_user.html">For R Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tech.html">Technical Documentation</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/reml.html">REML</a><input aria-label="Toggle navigation of REML" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -203,7 +204,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.Matrix.html">torch_openreml.covariance.Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.AR1Matrix.html">torch_openreml.covariance.AR1Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.CompoundSymmetricMatrix.html">torch_openreml.covariance.CompoundSymmetricMatrix</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.DesignMatrix.html">torch_openreml.covariance.DesignMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.DummyMatrix.html">torch_openreml.covariance.DummyMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.DiagonalMatrix.html">torch_openreml.covariance.DiagonalMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.EquicorrelationMatrix.html">torch_openreml.covariance.EquicorrelationMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.IdentityMatrix.html">torch_openreml.covariance.IdentityMatrix</a></li>
@@ -277,15 +278,65 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for torch_openreml.covariance.operator_block_diagonal</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.covariance.operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Operator</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Block diagonal covariance matrix operator.</span>
+
+<span class="sd">This module provides a block diagonal covariance matrix formed from two</span>
+<span class="sd">or more constituent covariance matrices, for use in linear mixed-effects</span>
+<span class="sd">models.</span>
+
+<span class="sd">Classes:</span>
+<span class="sd">    BlockDiagonal:</span>
+<span class="sd">        A block diagonal covariance matrix operator.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.covariance.operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Operator</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 
 <div class="viewcode-block" id="BlockDiagonal">
 <a class="viewcode-back" href="../../../generated/torch_openreml.covariance.BlockDiagonal.html#torch_openreml.covariance.BlockDiagonal">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">BlockDiagonal</span><span class="p">(</span><span class="n">Operator</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">   Block diagonal covariance matrix formed from two or more operands.</span>
+
+<span class="sd">   .. math::</span>
+<span class="sd">       \symbf{V} = \mathrm{blockdiag}(\symbf{V}_0, \symbf{V}_1, \ldots)</span>
+
+<span class="sd">   Each operand contributes a contiguous block along the diagonal.</span>
+<span class="sd">   Parameters and gradients are namespaced by operand name and aggregated</span>
+<span class="sd">   into a single joint parameter tensor, following the convention of</span>
+<span class="sd">   :class:`~torch_openreml.covariance.operator.Operator`.</span>
+<span class="sd">   &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a block diagonal operator from two or more operands.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">           \*args: Two or more operands as positional arguments, each a</span>
+<span class="sd">               :class:`~torch_openreml.covariance.matrix.Matrix` or</span>
+<span class="sd">               :class:`torch.Tensor`. A single dict argument is also accepted.</span>
+
+<span class="sd">           \**kwargs: Two or more operands as keyword arguments.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">           ValueError: If fewer than two operands are provided.</span>
+
+<span class="sd">        Example:</span>
+
+<span class="sd">        .. jupyter-execute::</span>
+
+<span class="sd">           import torch</span>
+<span class="sd">           from torch_openreml.covariance import ScalarMatrix, DiagonalMatrix, BlockDiagonal</span>
+
+<span class="sd">           block = BlockDiagonal(</span>
+<span class="sd">               residual=ScalarMatrix(3),</span>
+<span class="sd">               random=DiagonalMatrix(2)</span>
+<span class="sd">           )</span>
+<span class="sd">           params = torch.tensor([0.5, 0.0, 1.0])</span>
+<span class="sd">           block(params)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
@@ -335,6 +386,21 @@
 <div class="viewcode-block" id="BlockDiagonal.manual_grad">
 <a class="viewcode-back" href="../../../generated/torch_openreml.covariance.BlockDiagonal.html#torch_openreml.covariance.BlockDiagonal.manual_grad">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">manual_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the Jacobian of :meth:`__call__` with respect to trainable</span>
+<span class="sd">        parameters using a closed-form analytic expression.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params (torch.Tensor or dict): Flat 1D parameter tensor or</span>
+<span class="sd">                parameter dictionary.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of</span>
+<span class="sd">            shape ``(num_params - len(no_grad_index), *shape)`` and</span>
+<span class="sd">            ``grad_names`` is a list of the corresponding parameter names.</span>
+<span class="sd">            Returns ``(None, [])`` if all parameters are excluded from</span>
+<span class="sd">            gradient computation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">grad_groups</span><span class="p">,</span> <span class="n">grad_name_groups</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">operands_grad</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
         <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_or_build_intermediates</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>

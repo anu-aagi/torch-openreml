@@ -1,14 +1,14 @@
 """
 Design matrix.
 
-This module provides a fixed design matrix for use  in linear
+This module provides a fixed design matrix for use in linear
 mixed-effects models. The matrix is constructed
-from numeric or categorical input at initialisation and has no
+from categorical input at initialisation and has no
 trainable parameters.
 
 Classes:
     DesignMatrix:
-        A fixed design matrix constructed from numeric or categorical data.
+        A fixed design matrix constructed from categorical data.
 """
 
 import torch
@@ -17,24 +17,19 @@ from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.utils import numeric_to_design_matrix, categorical_to_design_matrix
 
 
-class DesignMatrix(Matrix):
+class CategoricalDesignMatrix(Matrix):
     r"""
-    Fixed design matrix constructed from numeric or categorical input.
+    Fixed design matrix constructed from categorical input.
 
     .. math::
         \symbf{V} = \symbf{X}
 
-    where :math:`\symbf{X}` is constructed from ``x`` at initialisation
+    where :math:`\symbf{X}` is constructed from ``*args`` at initialisation
     and remains fixed thereafter. This matrix has no trainable parameters,
     so :meth:`grad` always returns ``(None, [])``.
-
-    Numeric input is passed to :func:`~torch_openreml.utils.numeric_to_design_matrix`
-    and categorical string input to :func:`~torch_openreml.utils.categorical_to_design_matrix`.
-    In both cases ``levels`` and ``drop_first`` control which columns are
-    retained.
     """
 
-    def __init__(self, x, levels=None, drop_first=False, dtype=None, device=None):
+    def __init__(self, *args, dtype=None, device=None):
         """
         Initialize a fixed design matrix from numeric or categorical input.
 

@@ -6,10 +6,10 @@
 <link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="torch_openreml.covariance.DiagonalMatrix" href="torch_openreml.covariance.DiagonalMatrix.html"><link rel="prev" title="torch_openreml.covariance.CompoundSymmetricMatrix" href="torch_openreml.covariance.CompoundSymmetricMatrix.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>torch_openreml.covariance.DesignMatrix - torch-openreml 0.1.0-alpha documentation</title>
+        <title>torch_openreml.covariance.DummyMatrix - torch-openreml 0.1.0-alpha documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
-    <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css?v=572af1d6" />
     <link rel="stylesheet" type="text/css" href="../_static/thebelab.css" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=df86a2a8" />
@@ -194,6 +194,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../r_user.html">For R Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tech.html">Technical Documentation</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2 has-children"><a class="reference internal" href="../api/reml.html">REML</a><input aria-label="Toggle navigation of REML" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -204,7 +205,7 @@
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.Matrix.html">torch_openreml.covariance.Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.AR1Matrix.html">torch_openreml.covariance.AR1Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.CompoundSymmetricMatrix.html">torch_openreml.covariance.CompoundSymmetricMatrix</a></li>
-<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">torch_openreml.covariance.DesignMatrix</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">torch_openreml.covariance.DummyMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.DiagonalMatrix.html">torch_openreml.covariance.DiagonalMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.EquicorrelationMatrix.html">torch_openreml.covariance.EquicorrelationMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_openreml.covariance.IdentityMatrix.html">torch_openreml.covariance.IdentityMatrix</a></li>
@@ -265,12 +266,12 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="https://github.com/anu-aagi/torch-openreml/blob/main/docs/source/generated/torch_openreml.covariance.DesignMatrix.rst?plain=true" title="View this page">
+  <a class="muted-link" href="https://github.com/anu-aagi/torch-openreml/blob/main/docs/source/generated/torch_openreml.covariance.DummyMatrix.rst?plain=true" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
 </div><div class="edit-this-page">
-  <a class="muted-link" href="https://github.com/anu-aagi/torch-openreml/edit/main/docs/source/generated/torch_openreml.covariance.DesignMatrix.rst" rel="edit" title="Edit this page">
+  <a class="muted-link" href="https://github.com/anu-aagi/torch-openreml/edit/main/docs/source/generated/torch_openreml.covariance.DummyMatrix.rst" rel="edit" title="Edit this page">
     <svg><use href="#svg-pencil"></use></svg>
     <span class="visually-hidden">Edit this page</span>
   </a>
@@ -287,32 +288,28 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="torch-openreml-covariance-designmatrix">
-<h1>torch_openreml.covariance.DesignMatrix<a class="headerlink" href="#torch-openreml-covariance-designmatrix" title="Link to this heading">¶</a></h1>
+          <section id="torch-openreml-covariance-dummymatrix">
+<h1>torch_openreml.covariance.DummyMatrix<a class="headerlink" href="#torch-openreml-covariance-dummymatrix" title="Link to this heading">¶</a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="torch_openreml.covariance.DesignMatrix">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">torch_openreml.covariance.</span></span><span class="sig-name descname"><span class="pre">DesignMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">levels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torch_openreml/covariance/design_matrix.html#DesignMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_openreml.covariance.DesignMatrix" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="torch_openreml.covariance.DummyMatrix">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">torch_openreml.covariance.</span></span><span class="sig-name descname"><span class="pre">DummyMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lex_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_first</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torch_openreml/covariance/dummy_matrix.html#DummyMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_openreml.covariance.DummyMatrix" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="torch_openreml.covariance.Matrix.html#torch_openreml.covariance.Matrix" title="torch_openreml.covariance.matrix.Matrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">Matrix</span></code></a></p>
-<p>Fixed design matrix constructed from numeric or categorical input.</p>
+<p>Fixed dummy matrix constructed from categorical input.</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\symbf{V} = \symbf{X}\]</div>
 </div>
-<p>where <span class="math notranslate nohighlight">\(\symbf{X}\)</span> is constructed from <code class="docutils literal notranslate"><span class="pre">x</span></code> at initialisation
+<p>where <span class="math notranslate nohighlight">\(\symbf{X}\)</span> is constructed from <code class="docutils literal notranslate"><span class="pre">*args</span></code> at initialisation
 and remains fixed thereafter. This matrix has no trainable parameters,
 so <code class="xref py py-meth docutils literal notranslate"><span class="pre">grad()</span></code> always returns <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">[])</span></code>.</p>
-<p>Numeric input is passed to <a class="reference internal" href="torch_openreml.utils.numeric_to_design_matrix.html#torch_openreml.utils.numeric_to_design_matrix" title="torch_openreml.utils.numeric_to_design_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">numeric_to_design_matrix()</span></code></a>
-and categorical string input to <a class="reference internal" href="torch_openreml.utils.categorical_to_design_matrix.html#torch_openreml.utils.categorical_to_design_matrix" title="torch_openreml.utils.categorical_to_design_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">categorical_to_design_matrix()</span></code></a>.
-In both cases <code class="docutils literal notranslate"><span class="pre">levels</span></code> and <code class="docutils literal notranslate"><span class="pre">drop_first</span></code> control which columns are
-retained.</p>
-<p>Initialize a fixed design matrix from numeric or categorical input.</p>
+<p>Initialize a fixed dummy matrix from numeric or categorical input.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>torch.Tensor</em><em>, </em><em>list</em><em>, </em><em>tuple</em><em>, or </em><em>pandas.Series</em>) – Input data. Either a numeric
-tensor or list, or a list of strings for categorical data.</p></li>
-<li><p><strong>levels</strong> (<em>list</em><em>, </em><em>optional</em>) – Explicit level ordering for categorical
-input, or bin edges for numeric input.</p></li>
+<li><p><strong>*args</strong> (<em>list</em><em>, </em><em>tuple</em><em>, or </em><em>pandas.Series</em>) – Input data. One or many lists
+of strings for categorical data.</p></li>
+<li><p><strong>lex_order</strong> (<em>bool</em><em>, </em><em>optional</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the result columns are
+lexically ordered.</p></li>
 <li><p><strong>drop_first</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to drop the first column.
 Defaults to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
 <li><p><strong>dtype</strong> (<em>torch.dtype</em><em>, </em><em>optional</em>) – Desired dtype of the matrix.</p></li>
@@ -320,39 +317,36 @@ Defaults to <code class="docutils literal notranslate"><span class="pre">False</
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>TypeError</strong> – If <code class="docutils literal notranslate"><span class="pre">x</span></code> is not a <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code>, list, or tuple.</p>
+<dd class="field-even"><p><strong>TypeError</strong> – If any <code class="docutils literal notranslate"><span class="pre">args</span></code> is not a :class: list or tuple.</p>
 </dd>
 </dl>
 <p>Example:</p>
 <div class="jupyter_cell jupyter_container docutils container">
 <div class="cell_input code_cell docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.covariance</span><span class="w"> </span><span class="kn">import</span> <span class="n">DesignMatrix</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.covariance</span><span class="w"> </span><span class="kn">import</span> <span class="n">DummyMatrix</span>
 
-<span class="n">mat</span> <span class="o">=</span> <span class="n">DesignMatrix</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">]))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">mat</span><span class="p">())</span>
+<span class="n">rep</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;rep1&quot;</span><span class="p">,</span> <span class="s2">&quot;rep2&quot;</span><span class="p">,</span> <span class="s2">&quot;rep2&quot;</span><span class="p">]</span>
+<span class="n">block</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;block1&quot;</span><span class="p">,</span> <span class="s2">&quot;block2&quot;</span><span class="p">,</span> <span class="s2">&quot;block1&quot;</span><span class="p">]</span>
 
-<span class="n">mat</span> <span class="o">=</span> <span class="n">DesignMatrix</span><span class="p">([</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">])</span>
+<span class="n">mat</span> <span class="o">=</span> <span class="n">DummyMatrix</span><span class="p">(</span><span class="n">rep</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">mat</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">mat</span><span class="o">.</span><span class="n">colnames</span><span class="p">)</span>
 
-<span class="n">mat</span> <span class="o">=</span> <span class="n">DesignMatrix</span><span class="p">([</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">],</span> <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">])</span>
+<span class="n">mat</span> <span class="o">=</span> <span class="n">DummyMatrix</span><span class="p">(</span><span class="n">rep</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">drop_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">mat</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">mat</span><span class="o">.</span><span class="n">colnames</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-none notranslate"><div class="highlight"><pre><span></span>tensor([[1.],
-        [2.],
-        [3.],
-        [4.]])
-tensor([[1., 0., 0.],
-        [0., 1., 0.],
-        [1., 0., 0.],
-        [0., 0., 1.]])
-tensor([[0., 0., 1.],
-        [0., 1., 0.],
+<div class="output stream highlight-none notranslate"><div class="highlight"><pre><span></span>tensor([[1., 0., 0., 0.],
+        [0., 0., 0., 1.],
+        [0., 0., 1., 0.]])
+[&#39;rep1⋈block1&#39;, &#39;rep1⋈block2&#39;, &#39;rep2⋈block1&#39;, &#39;rep2⋈block2&#39;]
+tensor([[0., 0., 0.],
         [0., 0., 1.],
-        [1., 0., 0.]])
+        [0., 1., 0.]])
+[&#39;rep1⋈block2&#39;, &#39;rep2⋈block1&#39;, &#39;rep2⋈block2&#39;]
 </pre></div>
 </div>
 </div>
@@ -361,7 +355,7 @@ tensor([[0., 0., 1.],
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#torch_openreml.covariance.DesignMatrix.__call__" title="torch_openreml.covariance.DesignMatrix.__call__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code></a>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#torch_openreml.covariance.DummyMatrix.__call__" title="torch_openreml.covariance.DummyMatrix.__call__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Construct the matrix from a flat parameter tensor.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">auto_grad</span></code>(params)</p></td>
@@ -377,10 +371,10 @@ tensor([[0., 0., 1.],
 <td><p>Retrieve cached intermediate computation results if still valid.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">grad</span></code>(params)</p></td>
-<td><p>Compute the Jacobian of <a class="reference internal" href="#torch_openreml.covariance.DesignMatrix.__call__" title="torch_openreml.covariance.DesignMatrix.__call__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code></a> with respect to trainable parameters.</p></td>
+<td><p>Compute the Jacobian of <a class="reference internal" href="#torch_openreml.covariance.DummyMatrix.__call__" title="torch_openreml.covariance.DummyMatrix.__call__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code></a> with respect to trainable parameters.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">manual_grad</span></code>(params)</p></td>
-<td><p>Compute the Jacobian of <a class="reference internal" href="#torch_openreml.covariance.DesignMatrix.__call__" title="torch_openreml.covariance.DesignMatrix.__call__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code></a> with respect to trainable parameters using a closed-form analytic expression.</p></td>
+<td><p>Compute the Jacobian of <a class="reference internal" href="#torch_openreml.covariance.DummyMatrix.__call__" title="torch_openreml.covariance.DummyMatrix.__call__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code></a> with respect to trainable parameters using a closed-form analytic expression.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_theta_to_dv</span></code>(theta)</p></td>
 <td><p>An interface compatible with <a class="reference internal" href="torch_openreml.REML.html#torch_openreml.REML" title="torch_openreml.REML"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch_openreml.REML</span></code></a> that maps parameters to the matrix Jacobian.</p></td>
@@ -413,30 +407,33 @@ tensor([[0., 0., 1.],
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">no_grad_index</span></code></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#torch_openreml.covariance.DummyMatrix.colnames" title="torch_openreml.covariance.DummyMatrix.colnames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">colnames</span></code></a></p></td>
+<td><p>Column names of the matrix.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">no_grad_index</span></code></p></td>
 <td><p>Indices of parameters excluded from gradient computation.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">num_params</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">num_params</span></code></p></td>
 <td><p>Total number of parameters.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">param_names</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">param_names</span></code></p></td>
 <td><p>Ordered parameter names.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#torch_openreml.covariance.DesignMatrix.repr_dict" title="torch_openreml.covariance.DesignMatrix.repr_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_dict</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#torch_openreml.covariance.DummyMatrix.repr_dict" title="torch_openreml.covariance.DummyMatrix.repr_dict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_dict</span></code></a></p></td>
 <td><p>Key-value pairs used to build the string representation.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code></p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code></p></td>
 <td><p>Output matrix shape.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trans</span></code></p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trans</span></code></p></td>
 <td><p>Parameter transforms.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
 <dl class="py method">
-<dt class="sig sig-object py" id="torch_openreml.covariance.DesignMatrix.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torch_openreml/covariance/design_matrix.html#DesignMatrix.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_openreml.covariance.DesignMatrix.__call__" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="torch_openreml.covariance.DummyMatrix.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torch_openreml/covariance/dummy_matrix.html#DummyMatrix.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_openreml.covariance.DummyMatrix.__call__" title="Link to this definition">¶</a></dt>
 <dd><p>Construct the matrix from a flat parameter tensor.</p>
 <p>Must be implemented by subclasses. Implementations should convert
 <code class="docutils literal notranslate"><span class="pre">params</span></code> via <code class="xref py py-meth docutils literal notranslate"><span class="pre">from_param_dict()</span></code> or <code class="xref py py-meth docutils literal notranslate"><span class="pre">to_param_dict()</span></code>,
@@ -457,8 +454,19 @@ parameter dictionary.</p>
 </dd></dl>
 
 <dl class="py property">
-<dt class="sig sig-object py" id="torch_openreml.covariance.DesignMatrix.repr_dict">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">repr_dict</span></span><a class="headerlink" href="#torch_openreml.covariance.DesignMatrix.repr_dict" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="torch_openreml.covariance.DummyMatrix.colnames">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">colnames</span></span><a class="headerlink" href="#torch_openreml.covariance.DummyMatrix.colnames" title="Link to this definition">¶</a></dt>
+<dd><p>Column names of the matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="torch_openreml.covariance.DummyMatrix.repr_dict">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">repr_dict</span></span><a class="headerlink" href="#torch_openreml.covariance.DummyMatrix.repr_dict" title="Link to this definition">¶</a></dt>
 <dd><p>Key-value pairs used to build the string representation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -533,10 +541,11 @@ parameter dictionary.</p>
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">torch_openreml.covariance.DesignMatrix</a><ul>
-<li><a class="reference internal" href="#torch_openreml.covariance.DesignMatrix"><code class="docutils literal notranslate"><span class="pre">DesignMatrix</span></code></a><ul>
-<li><a class="reference internal" href="#torch_openreml.covariance.DesignMatrix.__call__"><code class="docutils literal notranslate"><span class="pre">DesignMatrix.__call__()</span></code></a></li>
-<li><a class="reference internal" href="#torch_openreml.covariance.DesignMatrix.repr_dict"><code class="docutils literal notranslate"><span class="pre">DesignMatrix.repr_dict</span></code></a></li>
+<li><a class="reference internal" href="#">torch_openreml.covariance.DummyMatrix</a><ul>
+<li><a class="reference internal" href="#torch_openreml.covariance.DummyMatrix"><code class="docutils literal notranslate"><span class="pre">DummyMatrix</span></code></a><ul>
+<li><a class="reference internal" href="#torch_openreml.covariance.DummyMatrix.__call__"><code class="docutils literal notranslate"><span class="pre">DummyMatrix.__call__()</span></code></a></li>
+<li><a class="reference internal" href="#torch_openreml.covariance.DummyMatrix.colnames"><code class="docutils literal notranslate"><span class="pre">DummyMatrix.colnames</span></code></a></li>
+<li><a class="reference internal" href="#torch_openreml.covariance.DummyMatrix.repr_dict"><code class="docutils literal notranslate"><span class="pre">DummyMatrix.repr_dict</span></code></a></li>
 </ul>
 </li>
 </ul>

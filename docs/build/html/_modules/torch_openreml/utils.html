@@ -193,6 +193,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../r_user.html">For R Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tech.html">Technical Documentation</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../api/reml.html">REML</a><input aria-label="Toggle navigation of REML" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -203,7 +204,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../generated/torch_openreml.covariance.Matrix.html">torch_openreml.covariance.Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../generated/torch_openreml.covariance.AR1Matrix.html">torch_openreml.covariance.AR1Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../generated/torch_openreml.covariance.CompoundSymmetricMatrix.html">torch_openreml.covariance.CompoundSymmetricMatrix</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../generated/torch_openreml.covariance.DesignMatrix.html">torch_openreml.covariance.DesignMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../generated/torch_openreml.covariance.DummyMatrix.html">torch_openreml.covariance.DummyMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../generated/torch_openreml.covariance.DiagonalMatrix.html">torch_openreml.covariance.DiagonalMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../generated/torch_openreml.covariance.EquicorrelationMatrix.html">torch_openreml.covariance.EquicorrelationMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../generated/torch_openreml.covariance.IdentityMatrix.html">torch_openreml.covariance.IdentityMatrix</a></li>
@@ -386,8 +387,8 @@
 <span class="sd">    inputs must have the same length along the first dimension.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        *args (torch.Tensor, list, or tuple): One or more numeric vectors</span>
-<span class="sd">            of equal length. Lists and tuples are converted to tensors.</span>
+<span class="sd">        *args (torch.Tensor, list, tuple or pd.Series): One or more numeric vectors</span>
+<span class="sd">            of equal length. Lists, tuples and pd.Series are converted to tensors.</span>
 <span class="sd">        dtype (torch.dtype, optional): Desired dtype of the matrix.</span>
 <span class="sd">                Defaults to the PyTorch default dtype.</span>
 <span class="sd">        device (torch.device, optional): Desired device of the matrix.</span>
@@ -419,10 +420,13 @@
     <span class="n">cols</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">n</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
-    <span class="n">device</span> <span class="o">=</span> <span class="n">device</span> <span class="ow">or</span> <span class="s2">&quot;cpu&quot;</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">device</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_device</span><span class="p">()</span>
 
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
@@ -455,7 +459,7 @@
 <span class="sd">    sorted unique values of ``x``.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        x (list or tuple of str): Categorical vector of string labels.</span>
+<span class="sd">        x (list or tuple of str or pd.Series): Categorical vector of string labels.</span>
 <span class="sd">        levels (list of str, optional): Explicit level ordering. Must</span>
 <span class="sd">            contain exactly the same unique values as ``x``. Defaults to</span>
 <span class="sd">            the sorted unique values of ``x``.</span>
@@ -487,8 +491,11 @@
 <span class="sd">        print(categorical_to_design_matrix([&quot;a&quot;, &quot;b&quot;, &quot;a&quot;, &quot;c&quot;], drop_first=True))</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
-    <span class="n">device</span> <span class="o">=</span> <span class="n">device</span> <span class="ow">or</span> <span class="s2">&quot;cpu&quot;</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">device</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_device</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">levels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">levels</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>

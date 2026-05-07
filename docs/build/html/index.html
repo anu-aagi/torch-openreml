@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Technical Documentation" href="tech.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="For R Users" href="r_user.html">
 
     <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
         <title>torch-openreml 0.1.0-alpha documentation</title>
@@ -194,6 +194,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
+<li class="toctree-l1"><a class="reference internal" href="r_user.html">For R Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tech.html">Technical Documentation</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="api/reml.html">REML</a><input aria-label="Toggle navigation of REML" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -204,7 +205,7 @@
 <li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.Matrix.html">torch_openreml.covariance.Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.AR1Matrix.html">torch_openreml.covariance.AR1Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.CompoundSymmetricMatrix.html">torch_openreml.covariance.CompoundSymmetricMatrix</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.DesignMatrix.html">torch_openreml.covariance.DesignMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.DummyMatrix.html">torch_openreml.covariance.DummyMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.DiagonalMatrix.html">torch_openreml.covariance.DiagonalMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.EquicorrelationMatrix.html">torch_openreml.covariance.EquicorrelationMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/torch_openreml.covariance.IdentityMatrix.html">torch_openreml.covariance.IdentityMatrix</a></li>
@@ -372,8 +373,8 @@ pip<span class="w"> </span>install<span class="w"> </span>torch-openreml
 </div>
 <p><strong>Dependencies:</strong> <code class="docutils literal notranslate"><span class="pre">torch</span></code>, <code class="docutils literal notranslate"><span class="pre">pandas</span></code>, <code class="docutils literal notranslate"><span class="pre">tqdm</span></code> (Python 3.12).</p>
 </section>
-<section id="quick-start">
-<h1>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h1>
+<section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
 <section id="dataset">
 <h2>Dataset<a class="headerlink" href="#dataset" title="Link to this heading">¶</a></h2>
 <p>To illustrate a quick start with the library, we begin by fitting a mixed-effects model using
@@ -427,8 +428,9 @@ and <code class="docutils literal notranslate"><span class="pre">gen</span></cod
 <div class="math notranslate nohighlight">
 \[\mathbf{Z}\mathbf{G}\mathbf{Z}^\top =
 \mathbf{Z}_{gen}\mathbf{G}_{gen}\mathbf{Z}_{gen}^\top +
-\left(\mathbf{Z}_{rep}\mathbf{G}_{rep}\mathbf{Z}_{rep}^\top\right) \odot
-\left(\mathbf{Z}_{block}\mathbf{G}_{block}\mathbf{Z}_{block}^\top\right)\]</div>
+\mathbf{Z}_{rep:block}
+\left(\mathbf{G}_{rep} \otimes \mathbf{G}_{block}\right)
+\mathbf{Z}_{rep:block}^\top\]</div>
 </div>
 <p>where <span class="math notranslate nohighlight">\(\mathbf{G}_{rep} = \mathbf{I}\)</span> is fixed as the identity matrix for identifiability.</p>
 </section>
@@ -440,7 +442,7 @@ and <code class="docutils literal notranslate"><span class="pre">gen</span></cod
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml</span><span class="w"> </span><span class="kn">import</span> <span class="n">REML</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">augment</span><span class="p">,</span> <span class="n">n_distinct</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.covariance</span><span class="w"> </span><span class="kn">import</span> <span class="n">DesignMatrix</span><span class="p">,</span> <span class="n">IdentityMatrix</span><span class="p">,</span> <span class="n">ScalarMatrix</span><span class="p">,</span> <span class="n">Sum</span><span class="p">,</span> <span class="n">CovariancePropagation</span><span class="p">,</span> <span class="n">HadamardProduct</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.covariance</span><span class="w"> </span><span class="kn">import</span> <span class="n">DummyMatrix</span><span class="p">,</span> <span class="n">IdentityMatrix</span><span class="p">,</span> <span class="n">ScalarMatrix</span><span class="p">,</span> <span class="n">Sum</span><span class="p">,</span> <span class="n">CovariancePropagation</span><span class="p">,</span> <span class="n">KroneckerProduct</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.example_data</span><span class="w"> </span><span class="kn">import</span> <span class="n">john_alpha</span>
 </pre></div>
 </div>
@@ -451,19 +453,22 @@ and <code class="docutils literal notranslate"><span class="pre">gen</span></cod
 </section>
 <section id="covariance-builder">
 <h2>Covariance Builder<a class="headerlink" href="#covariance-builder" title="Link to this heading">¶</a></h2>
-<p>Next, we construct <span class="math notranslate nohighlight">\(\mathbf{y}\)</span>, <span class="math notranslate nohighlight">\(\mathbf{X}\)</span>, and the components required to define <span class="math notranslate nohighlight">\(\mathbf{V}\)</span>. Both <span class="math notranslate nohighlight">\(\mathbf{y}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{X}\)</span> are represented as torch tensors. The <a class="reference internal" href="generated/torch_openreml.covariance.DesignMatrix.html#torch_openreml.covariance.DesignMatrix" title="torch_openreml.covariance.DesignMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">DesignMatrix</span></code></a> class serves as a matrix builder: it constructs the design matrix upon evaluation and accepts either <cite>pandas.Series</cite> or lists of integers or strings as input. The argument <code class="docutils literal notranslate"><span class="pre">drop_first=True</span></code> removes the first column of the design matrix to avoid redundancy, as an intercept term is already included.</p>
+<p>Next, we construct <span class="math notranslate nohighlight">\(\mathbf{y}\)</span>, <span class="math notranslate nohighlight">\(\mathbf{X}\)</span>, and the components required to define <span class="math notranslate nohighlight">\(\mathbf{V}\)</span>. Both <span class="math notranslate nohighlight">\(\mathbf{y}\)</span> and <span class="math notranslate nohighlight">\(\mathbf{X}\)</span> are represented as torch tensors. The <a class="reference internal" href="generated/torch_openreml.covariance.DummyMatrix.html#torch_openreml.covariance.DummyMatrix" title="torch_openreml.covariance.DummyMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">DummyMatrix</span></code></a> class serves as a matrix builder: it constructs the dummy matrix upon evaluation and accepts either <cite>pandas.Series</cite> or lists of strings as input. The argument <code class="docutils literal notranslate"><span class="pre">drop_first=True</span></code> removes the first column of the dummy matrix to avoid redundancy, as an intercept term is already included.</p>
 <p>The classes <a class="reference internal" href="generated/torch_openreml.covariance.ScalarMatrix.html#torch_openreml.covariance.ScalarMatrix" title="torch_openreml.covariance.ScalarMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScalarMatrix</span></code></a> and <a class="reference internal" href="generated/torch_openreml.covariance.IdentityMatrix.html#torch_openreml.covariance.IdentityMatrix" title="torch_openreml.covariance.IdentityMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">IdentityMatrix</span></code></a> are also matrix builders, parameterized by the required matrix dimension.</p>
-<p>We then assemble the covariance structure using composable operators. The <a class="reference internal" href="generated/torch_openreml.covariance.CovariancePropagation.html#torch_openreml.covariance.CovariancePropagation" title="torch_openreml.covariance.CovariancePropagation"><code class="xref py py-class docutils literal notranslate"><span class="pre">CovariancePropagation</span></code></a> operator represents the transformation <span class="math notranslate nohighlight">\(\mathbf{Z}\mathbf{G}\mathbf{Z}^\top\)</span>. The <a class="reference internal" href="generated/torch_openreml.covariance.HadamardProduct.html#torch_openreml.covariance.HadamardProduct" title="torch_openreml.covariance.HadamardProduct"><code class="xref py py-class docutils literal notranslate"><span class="pre">HadamardProduct</span></code></a> operator computes the element-wise (Hadamard) product of two matrices, and <a class="reference internal" href="generated/torch_openreml.covariance.Sum.html#torch_openreml.covariance.Sum" title="torch_openreml.covariance.Sum"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sum</span></code></a> aggregates multiple matrix components.</p>
+<p>We then assemble the covariance structure using composable operators. The <a class="reference internal" href="generated/torch_openreml.covariance.CovariancePropagation.html#torch_openreml.covariance.CovariancePropagation" title="torch_openreml.covariance.CovariancePropagation"><code class="xref py py-class docutils literal notranslate"><span class="pre">CovariancePropagation</span></code></a> operator represents the transformation <span class="math notranslate nohighlight">\(\mathbf{Z}\mathbf{G}\mathbf{Z}^\top\)</span>. The <a class="reference internal" href="generated/torch_openreml.covariance.KroneckerProduct.html#torch_openreml.covariance.KroneckerProduct" title="torch_openreml.covariance.KroneckerProduct"><code class="xref py py-class docutils literal notranslate"><span class="pre">KroneckerProduct</span></code></a> operator computes the direct (Kronecker) product of two matrices, and <a class="reference internal" href="generated/torch_openreml.covariance.Sum.html#torch_openreml.covariance.Sum" title="torch_openreml.covariance.Sum"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sum</span></code></a> aggregates multiple matrix components.</p>
 <p>Altogether, the covariance structure can be written as:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
 \[\mathbf{V} =
 \mathbf{Z}_{gen}\mathbf{G}_{gen}\mathbf{Z}_{gen}^\top +
-\left(\mathbf{Z}_{rep}\mathbf{G}_{rep}\mathbf{Z}_{rep}^\top\right) \odot
-\left(\mathbf{Z}_{block}\mathbf{G}_{block}\mathbf{Z}_{block}^\top\right) +
+\mathbf{Z}_{rep:block}
+\left(\mathbf{G}_{rep} \otimes \mathbf{G}_{block}\right)
+\mathbf{Z}_{rep:block}^\top +
 \sigma^2_{\varepsilon}\mathbf{I}\]</div>
 </div>
-<p>where <span class="math notranslate nohighlight">\(\mathbf{G}_{rep} = \mathbf{I}\)</span>, <span class="math notranslate nohighlight">\(\mathbf{G}_{gen} = \sigma^2_{gen}\mathbf{I}\)</span>, and <span class="math notranslate nohighlight">\(\mathbf{G}_{block} = \sigma^2_{block}\mathbf{I}\)</span>.</p>
+<p>where <span class="math notranslate nohighlight">\(\mathbf{G}_{rep} = \mathbf{I}\)</span>,
+<span class="math notranslate nohighlight">\(\mathbf{G}_{gen} = \sigma^2_{gen}\mathbf{I}\)</span>,
+and <span class="math notranslate nohighlight">\(\mathbf{G}_{block} = \sigma^2_{block}\mathbf{I}\)</span>.</p>
 <p>The model parameters are defined as:</p>
 <div class="math-wrapper docutils container">
 <div class="math notranslate nohighlight">
@@ -479,11 +484,10 @@ and <code class="docutils literal notranslate"><span class="pre">gen</span></cod
 <div class="cell_input code_cell docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;yield&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
 <span class="n">X</span> <span class="o">=</span> <span class="n">augment</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span>
-            <span class="n">DesignMatrix</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;rep&quot;</span><span class="p">],</span> <span class="n">drop_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)())</span>
+            <span class="n">DummyMatrix</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;rep&quot;</span><span class="p">],</span> <span class="n">drop_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)())</span>
 
-<span class="n">Z_gen</span> <span class="o">=</span> <span class="n">DesignMatrix</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;gen&quot;</span><span class="p">])</span>
-<span class="n">Z_rep</span> <span class="o">=</span> <span class="n">DesignMatrix</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;rep&quot;</span><span class="p">])</span>
-<span class="n">Z_block</span> <span class="o">=</span> <span class="n">DesignMatrix</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;block&quot;</span><span class="p">])</span>
+<span class="n">Z_gen</span> <span class="o">=</span> <span class="n">DummyMatrix</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;gen&quot;</span><span class="p">])</span>
+<span class="n">Z_rep_block</span> <span class="o">=</span> <span class="n">DummyMatrix</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;rep&quot;</span><span class="p">],</span> <span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;block&quot;</span><span class="p">])</span>
 
 <span class="n">G_gen</span> <span class="o">=</span> <span class="n">ScalarMatrix</span><span class="p">(</span><span class="n">n_distinct</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;gen&quot;</span><span class="p">]))</span>
 <span class="n">G_rep</span> <span class="o">=</span> <span class="n">IdentityMatrix</span><span class="p">(</span><span class="n">n_distinct</span><span class="p">(</span><span class="n">john_alpha</span><span class="p">[</span><span class="s2">&quot;rep&quot;</span><span class="p">]))</span>
@@ -493,9 +497,9 @@ and <code class="docutils literal notranslate"><span class="pre">gen</span></cod
 
 <span class="n">V</span> <span class="o">=</span> <span class="n">Sum</span><span class="p">(</span>
     <span class="n">CovariancePropagation</span><span class="p">(</span><span class="n">Z_gen</span><span class="p">,</span> <span class="n">G_gen</span><span class="p">),</span>
-    <span class="n">HadamardProduct</span><span class="p">(</span>
-        <span class="n">CovariancePropagation</span><span class="p">(</span><span class="n">Z_rep</span><span class="p">,</span> <span class="n">G_rep</span><span class="p">),</span>
-        <span class="n">CovariancePropagation</span><span class="p">(</span><span class="n">Z_block</span><span class="p">,</span> <span class="n">G_block</span><span class="p">)</span>
+    <span class="n">CovariancePropagation</span><span class="p">(</span>
+        <span class="n">Z_rep_block</span><span class="p">,</span>
+        <span class="n">KroneckerProduct</span><span class="p">(</span><span class="n">G_rep</span><span class="p">,</span> <span class="n">G_block</span><span class="p">)</span>
     <span class="p">),</span>
     <span class="n">R</span>
 <span class="p">)</span>
@@ -509,21 +513,16 @@ and <code class="docutils literal notranslate"><span class="pre">gen</span></cod
   operands={
     &#39;op_0&#39;: CovariancePropagation(
       operands={
-        &#39;op_0&#39;: DesignMatrix(shape=(72, 24)),
+        &#39;op_0&#39;: DummyMatrix(shape=(72, 24)),
         &#39;op_1&#39;: ScalarMatrix(shape=(24, 24), param_names=[&#39;sigma^2&#39;], trans=[TransformExpPow2()])
       }
     ),
-    &#39;op_1&#39;: HadamardProduct(
+    &#39;op_1&#39;: CovariancePropagation(
       operands={
-        &#39;op_0&#39;: CovariancePropagation(
+        &#39;op_0&#39;: DummyMatrix(shape=(72, 18)),
+        &#39;op_1&#39;: KroneckerProduct(
           operands={
-            &#39;op_0&#39;: DesignMatrix(shape=(72, 3)),
-            &#39;op_1&#39;: IdentityMatrix(shape=(3, 3))
-          }
-        ),
-        &#39;op_1&#39;: CovariancePropagation(
-          operands={
-            &#39;op_0&#39;: DesignMatrix(shape=(72, 6)),
+            &#39;op_0&#39;: IdentityMatrix(shape=(3, 3)),
             &#39;op_1&#39;: ScalarMatrix(shape=(6, 6), param_names=[&#39;sigma^2&#39;], trans=[TransformExpPow2()])
           }
         )
@@ -608,8 +607,6 @@ tensor([ 4.5183,  0.2978, -0.4140])
 </section>
 <section id="citing">
 <h1>Citing<a class="headerlink" href="#citing" title="Link to this heading">¶</a></h1>
-<p><strong>TODO:</strong> Add a citation guideline or BibTeX entry here if you want others
-to cite your work.</p>
 <div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@software</span><span class="p">{</span><span class="nl">torch_openreml</span><span class="p">,</span>
 <span class="w">  </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Weihao Li}</span><span class="p">,</span>
 <span class="w">  </span><span class="na">title</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="s">{torch-openreml}</span><span class="p">,</span>
@@ -628,12 +625,12 @@ to cite your work.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="tech.html">
+          <a class="next-page" href="r_user.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Technical Documentation</div>
+                <div class="title">For R Users</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>

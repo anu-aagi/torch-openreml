@@ -193,6 +193,7 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../r_user.html">For R Users</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tech.html">Technical Documentation</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../../api.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/reml.html">REML</a><input aria-label="Toggle navigation of REML" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -203,7 +204,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.Matrix.html">torch_openreml.covariance.Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.AR1Matrix.html">torch_openreml.covariance.AR1Matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.CompoundSymmetricMatrix.html">torch_openreml.covariance.CompoundSymmetricMatrix</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.DesignMatrix.html">torch_openreml.covariance.DesignMatrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.DummyMatrix.html">torch_openreml.covariance.DummyMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.DiagonalMatrix.html">torch_openreml.covariance.DiagonalMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.EquicorrelationMatrix.html">torch_openreml.covariance.EquicorrelationMatrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../generated/torch_openreml.covariance.IdentityMatrix.html">torch_openreml.covariance.IdentityMatrix</a></li>
@@ -277,16 +278,96 @@
         </div>
         <article role="main" id="furo-main-content">
           <h1>Source code for torch_openreml.covariance.operator</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.covariance.matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">Matrix</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Operator base class for composite covariance matrices.</span>
+
+<span class="sd">This module provides an abstract base class for combining multiple</span>
+<span class="sd">covariance matrices into a single composite structure. Operators</span>
+<span class="sd">delegate parameter management, transforms, and gradient computation</span>
+<span class="sd">to their constituent operands, presenting a unified</span>
+<span class="sd">:class:`~torch_openreml.covariance.matrix.Matrix` interface to the rest</span>
+<span class="sd">of the library.</span>
+
+<span class="sd">Classes:</span>
+<span class="sd">    Operator:</span>
+<span class="sd">        Base class for composite covariance matrix operators.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_openreml.covariance.matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">Matrix</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 
 <div class="viewcode-block" id="Operator">
 <a class="viewcode-back" href="../../../generated/torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Operator</span><span class="p">(</span><span class="n">Matrix</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Abstract base class for composite covariance matrix operators.</span>
+
+<span class="sd">    An operator combines one or more</span>
+<span class="sd">    :class:`~torch_openreml.covariance.matrix.Matrix` instances and optional</span>
+<span class="sd">    fixed :class:`torch.Tensor` operands into a single covariance matrix.</span>
+<span class="sd">    Parameters and gradients are namespaced by operand — a parameter</span>
+<span class="sd">    ``&quot;sigma^2&quot;`` belonging to operand ``&quot;residual&quot;`` is exposed as</span>
+<span class="sd">    ``&quot;residual/sigma^2&quot;`` in the combined :attr:`param_names`.</span>
+
+<span class="sd">    Operands may be passed as positional arguments, as keyword arguments,</span>
+<span class="sd">    or as a single dictionary. Mixing positional and keyword arguments is</span>
+<span class="sd">    not permitted. Positional operands are assigned names ``&quot;op_0&quot;``,</span>
+<span class="sd">    ``&quot;op_1&quot;``, etc.</span>
+
+<span class="sd">    At least one operand must be a</span>
+<span class="sd">    :class:`~torch_openreml.covariance.matrix.Matrix` instance. Pure-tensor</span>
+<span class="sd">    operands are treated as fixed matrices with no trainable parameters.</span>
+
+<span class="sd">    :attr:`no_grad_index` is a read-only derived property — it aggregates</span>
+<span class="sd">    the ``no_grad_index`` values of each constituent operand. To exclude a</span>
+<span class="sd">    parameter from gradient computation, call</span>
+<span class="sd">    :meth:`~torch_openreml.covariance.matrix.Matrix.set_no_grad` on the</span>
+<span class="sd">    operand that owns it directly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
   
     <span class="n">_repr_single_line</span> <span class="o">=</span> <span class="kc">False</span>
     
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the operator from positional or keyword operands.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            *args: Operands as positional arguments, each a</span>
+<span class="sd">                :class:`~torch_openreml.covariance.matrix.Matrix` or</span>
+<span class="sd">                :class:`torch.Tensor`. A single dict argument is also accepted</span>
+<span class="sd">                and treated as a named operand mapping.</span>
+<span class="sd">            **kwargs: Operands as keyword arguments, mapping operand names to</span>
+<span class="sd">                :class:`~torch_openreml.covariance.matrix.Matrix` or</span>
+<span class="sd">                :class:`torch.Tensor` instances. Operand names must not contain</span>
+<span class="sd">                ``&quot;/&quot;``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If both positional and keyword arguments are provided,</span>
+<span class="sd">                or if any operand name contains ``&quot;/&quot;``.</span>
+<span class="sd">            TypeError: If ``operands`` is not a dict, if any operand name is not</span>
+<span class="sd">                a string, if any operand is not a</span>
+<span class="sd">                :class:`~torch_openreml.covariance.matrix.Matrix` or</span>
+<span class="sd">                :class:`torch.Tensor`, or if no operand is a</span>
+<span class="sd">                :class:`~torch_openreml.covariance.matrix.Matrix`.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            .. jupyter-execute::</span>
+
+<span class="sd">                import torch</span>
+<span class="sd">                from torch_openreml.covariance import Sum, ScalarMatrix</span>
+
+<span class="sd">                x = Sum(ScalarMatrix(2), ScalarMatrix(2))</span>
+<span class="sd">                print(x)</span>
+
+<span class="sd">                x = Sum(A = ScalarMatrix(2), B = ScalarMatrix(2))</span>
+<span class="sd">                print(x)</span>
+
+<span class="sd">                print(x.param_names)</span>
+
+<span class="sd">                print(x(torch.zeros(2)))</span>
+<span class="sd">                print(x({&quot;A/sigma^2&quot;: torch.zeros(1), &quot;B/sigma^2&quot;: torch.zeros(1)}))</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Operands must be provided either as keyword arguments or as positional arguments, but not both!&#39;</span><span class="p">)</span>
@@ -315,6 +396,25 @@
 <div class="viewcode-block" id="Operator.check_operands">
 <a class="viewcode-back" href="../../../generated/torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator.check_operands">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">check_operands</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operands</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate the operand dictionary.</span>
+
+<span class="sd">        Ensures that all keys are strings without ``&quot;/&quot;``, all values are</span>
+<span class="sd">        :class:`~torch_openreml.covariance.matrix.Matrix` or</span>
+<span class="sd">        :class:`torch.Tensor` instances, and that at least one value is a</span>
+<span class="sd">        :class:`~torch_openreml.covariance.matrix.Matrix`.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            operands (dict): Mapping from operand names to operands.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: If ``operands`` is not a dict, if any key is not a</span>
+<span class="sd">                string, if any value is not a</span>
+<span class="sd">                :class:`~torch_openreml.covariance.matrix.Matrix` or</span>
+<span class="sd">                :class:`torch.Tensor`, or if no value is a</span>
+<span class="sd">                :class:`~torch_openreml.covariance.matrix.Matrix`.</span>
+<span class="sd">            ValueError: If any key contains ``&quot;/&quot;``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">operands</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;operands must be a dict, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">operands</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">!&quot;</span><span class="p">)</span>
         
@@ -339,6 +439,14 @@
 <div class="viewcode-block" id="Operator.set_no_grad">
 <a class="viewcode-back" href="../../../generated/torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator.set_no_grad">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">set_no_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Disabled — ``no_grad_index`` is managed by each operand directly.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            RuntimeError: Always. Call</span>
+<span class="sd">                :meth:`~torch_openreml.covariance.matrix.Matrix.set_no_grad`</span>
+<span class="sd">                on the operand that owns the parameter instead.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
             <span class="s2">&quot;This operator only provides a view of no_grad_index. &quot;</span>
             <span class="s2">&quot;Set it on the covariance matrix that owns the parameters instead!&quot;</span>
@@ -348,6 +456,30 @@
 <div class="viewcode-block" id="Operator.trans_params">
 <a class="viewcode-back" href="../../../generated/torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator.trans_params">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">trans_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply each operand&#39;s parameter transforms to the joint parameter tensor.</span>
+
+<span class="sd">        Splits ``params`` into per-operand slices, delegates transformation</span>
+<span class="sd">        to each :class:`~torch_openreml.covariance.matrix.Matrix` operand</span>
+<span class="sd">        via :meth:`~torch_openreml.covariance.matrix.Matrix.trans_params`,</span>
+<span class="sd">        and concatenates the results. Fixed tensor operands are skipped.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params (torch.Tensor or dict): Flat 1D joint parameter tensor or</span>
+<span class="sd">                parameter dictionary of length :attr:`num_params`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: Concatenated transformed parameter tensor.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            .. jupyter-execute::</span>
+
+<span class="sd">                import torch</span>
+<span class="sd">                from torch_openreml.covariance import Sum, ScalarMatrix</span>
+
+<span class="sd">                x = Sum(ScalarMatrix(2), ScalarMatrix(2))</span>
+<span class="sd">                print(x.trans_params(torch.zeros(2)))</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_param_dict</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">check_params</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
@@ -366,6 +498,32 @@
 <div class="viewcode-block" id="Operator.build_operands">
 <a class="viewcode-back" href="../../../generated/torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator.build_operands">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_operands</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluate each operand at the current parameters.</span>
+
+<span class="sd">        Splits ``params`` into per-operand slices and calls each</span>
+<span class="sd">        :class:`~torch_openreml.covariance.matrix.Matrix` operand to</span>
+<span class="sd">        produce its matrix. Fixed tensor operands are included as-is.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params (torch.Tensor or dict): Flat 1D joint parameter tensor or</span>
+<span class="sd">                parameter dictionary of length :attr:`num_params`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list of torch.Tensor: Evaluated operand matrices in the same</span>
+<span class="sd">            order as :attr:`operands`.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            .. jupyter-execute::</span>
+
+<span class="sd">                import torch</span>
+<span class="sd">                from torch_openreml.covariance import Sum, ScalarMatrix</span>
+
+<span class="sd">                x = Sum(ScalarMatrix(2), ScalarMatrix(2))</span>
+<span class="sd">                v_groups = x.build_operands(torch.tensor([1.0, 2.0]))</span>
+<span class="sd">                print(v_groups[0])</span>
+<span class="sd">                print(v_groups[1])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_param_dict</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">check_params</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
         
@@ -386,6 +544,38 @@
 <div class="viewcode-block" id="Operator.operands_grad">
 <a class="viewcode-back" href="../../../generated/torch_openreml.covariance.Operator.html#torch_openreml.covariance.Operator.operands_grad">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">operands_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the Jacobian of each operand with respect to its parameters.</span>
+
+<span class="sd">        Splits ``params`` into per-operand slices, calls</span>
+<span class="sd">        :meth:`~torch_openreml.covariance.matrix.Matrix.grad` on each</span>
+<span class="sd">        :class:`~torch_openreml.covariance.matrix.Matrix` operand, and</span>
+<span class="sd">        prefixes the returned names with the operand name. Fixed tensor</span>
+<span class="sd">        operands contribute ``None`` and an empty name list.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            params (torch.Tensor or dict): Flat 1D joint parameter tensor or</span>
+<span class="sd">                parameter dictionary of length :attr:`num_params`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: ``(grad_groups, grad_name_groups)``, where</span>
+<span class="sd">            ``grad_groups`` is a list of per-operand Jacobian tensors or</span>
+<span class="sd">            ``None`` for fixed operands, and ``grad_name_groups`` is a list</span>
+<span class="sd">            of corresponding namespaced parameter name lists.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            .. jupyter-execute::</span>
+
+<span class="sd">                import torch</span>
+<span class="sd">                from torch_openreml.covariance import Sum, ScalarMatrix</span>
+
+<span class="sd">                x = Sum(ScalarMatrix(2), ScalarMatrix(2))</span>
+<span class="sd">                grad_groups, grad_name_groups = x.operands_grad(torch.tensor([1.0, 2.0]))</span>
+<span class="sd">                print(grad_groups[0])</span>
+<span class="sd">                print(grad_groups[1])</span>
+<span class="sd">                print(grad_name_groups[0])</span>
+<span class="sd">                print(grad_name_groups[1])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_param_dict</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">check_params</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
@@ -414,10 +604,17 @@
         
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">operands</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;dict: Mapping from operand names to operand matrices or tensors.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operands</span>
       
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">no_grad_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        list of int: Aggregated indices of parameters excluded from gradient</span>
+<span class="sd">        computation, derived from each operand&#39;s</span>
+<span class="sd">        :attr:`~torch_openreml.covariance.matrix.Matrix.no_grad_index` and</span>
+<span class="sd">        offset by the cumulative parameter count of preceding operands.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">total_num_params</span> <span class="o">=</span> <span class="mi">0</span>
         
@@ -430,6 +627,7 @@
     
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">repr_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;dict: Key-value pairs used to build the string representation.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;operands&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">operands</span><span class="p">}</span></div>
 
         

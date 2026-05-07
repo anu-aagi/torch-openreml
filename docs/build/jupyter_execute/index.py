@@ -14,7 +14,7 @@ print(torch_openreml.example_data.john_alpha)
 import torch
 from torch_openreml import REML
 from torch_openreml.utils import augment, n_distinct
-from torch_openreml.covariance import DesignMatrix, IdentityMatrix, ScalarMatrix, Sum, CovariancePropagation, HadamardProduct
+from torch_openreml.covariance import DummyMatrix, IdentityMatrix, ScalarMatrix, Sum, CovariancePropagation, KroneckerProduct
 from torch_openreml.example_data import john_alpha
 
 
@@ -23,11 +23,10 @@ from torch_openreml.example_data import john_alpha
 
 y = torch.tensor(john_alpha["yield"].values)
 X = augment(torch.ones(len(john_alpha), 1),
-            DesignMatrix(john_alpha["rep"], drop_first=True)())
+            DummyMatrix(john_alpha["rep"], drop_first=True)())
 
-Z_gen = DesignMatrix(john_alpha["gen"])
-Z_rep = DesignMatrix(john_alpha["rep"])
-Z_block = DesignMatrix(john_alpha["block"])
+Z_gen = DummyMatrix(john_alpha["gen"])
+Z_rep_block = DummyMatrix(john_alpha["rep"], john_alpha["block"])
 
 G_gen = ScalarMatrix(n_distinct(john_alpha["gen"]))
 G_rep = IdentityMatrix(n_distinct(john_alpha["rep"]))
@@ -37,9 +36,9 @@ R = ScalarMatrix(len(john_alpha))
 
 V = Sum(
     CovariancePropagation(Z_gen, G_gen),
-    HadamardProduct(
-        CovariancePropagation(Z_rep, G_rep),
-        CovariancePropagation(Z_block, G_block)
+    CovariancePropagation(
+        Z_rep_block,
+        KroneckerProduct(G_rep, G_block)
     ),
     R
 )
