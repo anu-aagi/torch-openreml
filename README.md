@@ -6,7 +6,7 @@
 
 This package focuses purely on the computational backend of mixed model estimation. It implements the AI-REML algorithm using Torch for tensor operations and automatic differentiation of covariance structures, while parameter updates are carried out explicitly using the Average Information matrix.
 
-Unlike traditional mixed-model software, **torch-openreml does not provide a formula interface, model parser, or user-friendly front end**. It is designed for users who want full control over model specification and are comfortable constructing model matrices and covariance structures programmatically.
+Unlike traditional mixed-model software, **torch-openreml does not provide a formula interface or a model parser**. It is designed for users who want full control over model specification and are comfortable constructing model matrices and covariance structures programmatically.
 
 ## Note
 
