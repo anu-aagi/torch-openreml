@@ -1,14 +1,60 @@
+"""
+Kronecker product covariance operator.
+
+This module provides a Kronecker product operator for combining two
+covariance matrices, for use in linear mixed-effects models.
+
+Classes:
+    KroneckerProduct:
+        A Kronecker product covariance operator :math:`V = A \\otimes B`.
+"""
+
 from torch_openreml.covariance.operator import Operator
 import torch
 
 
 class KroneckerProduct(Operator):
+    r"""
+    Kronecker product of two covariance matrices.
+
+    .. math::
+        \symbf{V} = \symbf{A} \otimes \symbf{B}
+
+    If :math:`\symbf{A}` is :math:`m \times m` and :math:`\symbf{B}` is
+    :math:`n \times n`, the result is an :math:`mn \times mn` matrix. Either
+    or both operands may be trainable
+    :class:`~torch_openreml.covariance.matrix.Matrix` instances or fixed
+    :class:`torch.Tensor` values.
+    """
 
     def __init__(self, *args, **kwargs):
+        """
+        Initialize a Kronecker product operator from exactly two operands.
+
+        Args:
+            *args: Exactly two operands as positional arguments or a single
+                dict. The first is :math:`\symbf{A}`, the second
+                :math:`\symbf{B}`.
+            **kwargs: Exactly two operands as keyword arguments.
+
+        Raises:
+            ValueError: If the number of operands is not exactly two.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import AR1Matrix, ScalarMatrix, KroneckerProduct
+
+            op = KroneckerProduct(time=AR1Matrix(2), subject=ScalarMatrix(2))
+            params = torch.tensor([1.0, 1.0, 1.0])
+            op(params)
+        """
 
         super().__init__(*args, **kwargs)
 
-        if len(self.operands) + len(kwargs) != 2:
+        if len(self.operands) != 2:
             raise ValueError("Two operands are required")
 
     def _get_or_build_intermediates(self, params):
@@ -35,6 +81,21 @@ class KroneckerProduct(Operator):
         return v
 
     def manual_grad(self, params):
+        """
+        Compute the Jacobian of :meth:`__call__` with respect to trainable
+        parameters using a closed-form analytic expression.
+
+        Args:
+            params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary.
+
+        Returns:
+            tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
+            shape ``(num_params - len(no_grad_index), *shape)`` and
+            ``grad_names`` is a list of the corresponding parameter names.
+            Returns ``(None, [])`` if all parameters are excluded from
+            gradient computation.
+        """
         grad_groups, grad_name_groups = self.operands_grad(params)
 
         cache = self._get_or_build_intermediates(params)
