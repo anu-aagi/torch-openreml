@@ -1,10 +1,66 @@
+"""
+Covariance propagation operator.
+
+This module provides a covariance propagation operator that transforms
+a covariance matrix through a design matrix, for use in linear
+mixed-effects models.
+
+Classes:
+    CovariancePropagation:
+        A covariance propagation operator :math:`V = Z G Z^\\top`.
+"""
+
 from torch_openreml.covariance.operator import Operator
 import torch
 
 
 class CovariancePropagation(Operator):
+    r"""
+    Covariance propagation operator.
+
+    .. math::
+        \symbf{V} = \symbf{Z} \symbf{G} \symbf{Z}^\top
+
+    Propagates the covariance matrix :math:`\symbf{G}` through the design
+    matrix :math:`\symbf{Z}`. The first operand is treated as
+    :math:`\symbf{Z}` and the second as :math:`\symbf{G}`. Either or both
+    may be trainable :class:`~torch_openreml.covariance.matrix.Matrix`
+    instances or fixed :class:`torch.Tensor` values.
+
+    This structure arises naturally in linear mixed-effects models where
+    :math:`\symbf{Z}` is the random-effect design matrix and
+    :math:`\symbf{G}` is the random-effect covariance matrix, giving the
+    random-effect contribution :math:`\symbf{Z}\symbf{G}\symbf{Z}^\top`
+    to the marginal covariance.
+    """
 
     def __init__(self, *args, **kwargs):
+        """
+        Initialize a covariance propagation operator from exactly two operands.
+
+        Args:
+            *args: Exactly two operands as positional arguments or a single
+                dict. The first is :math:`\symbf{Z}`, the second
+                :math:`\symbf{G}`.
+            **kwargs: Exactly two operands as keyword arguments.
+
+        Raises:
+            ValueError: If the number of operands is not exactly two.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix, CovariancePropagation
+
+            n, q = 6, 3
+            z = torch.randn(n, q)
+            g = DiagonalMatrix(q)
+            op = CovariancePropagation(z=z, g=g)
+            params = torch.tensor([0.0, 0.5, 1.0])
+            op(params)
+        """
 
         super().__init__(*args, **kwargs)
 
@@ -35,6 +91,21 @@ class CovariancePropagation(Operator):
         return v
 
     def manual_grad(self, params):
+        """
+        Compute the Jacobian of :meth:`__call__` with respect to trainable
+        parameters using a closed-form analytic expression.
+
+        Args:
+            params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary.
+
+        Returns:
+            tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
+            shape ``(num_params - len(no_grad_index), *shape)`` and
+            ``grad_names`` is a list of the corresponding parameter names.
+            Returns ``(None, [])`` if all parameters are excluded from
+            gradient computation.
+        """
         grad_groups, grad_name_groups = self.operands_grad(params)
 
         cache = self._get_or_build_intermediates(params)
