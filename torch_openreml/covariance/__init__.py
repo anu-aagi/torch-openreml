@@ -13,6 +13,6 @@ from torch_openreml.covariance.operator_covariance_propagation import Covariance
 from torch_openreml.covariance.operator_kronecker_product import KroneckerProduct
 from torch_openreml.covariance.operator_hadamard_product import HadamardProduct
 
-from torch_openreml.covariance.design_matrix import DesignMatrix
+from torch_openreml.covariance.dummy_matrix import DummyMatrix
 
 import torch_openreml.covariance.transform
