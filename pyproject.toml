@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torch-openreml"
+version = "0.1.0-alpha"
+description = "PyTorch-based AI-REML estimation for linear mixed models"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "GPL-3.0-only"}
+authors = [
+    {name = "Weihao (Patrick) Li", email = "patrick.li@anu.edu.au"},
+]
+maintainers = [
+    {name = "Weihao (Patrick) Li", email = "patrick.li@anu.edu.au"},
+]
+keywords = ["REML", "mixed model", "regression", "stats"]
+
+dependencies = [
+    "torch>=2.0",
+    "pandas",
+    "tqdm",
+]
+
+[project.urls]
+Homepage = "https://torch-openreml.patrickli.org"
+Documentation = "https://torch-openreml.patrickli.org/api"
+Repository = "https://github.com/anu-aagi/torch-openreml.git"
+Issues = "https://github.com/anu-aagi/torch-openreml/issues"
+
+[tool.setuptools.packages.find]
+namespaces = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests/covariance"]
