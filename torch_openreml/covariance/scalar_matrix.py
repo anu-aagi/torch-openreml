@@ -26,18 +26,19 @@ class ScalarMatrix(Matrix):
     structure assumes equal, independent variances across all observations.
     """
   
-    def __init__(self, n, param_names=None, trans=None, no_grad_index=None):
+    def __init__(self, n, param_spec=None):
         """
         Initialize a scaled identity covariance matrix of size ``n x n``.
 
         Args:
             n (int): Matrix dimension.
-            param_names (list of str, optional): Name for the single variance
-                parameter. Defaults to ``["sigma^2"]``.
-            trans (list of Transform, optional): Transform applied to the
-                parameter. Defaults to ``[TransformExpPow2()]``.
-            no_grad_index (list of int, optional): Indices of parameters to
-                exclude from gradient computation.
+            param_spec (dict): Parameter specifications. Keys should be strings
+                representing parameter names. Values should be dictionaries
+                containing the specification for each parameter. Each specification
+                dictionary should contain the keys "fixed", "default", and "trans",
+                representing whether the parameter is fixed or free (bool), the
+                default value (1D torch.Tensor), and the transform (Transform),
+                respectively.
 
         Example:
 
@@ -47,48 +48,53 @@ class ScalarMatrix(Matrix):
             from torch_openreml.covariance import ScalarMatrix
 
             mat = ScalarMatrix(3)
-            params = torch.tensor([0.5])
-            print(mat(params))
-            print(mat.grad(params))
+            free_params = torch.tensor([0.5])
+            print(mat(free_params))
+            print(mat.grad(free_params))
         """
-        param_names = param_names or ["sigma^2"]
-        trans = trans or [TransformExpPow2()]
-        super().__init__((n, n), param_names, trans, no_grad_index)
+
+        param_spec = param_spec or {
+            "sigma^2": {
+                "fixed": False,
+                "default": torch.tensor([0.0]),
+                "trans": TransformExpPow2()
+            }
+        }
+        super().__init__((n, n), param_spec)
         
-    def __call__(self, params):
-        params = self.from_param_dict(params)
-        device, dtype = self.check_params(params)
-        sigma2 = self.trans_params(params)
+    def __call__(self, free_params):
+        sigma2 = self.build_params(free_params)
+        device = sigma2.device
+        dtype = sigma2.dtype
 
         i_n = torch.eye(self.shape[0], device=device, dtype=dtype)
         v = sigma2 * i_n
         
         return v
 
-    def manual_grad(self, params):
+    def manual_grad(self, free_params):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
 
         Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_params - len(no_grad_index), *shape)`` and
+            shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are excluded from
-            gradient computation.
+            Returns ``(None, [])`` if all parameters are fixed.
         """
-        if len(self.no_grad_index) > 0:
+        if len(free_params) == 0:
             return None, []
 
-        params = self.from_param_dict(params)
-        device, dtype = self.check_params(params)
+        sigma2 = self.build_params(free_params)
+        device = sigma2.device
+        dtype = sigma2.dtype
 
         i_n = torch.eye(self.shape[0], device=device, dtype=dtype)
-        grad = (self.trans_grad(params) * i_n).unsqueeze(0)
-        grad_names = self.param_names
+        grad = (self.trans_grad(free_params) * i_n).unsqueeze(0)
 
-        return grad, grad_names
+        return grad, self.free_param_names
