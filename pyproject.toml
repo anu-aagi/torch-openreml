@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "torch-openreml"
-version = "0.1.0-alpha"
+version = "0.1.1-alpha"
 description = "PyTorch-based AI-REML estimation for linear mixed models"
 readme = "README.md"
 requires-python = ">=3.10"
