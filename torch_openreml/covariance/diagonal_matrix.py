@@ -25,19 +25,19 @@ class DiagonalMatrix(Matrix):
     by default. Off-diagonal entries are always zero.
     """
   
-    def __init__(self, n, param_names=None, trans=None, no_grad_index=None):
+    def __init__(self, n, param_spec=None):
         """
         Initialize a diagonal covariance matrix of size ``n x n``.
 
         Args:
             n (int): Matrix dimension.
-            param_names (list of str, optional): Names for the ``n`` variance
-                parameters. Defaults to ``["sigma^2_0", ..., "sigma^2_{n-1}"]``.
-            trans (list of Transform, optional): Transforms applied to each
-                parameter. Defaults to ``[TransformExpPow2()]``, broadcast
-                across all parameters.
-            no_grad_index (list of int, optional): Indices of parameters to
-                exclude from gradient computation.
+            param_spec (dict): Parameter specifications. Keys should be strings
+                representing parameter names. Values should be dictionaries
+                containing the specification for each parameter. Each specification
+                dictionary should contain the keys "fixed", "default", and "trans",
+                representing whether the parameter is fixed or free (bool), the
+                default value (1D torch.Tensor), and the transform (Transform),
+                respectively.
 
         Example:
 
@@ -47,50 +47,53 @@ class DiagonalMatrix(Matrix):
             from torch_openreml.covariance import DiagonalMatrix
 
             mat = DiagonalMatrix(3)
-            params = torch.tensor([0.0, 0.5, 1.0])
-            print(mat(params))
+            free_params = torch.tensor([0.0, 0.5, 1.0])
+            print(mat(free_params))
 
-            print(mat.grad(params))
+            print(mat.grad(free_params))
         """
-        param_names = param_names or [f"sigma^2_{i}" for i in range(n)]
-        trans = trans or [TransformExpPow2()]
-        super().__init__((n, n), param_names, trans, no_grad_index)
+        param_spec = param_spec or {
+            f"sigma^2_{i}": {
+                "fixed": False,
+                "default": torch.tensor([0.0]),
+                "trans": TransformExpPow2()
+            } for i in range(n)
+        }
+        super().__init__((n, n), param_spec)
 
-    def __call__(self, params):
-        sigma2 = self.trans_params(params)
+    def __call__(self, free_params):
+        sigma2 = self.build_params(free_params)
         
         return torch.diag(sigma2)
 
-    def manual_grad(self, params):
+    def manual_grad(self, free_params):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
 
         Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_params - len(no_grad_index), *shape)`` and
+            shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are excluded from
-            gradient computation.
+            Returns ``(None, [])`` if all parameters are fixed.
         """
-        if len(self.no_grad_index) == self.num_params:
+        if len(free_params) == 0:
             return None, []
-
-        device, dtype = self.check_params(params)
+        device = free_params.device
+        dtype = free_params.dtype
 
         grad = torch.zeros(self.shape[0], self.shape[0], self.shape[0], device=device, dtype=dtype)
         idx = torch.arange(self.shape[0], device=device)
-        grad[idx, idx, idx] = self.trans_grad(params)
 
         mask = torch.ones(self.shape[0], dtype=torch.bool, device=device)
-        mask[self.no_grad_index] = False
+        mask[self.free_param_index] = True
+        idx = idx[mask]
 
-        grad = grad[mask]
-        grad_names = [name for i, name in enumerate(self.param_names) if i not in self.no_grad_index]
+        grad[idx, idx, idx] = self.trans_grad(free_params)
 
-        return grad, grad_names
+        return grad, self.free_param_names
 
