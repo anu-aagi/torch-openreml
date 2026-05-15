@@ -13,6 +13,7 @@ Classes:
         Base class for composite covariance matrix operators.
 """
 
+from functools import reduce
 from torch_openreml.covariance.matrix import Matrix
 import torch
 
@@ -34,13 +35,7 @@ class Operator(Matrix):
 
     At least one operand must be a
     :class:`~torch_openreml.covariance.matrix.Matrix` instance. Pure-tensor
-    operands are treated as fixed matrices with no trainable parameters.
-
-    :attr:`no_grad_index` is a read-only derived property — it aggregates
-    the ``no_grad_index`` values of each constituent operand. To exclude a
-    parameter from gradient computation, call
-    :meth:`~torch_openreml.covariance.matrix.Matrix.set_no_grad` on the
-    operand that owns it directly.
+    operands are treated as fixed matrices with no free parameters.
     """
   
     _repr_single_line = False
@@ -98,20 +93,12 @@ class Operator(Matrix):
         else:
             operands = kwargs
 
-        self.check_operands(operands)
+        self._check_operands(operands)
         self._operands = operands
         
-        param_names = [
-            f"{operand_name}/{name}"
-            for operand_name, operand in operands.items()
-            for name in getattr(operand, "param_names", [])
-        ]
+        super().__init__(None, {})
         
-        super().__init__(None, param_names, [])
-        
-        del self._no_grad_index
-        
-    def check_operands(self, operands):
+    def _check_operands(self, operands):
         """
         Validate the operand dictionary.
 
@@ -150,71 +137,40 @@ class Operator(Matrix):
                 
         if not any(isinstance(v, Matrix) for v in operands.values()):
             raise TypeError("operands must include at least one Matrix!")
-            
-    def set_no_grad(self, index=None, param_name=None):
-        """
-        Disabled — ``no_grad_index`` is managed by each operand directly.
 
-        Raises:
-            RuntimeError: Always. Call
-                :meth:`~torch_openreml.covariance.matrix.Matrix.set_no_grad`
-                on the operand that owns the parameter instead.
-        """
-        raise RuntimeError(
-            "This operator only provides a view of no_grad_index. "
-            "Set it on the covariance matrix that owns the parameters instead!"
-        )
-
-    def trans_params(self, params):
-        """
-        Apply each operand's parameter transforms to the joint parameter tensor.
-
-        Splits ``params`` into per-operand slices, delegates transformation
-        to each :class:`~torch_openreml.covariance.matrix.Matrix` operand
-        via :meth:`~torch_openreml.covariance.matrix.Matrix.trans_params`,
-        and concatenates the results. Fixed tensor operands are skipped.
-
-        Args:
-            params (torch.Tensor or dict): Flat 1D joint parameter tensor or
-                parameter dictionary of length :attr:`num_params`.
-
-        Returns:
-            torch.Tensor: Concatenated transformed parameter tensor.
-
-        Example:
-            .. jupyter-execute::
-
-                import torch
-                from torch_openreml.covariance import Sum, ScalarMatrix
-
-                x = Sum(ScalarMatrix(2), ScalarMatrix(2))
-                print(x.trans_params(torch.zeros(2)))
-        """
-        params = self.from_param_dict(params)
-        self.check_params(params)
+    def build_params(self, free_params, include_fixed=True, trans=True, out_format="tensor"):
+        free_params = self._from_free_param_dict(free_params)
+        self._check_param_tensor(free_params, length=self.num_free_params)
 
         result = []
 
-        for name, operand in self.operands.items():
+        for name, operand in self._operands.items():
             if isinstance(operand, Matrix):
-                operand_params = params[0:operand.num_params]
-                params = params[operand.num_params:]
+                operand_free_params = free_params[0:operand.num_free_params]
+                free_params = free_params[operand.num_free_params:]
 
-                result.append(operand.trans_params(operand_params))
+                result.append(operand.build_params(operand_free_params, include_fixed=include_fixed, trans=trans, out_format="tensor"))
 
-        return torch.cat(result)
+        result = torch.cat(result)
+
+        if out_format == "tensor":
+            return result
+        elif out_format == "dict":
+            return dict(zip(self.free_param_names, result))
+        else:
+            raise ValueError(f"Unexpected 'out_format': {out_format}!")
     
-    def build_operands(self, params):
+    def build_operands(self, free_params):
         """
-        Evaluate each operand at the current parameters.
+        Evaluate each operand at the current free parameters.
 
-        Splits ``params`` into per-operand slices and calls each
+        Splits ``free_params`` into per-operand slices and calls each
         :class:`~torch_openreml.covariance.matrix.Matrix` operand to
         produce its matrix. Fixed tensor operands are included as-is.
 
         Args:
-            params (torch.Tensor or dict): Flat 1D joint parameter tensor or
-                parameter dictionary of length :attr:`num_params`.
+            free_params (torch.Tensor or dict): Flat 1D joint parameter tensor or
+                parameter dictionary of length :attr:`num_free_params`.
 
         Returns:
             list of torch.Tensor: Evaluated operand matrices in the same
@@ -231,15 +187,15 @@ class Operator(Matrix):
                 print(v_groups[0])
                 print(v_groups[1])
         """
-        params = self.from_param_dict(params)
-        self.check_params(params)
+        free_params = self._from_free_param_dict(free_params)
+        self._check_param_tensor(free_params, length=self.num_free_params)
         
         v_groups = []
         
         for name, operand in self.operands.items():
             if isinstance(operand, Matrix):
-                operand_params = params[0:operand.num_params]
-                params = params[operand.num_params:]
+                operand_params = free_params[0:operand.num_free_params]
+                free_params = free_params[operand.num_free_params:]
 
                 v_groups.append(operand(operand_params))
             else:
@@ -247,11 +203,11 @@ class Operator(Matrix):
         
         return v_groups
 
-    def operands_grad(self, params):
+    def operands_grad(self, free_params):
         """
         Compute the Jacobian of each operand with respect to its parameters.
 
-        Splits ``params`` into per-operand slices, calls
+        Splits ``free_params`` into per-operand slices, calls
         :meth:`~torch_openreml.covariance.matrix.Matrix.grad` on each
         :class:`~torch_openreml.covariance.matrix.Matrix` operand, and
         prefixes the returned names with the operand name. Fixed tensor
@@ -280,16 +236,16 @@ class Operator(Matrix):
                 print(grad_name_groups[0])
                 print(grad_name_groups[1])
         """
-        params = self.from_param_dict(params)
-        self.check_params(params)
+        free_params = self._from_free_param_dict(free_params)
+        self._check_param_tensor(free_params, length=self.num_free_params)
 
         grad_groups = []
         grad_name_groups = []
 
         for name, operand in self.operands.items():
             if isinstance(operand, Matrix):
-                operand_params = params[0:operand.num_params]
-                params = params[operand.num_params:]
+                operand_params = free_params[0:operand.num_free_params]
+                free_params = free_params[operand.num_free_params:]
 
                 grad, grad_names = operand.grad(operand_params)
 
@@ -309,24 +265,15 @@ class Operator(Matrix):
     def operands(self):
         """dict: Mapping from operand names to operand matrices or tensors."""
         return self._operands
-      
+
     @property
-    def no_grad_index(self):
-        """
-        list of int: Aggregated indices of parameters excluded from gradient
-        computation, derived from each operand's
-        :attr:`~torch_openreml.covariance.matrix.Matrix.no_grad_index` and
-        offset by the cumulative parameter count of preceding operands.
-        """
-        result = []
-        total_num_params = 0
-        
-        for name, operand in self._operands.items():
+    def param_spec(self):
+        param_spec = {}
+        for name, operand in self.operands.items():
             if isinstance(operand, Matrix):
-                result.extend([index + total_num_params for index in operand.no_grad_index])
-                total_num_params = total_num_params + operand.num_params
-                
-        return result
+                this_param_spec = {f"{name}/{param_name}": spec for param_name, spec in operand.param_spec.items()}
+                param_spec.update(this_param_spec)
+        return param_spec
     
     @property
     def repr_dict(self):
