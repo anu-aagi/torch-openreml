@@ -17,9 +17,7 @@
       ~BlockDiagonal.__call__
       ~BlockDiagonal.auto_grad
       ~BlockDiagonal.build_operands
-      ~BlockDiagonal.check_operands
-      ~BlockDiagonal.check_params
-      ~BlockDiagonal.from_param_dict
+      ~BlockDiagonal.build_params
       ~BlockDiagonal.get_intermediates
       ~BlockDiagonal.grad
       ~BlockDiagonal.manual_grad
@@ -28,10 +26,7 @@
       ~BlockDiagonal.operands_grad
       ~BlockDiagonal.reset_intermediates
       ~BlockDiagonal.set_intermediates
-      ~BlockDiagonal.set_no_grad
-      ~BlockDiagonal.to_param_dict
       ~BlockDiagonal.trans_grad
-      ~BlockDiagonal.trans_params
    
    
 
@@ -41,12 +36,23 @@
 
    .. autosummary::
    
-      ~BlockDiagonal.no_grad_index
+      ~BlockDiagonal.fixed_param_defaults
+      ~BlockDiagonal.fixed_param_index
+      ~BlockDiagonal.fixed_param_names
+      ~BlockDiagonal.fixed_param_trans
+      ~BlockDiagonal.free_param_defaults
+      ~BlockDiagonal.free_param_index
+      ~BlockDiagonal.free_param_names
+      ~BlockDiagonal.free_param_trans
+      ~BlockDiagonal.num_fixed_params
+      ~BlockDiagonal.num_free_params
       ~BlockDiagonal.num_params
       ~BlockDiagonal.operands
+      ~BlockDiagonal.param_defaults
       ~BlockDiagonal.param_names
+      ~BlockDiagonal.param_spec
+      ~BlockDiagonal.param_trans
       ~BlockDiagonal.repr_dict
       ~BlockDiagonal.shape
-      ~BlockDiagonal.trans
    
    

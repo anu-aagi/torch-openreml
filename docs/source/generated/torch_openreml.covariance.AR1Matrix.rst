@@ -16,8 +16,7 @@
    
       ~AR1Matrix.__call__
       ~AR1Matrix.auto_grad
-      ~AR1Matrix.check_params
-      ~AR1Matrix.from_param_dict
+      ~AR1Matrix.build_params
       ~AR1Matrix.get_intermediates
       ~AR1Matrix.grad
       ~AR1Matrix.manual_grad
@@ -25,10 +24,7 @@
       ~AR1Matrix.map_theta_to_v
       ~AR1Matrix.reset_intermediates
       ~AR1Matrix.set_intermediates
-      ~AR1Matrix.set_no_grad
-      ~AR1Matrix.to_param_dict
       ~AR1Matrix.trans_grad
-      ~AR1Matrix.trans_params
    
    
 
@@ -38,11 +34,22 @@
 
    .. autosummary::
    
-      ~AR1Matrix.no_grad_index
+      ~AR1Matrix.fixed_param_defaults
+      ~AR1Matrix.fixed_param_index
+      ~AR1Matrix.fixed_param_names
+      ~AR1Matrix.fixed_param_trans
+      ~AR1Matrix.free_param_defaults
+      ~AR1Matrix.free_param_index
+      ~AR1Matrix.free_param_names
+      ~AR1Matrix.free_param_trans
+      ~AR1Matrix.num_fixed_params
+      ~AR1Matrix.num_free_params
       ~AR1Matrix.num_params
+      ~AR1Matrix.param_defaults
       ~AR1Matrix.param_names
+      ~AR1Matrix.param_spec
+      ~AR1Matrix.param_trans
       ~AR1Matrix.repr_dict
       ~AR1Matrix.shape
-      ~AR1Matrix.trans
    
    

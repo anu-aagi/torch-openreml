@@ -16,8 +16,7 @@
    
       ~Matrix.__call__
       ~Matrix.auto_grad
-      ~Matrix.check_params
-      ~Matrix.from_param_dict
+      ~Matrix.build_params
       ~Matrix.get_intermediates
       ~Matrix.grad
       ~Matrix.manual_grad
@@ -25,10 +24,7 @@
       ~Matrix.map_theta_to_v
       ~Matrix.reset_intermediates
       ~Matrix.set_intermediates
-      ~Matrix.set_no_grad
-      ~Matrix.to_param_dict
       ~Matrix.trans_grad
-      ~Matrix.trans_params
    
    
 
@@ -38,11 +34,22 @@
 
    .. autosummary::
    
-      ~Matrix.no_grad_index
+      ~Matrix.fixed_param_defaults
+      ~Matrix.fixed_param_index
+      ~Matrix.fixed_param_names
+      ~Matrix.fixed_param_trans
+      ~Matrix.free_param_defaults
+      ~Matrix.free_param_index
+      ~Matrix.free_param_names
+      ~Matrix.free_param_trans
+      ~Matrix.num_fixed_params
+      ~Matrix.num_free_params
       ~Matrix.num_params
+      ~Matrix.param_defaults
       ~Matrix.param_names
+      ~Matrix.param_spec
+      ~Matrix.param_trans
       ~Matrix.repr_dict
       ~Matrix.shape
-      ~Matrix.trans
    
    

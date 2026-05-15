@@ -16,8 +16,7 @@
    
       ~ScalarMatrix.__call__
       ~ScalarMatrix.auto_grad
-      ~ScalarMatrix.check_params
-      ~ScalarMatrix.from_param_dict
+      ~ScalarMatrix.build_params
       ~ScalarMatrix.get_intermediates
       ~ScalarMatrix.grad
       ~ScalarMatrix.manual_grad
@@ -25,10 +24,7 @@
       ~ScalarMatrix.map_theta_to_v
       ~ScalarMatrix.reset_intermediates
       ~ScalarMatrix.set_intermediates
-      ~ScalarMatrix.set_no_grad
-      ~ScalarMatrix.to_param_dict
       ~ScalarMatrix.trans_grad
-      ~ScalarMatrix.trans_params
    
    
 
@@ -38,11 +34,22 @@
 
    .. autosummary::
    
-      ~ScalarMatrix.no_grad_index
+      ~ScalarMatrix.fixed_param_defaults
+      ~ScalarMatrix.fixed_param_index
+      ~ScalarMatrix.fixed_param_names
+      ~ScalarMatrix.fixed_param_trans
+      ~ScalarMatrix.free_param_defaults
+      ~ScalarMatrix.free_param_index
+      ~ScalarMatrix.free_param_names
+      ~ScalarMatrix.free_param_trans
+      ~ScalarMatrix.num_fixed_params
+      ~ScalarMatrix.num_free_params
       ~ScalarMatrix.num_params
+      ~ScalarMatrix.param_defaults
       ~ScalarMatrix.param_names
+      ~ScalarMatrix.param_spec
+      ~ScalarMatrix.param_trans
       ~ScalarMatrix.repr_dict
       ~ScalarMatrix.shape
-      ~ScalarMatrix.trans
    
    

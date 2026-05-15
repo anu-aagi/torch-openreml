@@ -17,9 +17,7 @@
       ~KroneckerProduct.__call__
       ~KroneckerProduct.auto_grad
       ~KroneckerProduct.build_operands
-      ~KroneckerProduct.check_operands
-      ~KroneckerProduct.check_params
-      ~KroneckerProduct.from_param_dict
+      ~KroneckerProduct.build_params
       ~KroneckerProduct.get_intermediates
       ~KroneckerProduct.grad
       ~KroneckerProduct.manual_grad
@@ -28,10 +26,7 @@
       ~KroneckerProduct.operands_grad
       ~KroneckerProduct.reset_intermediates
       ~KroneckerProduct.set_intermediates
-      ~KroneckerProduct.set_no_grad
-      ~KroneckerProduct.to_param_dict
       ~KroneckerProduct.trans_grad
-      ~KroneckerProduct.trans_params
    
    
 
@@ -41,12 +36,23 @@
 
    .. autosummary::
    
-      ~KroneckerProduct.no_grad_index
+      ~KroneckerProduct.fixed_param_defaults
+      ~KroneckerProduct.fixed_param_index
+      ~KroneckerProduct.fixed_param_names
+      ~KroneckerProduct.fixed_param_trans
+      ~KroneckerProduct.free_param_defaults
+      ~KroneckerProduct.free_param_index
+      ~KroneckerProduct.free_param_names
+      ~KroneckerProduct.free_param_trans
+      ~KroneckerProduct.num_fixed_params
+      ~KroneckerProduct.num_free_params
       ~KroneckerProduct.num_params
       ~KroneckerProduct.operands
+      ~KroneckerProduct.param_defaults
       ~KroneckerProduct.param_names
+      ~KroneckerProduct.param_spec
+      ~KroneckerProduct.param_trans
       ~KroneckerProduct.repr_dict
       ~KroneckerProduct.shape
-      ~KroneckerProduct.trans
    
    

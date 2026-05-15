@@ -17,9 +17,7 @@
       ~HadamardProduct.__call__
       ~HadamardProduct.auto_grad
       ~HadamardProduct.build_operands
-      ~HadamardProduct.check_operands
-      ~HadamardProduct.check_params
-      ~HadamardProduct.from_param_dict
+      ~HadamardProduct.build_params
       ~HadamardProduct.get_intermediates
       ~HadamardProduct.grad
       ~HadamardProduct.manual_grad
@@ -28,10 +26,7 @@
       ~HadamardProduct.operands_grad
       ~HadamardProduct.reset_intermediates
       ~HadamardProduct.set_intermediates
-      ~HadamardProduct.set_no_grad
-      ~HadamardProduct.to_param_dict
       ~HadamardProduct.trans_grad
-      ~HadamardProduct.trans_params
    
    
 
@@ -41,12 +36,23 @@
 
    .. autosummary::
    
-      ~HadamardProduct.no_grad_index
+      ~HadamardProduct.fixed_param_defaults
+      ~HadamardProduct.fixed_param_index
+      ~HadamardProduct.fixed_param_names
+      ~HadamardProduct.fixed_param_trans
+      ~HadamardProduct.free_param_defaults
+      ~HadamardProduct.free_param_index
+      ~HadamardProduct.free_param_names
+      ~HadamardProduct.free_param_trans
+      ~HadamardProduct.num_fixed_params
+      ~HadamardProduct.num_free_params
       ~HadamardProduct.num_params
       ~HadamardProduct.operands
+      ~HadamardProduct.param_defaults
       ~HadamardProduct.param_names
+      ~HadamardProduct.param_spec
+      ~HadamardProduct.param_trans
       ~HadamardProduct.repr_dict
       ~HadamardProduct.shape
-      ~HadamardProduct.trans
    
    

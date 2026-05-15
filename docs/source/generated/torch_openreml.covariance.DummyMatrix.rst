@@ -16,8 +16,7 @@
    
       ~DummyMatrix.__call__
       ~DummyMatrix.auto_grad
-      ~DummyMatrix.check_params
-      ~DummyMatrix.from_param_dict
+      ~DummyMatrix.build_params
       ~DummyMatrix.get_intermediates
       ~DummyMatrix.grad
       ~DummyMatrix.manual_grad
@@ -25,10 +24,7 @@
       ~DummyMatrix.map_theta_to_v
       ~DummyMatrix.reset_intermediates
       ~DummyMatrix.set_intermediates
-      ~DummyMatrix.set_no_grad
-      ~DummyMatrix.to_param_dict
       ~DummyMatrix.trans_grad
-      ~DummyMatrix.trans_params
    
    
 
@@ -39,11 +35,22 @@
    .. autosummary::
    
       ~DummyMatrix.colnames
-      ~DummyMatrix.no_grad_index
+      ~DummyMatrix.fixed_param_defaults
+      ~DummyMatrix.fixed_param_index
+      ~DummyMatrix.fixed_param_names
+      ~DummyMatrix.fixed_param_trans
+      ~DummyMatrix.free_param_defaults
+      ~DummyMatrix.free_param_index
+      ~DummyMatrix.free_param_names
+      ~DummyMatrix.free_param_trans
+      ~DummyMatrix.num_fixed_params
+      ~DummyMatrix.num_free_params
       ~DummyMatrix.num_params
+      ~DummyMatrix.param_defaults
       ~DummyMatrix.param_names
+      ~DummyMatrix.param_spec
+      ~DummyMatrix.param_trans
       ~DummyMatrix.repr_dict
       ~DummyMatrix.shape
-      ~DummyMatrix.trans
    
    

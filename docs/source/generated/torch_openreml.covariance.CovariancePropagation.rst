@@ -17,9 +17,7 @@
       ~CovariancePropagation.__call__
       ~CovariancePropagation.auto_grad
       ~CovariancePropagation.build_operands
-      ~CovariancePropagation.check_operands
-      ~CovariancePropagation.check_params
-      ~CovariancePropagation.from_param_dict
+      ~CovariancePropagation.build_params
       ~CovariancePropagation.get_intermediates
       ~CovariancePropagation.grad
       ~CovariancePropagation.manual_grad
@@ -28,10 +26,7 @@
       ~CovariancePropagation.operands_grad
       ~CovariancePropagation.reset_intermediates
       ~CovariancePropagation.set_intermediates
-      ~CovariancePropagation.set_no_grad
-      ~CovariancePropagation.to_param_dict
       ~CovariancePropagation.trans_grad
-      ~CovariancePropagation.trans_params
    
    
 
@@ -41,12 +36,23 @@
 
    .. autosummary::
    
-      ~CovariancePropagation.no_grad_index
+      ~CovariancePropagation.fixed_param_defaults
+      ~CovariancePropagation.fixed_param_index
+      ~CovariancePropagation.fixed_param_names
+      ~CovariancePropagation.fixed_param_trans
+      ~CovariancePropagation.free_param_defaults
+      ~CovariancePropagation.free_param_index
+      ~CovariancePropagation.free_param_names
+      ~CovariancePropagation.free_param_trans
+      ~CovariancePropagation.num_fixed_params
+      ~CovariancePropagation.num_free_params
       ~CovariancePropagation.num_params
       ~CovariancePropagation.operands
+      ~CovariancePropagation.param_defaults
       ~CovariancePropagation.param_names
+      ~CovariancePropagation.param_spec
+      ~CovariancePropagation.param_trans
       ~CovariancePropagation.repr_dict
       ~CovariancePropagation.shape
-      ~CovariancePropagation.trans
    
    
