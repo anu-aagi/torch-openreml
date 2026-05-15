@@ -48,7 +48,7 @@ class IdentityMatrix(Matrix):
             mat()
         """
         self._matrix = torch.eye(n, dtype=dtype, device=device)
-        super().__init__((n, n), [], [])
+        super().__init__((n, n), {})
 
     def __call__(self, *args, **kwargs):
         return self._matrix
