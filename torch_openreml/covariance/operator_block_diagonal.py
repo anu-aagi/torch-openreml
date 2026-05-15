@@ -32,11 +32,11 @@ class BlockDiagonal(Operator):
         Initialize a block diagonal operator from two or more operands.
 
         Args:
-           \*args: Two or more operands as positional arguments, each a
+           *args: Two or more operands as positional arguments, each a
                :class:`~torch_openreml.covariance.matrix.Matrix` or
                :class:`torch.Tensor`. A single dict argument is also accepted.
 
-           \**kwargs: Two or more operands as keyword arguments.
+           **kwargs: Two or more operands as keyword arguments.
 
         Raises:
            ValueError: If fewer than two operands are provided.
@@ -52,8 +52,8 @@ class BlockDiagonal(Operator):
                residual=ScalarMatrix(3),
                random=DiagonalMatrix(2)
            )
-           params = torch.tensor([0.5, 0.0, 1.0])
-           block(params)
+           free_params = torch.tensor([0.5, 0.0, 1.0])
+           block(free_params)
         """
 
         super().__init__(*args, **kwargs)
@@ -61,11 +61,12 @@ class BlockDiagonal(Operator):
         if len(self.operands) < 2:
             raise ValueError("At least two operands are required")
 
-    def _get_or_build_intermediates(self, params):
-        cache = self.get_intermediates(params)
+    def _get_or_build_intermediates(self, free_params):
+        bulit_params = self.build_params(free_params)
+        cache = self.get_intermediates(bulit_params)
 
         if cache is None:
-            v_groups = self.build_operands(params)
+            v_groups = self.build_operands(free_params)
             v = torch.block_diag(*v_groups)
 
             row_offsets = []
@@ -87,38 +88,36 @@ class BlockDiagonal(Operator):
                 "col_offsets": col_offsets
             }
 
-            self.set_intermediates(params, cache)
+            self.set_intermediates(bulit_params, cache)
 
         return cache
 
-    def __call__(self, params):
-        cache = self._get_or_build_intermediates(params)
+    def __call__(self, free_params):
+        cache = self._get_or_build_intermediates(free_params)
         v = cache["v"]
         self._shape = tuple(v.shape)
 
         return v
 
-    def manual_grad(self, params):
+    def manual_grad(self, free_params):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
 
         Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_params - len(no_grad_index), *shape)`` and
+            shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are excluded from
-            gradient computation.
+            Returns ``(None, [])`` if all parameters are fixed.
         """
-        grad_groups, grad_name_groups = self.operands_grad(params)
+        grad_groups, grad_name_groups = self.operands_grad(free_params)
 
-        cache = self._get_or_build_intermediates(params)
+        cache = self._get_or_build_intermediates(free_params)
         v = cache["v"]
-        v_groups = cache["v_groups"]
         row_offsets = cache["row_offsets"]
         col_offsets = cache["col_offsets"]
 
@@ -133,8 +132,8 @@ class BlockDiagonal(Operator):
             (c0, c1) = col_offsets[i]
 
             tmp = torch.zeros((grad.shape[0],) + tuple(v.shape),
-                              dtype=params.dtype,
-                              device=params.device)
+                              dtype=free_params.dtype,
+                              device=free_params.device)
 
             tmp[:, r0:r1, c0:c1] = grad
 
