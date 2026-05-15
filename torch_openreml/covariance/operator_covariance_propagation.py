@@ -40,8 +40,8 @@ class CovariancePropagation(Operator):
 
         Args:
             *args: Exactly two operands as positional arguments or a single
-                dict. The first is :math:`\symbf{Z}`, the second
-                :math:`\symbf{G}`.
+                dict. The first is :math:`\\symbf{Z}`, the second
+                :math:`\\symbf{G}`.
             **kwargs: Exactly two operands as keyword arguments.
 
         Raises:
@@ -58,8 +58,8 @@ class CovariancePropagation(Operator):
             z = torch.randn(n, q)
             g = DiagonalMatrix(q)
             op = CovariancePropagation(z=z, g=g)
-            params = torch.tensor([0.0, 0.5, 1.0])
-            op(params)
+            free_params = torch.tensor([0.0, 0.5, 1.0])
+            op(free_params)
         """
 
         super().__init__(*args, **kwargs)
@@ -67,11 +67,12 @@ class CovariancePropagation(Operator):
         if len(self.operands) != 2:
             raise ValueError("Two operands are required")
 
-    def _get_or_build_intermediates(self, params):
-        cache = self.get_intermediates(params)
+    def _get_or_build_intermediates(self, free_params):
+        built_params = self.build_params(free_params)
+        cache = self.get_intermediates(built_params)
 
         if cache is None:
-            v_groups = self.build_operands(params)
+            v_groups = self.build_operands(free_params)
 
             z = v_groups[0]
             g = v_groups[1]
@@ -79,36 +80,35 @@ class CovariancePropagation(Operator):
 
             cache = {"z": z, "g": g, "v": v}
 
-            self.set_intermediates(params, cache)
+            self.set_intermediates(built_params, cache)
 
         return cache
 
-    def __call__(self, params):
-        cache = self._get_or_build_intermediates(params)
+    def __call__(self, free_params):
+        cache = self._get_or_build_intermediates(free_params)
         v = cache["v"]
         self._shape = tuple(v.shape)
 
         return v
 
-    def manual_grad(self, params):
+    def manual_grad(self, free_params):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
 
         Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_params - len(no_grad_index), *shape)`` and
+            shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are excluded from
-            gradient computation.
+            Returns ``(None, [])`` if all parameters are fixed.
         """
-        grad_groups, grad_name_groups = self.operands_grad(params)
+        grad_groups, grad_name_groups = self.operands_grad(free_params)
 
-        cache = self._get_or_build_intermediates(params)
+        cache = self._get_or_build_intermediates(free_params)
         z = cache["z"]
         g = cache["g"]
 
