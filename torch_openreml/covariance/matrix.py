@@ -28,7 +28,7 @@ class Matrix(ABC):
 
     This class provides utilities for parameter validation, transform application,
     and Jacobian computation (both manual and automatic).
-    Subclasses must implement :meth:`build` to construct their specific matrix
+    Subclasses must implement :meth:`__call__` to construct their specific matrix
     structure from the provided parameters.
     """
   
@@ -46,22 +46,13 @@ class Matrix(ABC):
                 containing the specification for each parameter. Each specification
                 dictionary should contain the keys "fixed", "default", and "trans",
                 representing whether the parameter is fixed or free (bool), the
-                default value (1D torch.Tensor), and the transform (Transform),
+                default value (1D torch.Tensor), and the transform (:class:`~torch_openreml.covariance.transform.Transform`),
                 respectively.
-
-        Note:
-            The transform applies as
-
-            .. math::
-                \symbf{V} = \left[f_0(\theta_0), \ldots, f_{p-1}(\theta_{p-1}) \right]^\top,
-
-            where :math:`f_i` is the transform for `i`-th parameter.
 
         Raises:
             TypeError: If ``param_spec`` does not follow any of the requirements
-                list in the argument description.
-            ValueError: If parameter names are not unique, or if keys in
-                ``fix_params`` are out of range.
+                listed in the argument description, or if ``shape`` is not a tuple or torch.Size.
+            ValueError: If ``shape`` values are non-negative.
         """
 
         self._check_shape(shape)
@@ -91,6 +82,10 @@ class Matrix(ABC):
             intermediates: Arbitrary object to cache (e.g. Cholesky factors,
                 eigendecompositions, or any reusable computation).
 
+        Raises:
+            TypeError: If ``params`` is not a Torch tensor.
+            ValueError: If ``params`` is not a 1D tensor.
+
         Note:
             If ``params`` has length 0 (no free parameters), this is a no-op.
 
@@ -103,9 +98,9 @@ class Matrix(ABC):
 
             mat = DiagonalMatrix(3)
             free_params = torch.tensor([0.0, 0.5, 1.0])
-            sigma2 = mat.build_params(free_params)
-            mat.set_intermediates(free_params, {"sigma2": sigma2})
-            mat.get_intermediates(free_params)
+            params = mat.build_params(free_params)
+            mat.set_intermediates(params, {"log(sigma^2)/2": torch.log(params) / 2})
+            mat.get_intermediates(params)
         """
         device, dtype = self._check_param_tensor(params)
 
@@ -130,6 +125,10 @@ class Matrix(ABC):
         Args:
             params (torch.Tensor): Current parameter tensor.
 
+        Raises:
+            TypeError: If ``params`` is not a Torch tensor.
+            ValueError: If ``params`` is not a 1D tensor.
+
         Returns:
             The cached intermediate object if the cache is valid, or ``None`` if
             the cache is missing, stale, or ``params`` has length 0.
@@ -143,9 +142,9 @@ class Matrix(ABC):
 
             mat = DiagonalMatrix(3)
             free_params = torch.tensor([0.0, 0.5, 1.0])
-            sigma2 = mat.build_params(free_params)
-            mat.set_intermediates(free_params, {"sigma2": sigma2})
-            mat.get_intermediates(free_params)
+            params = mat.build_params(free_params)
+            mat.set_intermediates(params, {"log(sigma^2)/2": torch.log(params) / 2})
+            mat.get_intermediates(params)
         """
         device, dtype = self._check_param_tensor(params)
 
@@ -178,15 +177,70 @@ class Matrix(ABC):
 
             mat = DiagonalMatrix(3)
             free_params = torch.tensor([0.0, 0.5, 1.0])
-            sigma2 = mat.build_params(free_params)
-            mat.set_intermediates(free_params, {"sigma2": sigma2})
-            print(mat.get_intermediates(free_params))
+            params = mat.build_params(free_params)
+            mat.set_intermediates(params, {"log(sigma^2)/2": torch.log(params) / 2})
+            print(mat.get_intermediates(params))
+
+        .. jupyter-execute::
+
             mat.reset_intermediates()
             print(mat.get_intermediates(free_params))
         """
         self._intermediates = {"hash": None, "dtype": None, "device": None, "intermediates": None}
 
     def build_params(self, free_params, include_fixed=True, trans=True, out_format="tensor"):
+        """
+        Construct the full parameter tensor from free parameters.
+
+        Merges free (trainable) parameters with fixed parameter defaults and
+        applies parameter transforms. Optionally returns a dictionary mapping
+        parameter names to their transformed values.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D tensor of free parameters
+              or a dictionary mapping parameter names to tensors.
+            include_fixed (bool, optional): Whether to include fixed parameters in
+              the output. Default: ``True``.
+            trans (bool, optional): Whether to apply parameter transforms to the
+              output. Default: ``True``.
+            out_format (str, optional): Output format. One of ``"tensor"`` or
+              ``"dict"``. Default: ``"tensor"``.
+
+        Returns:
+            torch.Tensor or dict: Full parameter tensor of length :attr:`num_params`
+            (or :attr:`num_free_params` when ``include_fixed=False``), or a
+            dictionary mapping parameter names to value tensors.
+
+        Raises:
+            ValueError: If ``out_format`` is not ``"tensor"`` or ``"dict"``.
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the wrong length,
+                or if ``free_params`` is a dict with missing or unexpected keys.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            free_params = torch.tensor([0.0, 0.5, 1.0])
+            mat.build_params(free_params)
+
+        .. jupyter-execute::
+
+            mat.param_spec["sigma^2_2"]["fixed"] = True
+            mat.build_params(free_params[0:2])
+
+        .. jupyter-execute::
+
+            mat.build_params(free_params[0:2], include_fixed=False)
+
+        .. jupyter-execute::
+
+            mat.build_params(free_params[0:2], include_fixed=False, trans=False)
+        """
 
         free_params = self._from_free_param_dict(free_params)
         device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
@@ -257,16 +311,21 @@ class Matrix(ABC):
 
     def trans_grad(self, free_params):
         """
-        Compute the element-wise derivative of the transforms for the free parameters.
+        Compute the element-wise derivative of the free parameter transforms.
 
-        Returns the Jacobian diagonal of :meth:`trans_free_params` with respect
-        to the raw (untransformed) parameters. Used in the chain rule when
-        computing gradients of the matrix with respect to the original
-        parameterisation.
+        Evaluates the derivative of each free parameter's transform function at
+        the current parameter values. Used in the chain rule when computing
+        manual gradients of the matrix with respect to the original
+        (untransformed) parameterisation.
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
-                dictionary.
+              dictionary of free parameters.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the wrong length,
+                or if ``free_params`` is a dict with missing or unexpected keys.
 
         Returns:
             torch.Tensor: 1D tensor of element-wise transform derivatives,
@@ -306,6 +365,11 @@ class Matrix(ABC):
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or dict.
 
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the wrong length,
+                or if ``free_params`` is a dict with missing or unexpected keys.
+
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
             shape ``(num_free_params, *shape)``, and
@@ -339,7 +403,7 @@ class Matrix(ABC):
 
     def manual_grad(self, free_params):
         """
-        Compute the Jacobian of :meth:`__call__` with respect to trainable
+        Compute the Jacobian of :meth:`__call__` with respect to free
         parameters using a closed-form analytic expression.
 
         This method is optional. When implemented by a subclass, :meth:`grad`
@@ -463,6 +527,9 @@ class Matrix(ABC):
         Args:
             theta (torch.Tensor): Flat 1D parameter tensor.
 
+        Raises:
+            RuntimeError: If :attr:`grad_mode` is not a recognised value.
+
         Returns:
             torch.Tensor or None: Jacobian tensor of shape
             ``(num_free_params, *shape)``, or ``None`` if all parameters
@@ -481,7 +548,7 @@ class Matrix(ABC):
         shape = tuple(shape)
         
         if not all([isinstance(p, int) and p > 0 for p in shape]):
-            raise TypeError("All elements of 'shape' must be positive int!")
+            raise ValueError("All elements of 'shape' must be positive int!")
 
     def _check_param_spec(self, param_spec):
         if not isinstance(param_spec, dict):
@@ -617,10 +684,12 @@ class Matrix(ABC):
 
     @property
     def free_param_index(self):
+        """tuple: Index of free parameters."""
         return [i for i, spec in enumerate(self.param_spec.values()) if not spec["fixed"]]
 
     @property
     def fixed_param_index(self):
+        """tuple: Index of fixed parameters."""
         return [i for i, spec in enumerate(self.param_spec.values()) if spec["fixed"]]
     
     @property
