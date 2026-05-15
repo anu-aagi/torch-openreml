@@ -98,4 +98,4 @@ class TransformIdentity(Transform):
             t.grad(x)
         """
 
-        return torch.tensor([1.0], dtype=x.dtype, device=x.device)
+        return torch.ones_like(x)
