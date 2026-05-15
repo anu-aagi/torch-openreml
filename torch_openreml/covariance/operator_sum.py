@@ -52,8 +52,8 @@ class Sum(Operator):
             from torch_openreml.covariance import AR1Matrix, ScalarMatrix, Sum
 
             op = Sum(time=AR1Matrix(4), noise=ScalarMatrix(4))
-            params = torch.tensor([0.5, 1.0, 1.0])
-            op(params)
+            free_params = torch.tensor([0.5, 1.0, 1.0])
+            op(free_params)
         """
           
         super().__init__(*args, **kwargs)
@@ -61,30 +61,29 @@ class Sum(Operator):
         if len(self.operands) < 2:
             raise ValueError("At least two operands are required")
     
-    def __call__(self, params):
-        v_groups = self.build_operands(params)
+    def __call__(self, free_params):
+        v_groups = self.build_operands(free_params)
         v = sum(v_groups)
         self._shape = tuple(v.shape)
 
         return v
 
-    def manual_grad(self, params):
+    def manual_grad(self, free_params):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
 
         Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_params - len(no_grad_index), *shape)`` and
+            shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are excluded from
-            gradient computation.
+            Returns ``(None, [])`` if all parameters are fixed.
         """
-        grad_groups, grad_name_groups = self.operands_grad(params)
+        grad_groups, grad_name_groups = self.operands_grad(free_params)
 
         grad_groups = [grad for grad in grad_groups if grad is not None]
 
