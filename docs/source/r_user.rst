@@ -84,12 +84,13 @@ using ``model.matrix()``.
     result <- fit_openreml$optimize(y, X, torch$zeros(3L), verbose = 2L)
 
     print(py_to_r(fit_openreml$get_theta()$numpy()))
-    print(py_to_r(V$trans_params(fit_openreml$get_theta())$numpy()))
+    print(py_to_r(V$build_params(fit_openreml$get_theta())$numpy()))
     print(py_to_r(fit_openreml$get_beta()$numpy()))
 
 .. jupyter-execute::
     :hide-code:
 
     !Rscript source/r_user/code.R > source/r_user/output.txt 2>/dev/null
+
     !cat source/r_user/output.txt
 
