@@ -16,7 +16,6 @@ import torch
 from abc import ABC, abstractmethod
 from torch_openreml.covariance.transform import Transform
 
-
 class Matrix(ABC):
     r"""
     Abstract base class for covariance matrices with parameterized structure.
@@ -35,22 +34,20 @@ class Matrix(ABC):
   
     _repr_single_line = True
 
-    def __init__(self, shape, param_names, trans=None, no_grad_index=None):
+    def __init__(self, shape, param_spec):
         r"""
-        Initialize a covariance matrix with optional parameter transforms.
+        Initialize a covariance matrix with parameter specifications.
 
         Args:
             shape (tuple or None): Expected output dimensions of the constructed matrix.
                 Used for validation; the actual shape may be set by subclasses.
-            param_names (list of str): Ordered names of parameters in :attr:`params`.
-                Empty list if no trainable parameters (e.g., fixed matrices).
-            trans (list of Transform or None): List of transforms applied to each
-                parameter before constructing the matrix. If None, no transforms are used.
-                Typically used for variance (:math:`\exp(2\theta) > 0`) or correlation
-                constraints (:math:`\rho \in (-1, 1)`).
-            no_grad_index (list of int): Indices to exclude from gradient computation.
-                Parameters at these indices will be omitted from :attr:`grad` and
-                :attr:`grad_names`. Use :meth:`set_no_grad` instead for convenience.
+            param_spec (dict): Parameter specifications. Keys should be strings
+                representing parameter names. Values should be dictionaries
+                containing the specification for each parameter. Each specification
+                dictionary should contain the keys "fixed", "default", and "trans",
+                representing whether the parameter is fixed or free (bool), the
+                default value (1D torch.Tensor), and the transform (Transform),
+                respectively.
 
         Note:
             The transform applies as
@@ -58,29 +55,20 @@ class Matrix(ABC):
             .. math::
                 \symbf{V} = \left[f_0(\theta_0), \ldots, f_{p-1}(\theta_{p-1}) \right]^\top,
 
-            where each :math:`f_i` is the i-th transform in :attr:`trans`.
-            If :attr:`trans` has length 1, the single transform is broadcast and applied elementwise to all parameters.
+            where :math:`f_i` is the transform for `i`-th parameter.
 
         Raises:
-            TypeError: If ``param_names`` is not a list of strings, or if
-                transforms contain non-Transform objects.
-            ValueError: If parameter names are not unique, or if indices in
-                ``no_grad_index`` are out of range.
+            TypeError: If ``param_spec`` does not follow any of the requirements
+                list in the argument description.
+            ValueError: If parameter names are not unique, or if keys in
+                ``fix_params`` are out of range.
         """
 
         self._check_shape(shape)
         self._shape = tuple(shape or ())
 
-        self._check_no_grad_index(no_grad_index)
-        
-        self._check_param_names(param_names)
-        self._param_names = param_names
-        self._num_params = len(param_names)
-
-        self._check_trans(trans)
-        self._trans = trans
-
-        self._no_grad_index = list(set(no_grad_index or []))
+        self._check_param_spec(param_spec)
+        self._param_spec = param_spec
 
         #: Gradient computation mode: ``"manual"`` uses a class-defined manual gradient,
         # ``"auto"`` uses automatic differentiation, and ``"default"`` uses the manual
@@ -99,13 +87,12 @@ class Matrix(ABC):
         multiple calls with identical parameters.
 
         Args:
-            params (torch.Tensor or dict): Current parameter tensor or dictionary.
-                Converted to a flat tensor via :meth:`from_param_dict` before hashing.
+            params (torch.Tensor): Current parameter tensor.
             intermediates: Arbitrary object to cache (e.g. Cholesky factors,
                 eigendecompositions, or any reusable computation).
 
         Note:
-            If ``params`` has length 0 (no trainable parameters), this is a no-op.
+            If ``params`` has length 0 (no free parameters), this is a no-op.
 
         Example:
 
@@ -115,13 +102,12 @@ class Matrix(ABC):
             from torch_openreml.covariance import DiagonalMatrix
 
             mat = DiagonalMatrix(3)
-            params = torch.tensor([0.0, 0.5, 1.0])
-            sigma2 = mat.trans_params(params)
-            mat.set_intermediates(params, {"sigma2": sigma2})
-            mat.get_intermediates(params)
+            free_params = torch.tensor([0.0, 0.5, 1.0])
+            sigma2 = mat.build_params(free_params)
+            mat.set_intermediates(free_params, {"sigma2": sigma2})
+            mat.get_intermediates(free_params)
         """
-        params = self.from_param_dict(params)
-        device, dtype = self.check_params(params)
+        device, dtype = self._check_param_tensor(params)
 
         if params.shape[0] == 0:
             return None
@@ -142,9 +128,7 @@ class Matrix(ABC):
         after a parameter update, device transfer, or dtype cast.
 
         Args:
-            params (torch.Tensor or dict): Current parameter tensor or dictionary.
-                Converted to a flat tensor via :meth:`from_param_dict` before
-                comparison.
+            params (torch.Tensor): Current parameter tensor.
 
         Returns:
             The cached intermediate object if the cache is valid, or ``None`` if
@@ -158,13 +142,12 @@ class Matrix(ABC):
             from torch_openreml.covariance import DiagonalMatrix
 
             mat = DiagonalMatrix(3)
-            params = torch.tensor([0.0, 0.5, 1.0])
-            sigma2 = mat.trans_params(params)
-            mat.set_intermediates(params, {"sigma2": sigma2})
-            mat.get_intermediates(params)
+            free_params = torch.tensor([0.0, 0.5, 1.0])
+            sigma2 = mat.build_params(free_params)
+            mat.set_intermediates(free_params, {"sigma2": sigma2})
+            mat.get_intermediates(free_params)
         """
-        params = self.from_param_dict(params)
-        device, dtype = self.check_params(params)
+        device, dtype = self._check_param_tensor(params)
 
         if params.shape[0] == 0:
             return None
@@ -194,216 +177,100 @@ class Matrix(ABC):
             from torch_openreml.covariance import DiagonalMatrix
 
             mat = DiagonalMatrix(3)
-            params = torch.tensor([0.0, 0.5, 1.0])
-            sigma2 = mat.trans_params(params)
-            mat.set_intermediates(params, {"sigma2": sigma2})
-            print(mat.get_intermediates(params))
+            free_params = torch.tensor([0.0, 0.5, 1.0])
+            sigma2 = mat.build_params(free_params)
+            mat.set_intermediates(free_params, {"sigma2": sigma2})
+            print(mat.get_intermediates(free_params))
             mat.reset_intermediates()
-            print(mat.get_intermediates(params))
+            print(mat.get_intermediates(free_params))
         """
         self._intermediates = {"hash": None, "dtype": None, "device": None, "intermediates": None}
 
-    def set_no_grad(self, index=None, param_name=None):
-        """
-        Set the indices of parameters to exclude from gradient computation.
+    def build_params(self, free_params, include_fixed=True, trans=True, out_format="tensor"):
 
-        Replaces :attr:`no_grad_index` with the provided indices. Exactly one
-        of ``index`` or ``param_name`` must be supplied; providing both or neither
-        raises an error.
+        free_params = self._from_free_param_dict(free_params)
+        device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
 
-        Args:
-            index (int or list of int, optional): Zero-based index or list of
-                indices into :attr:`param_names` to exclude from gradient
-                computation.
-            param_name (str or list of str, optional): Parameter name or list
-                of names to exclude. Names must exist in :attr:`param_names`.
+        if include_fixed:
+            params = free_params.new_empty(self.num_params)
 
-        Raises:
-            ValueError: If both or neither of ``index`` and ``param_name``
-                are provided, or if any index is out of range.
-            KeyError: If any name in ``param_name`` is not found in
-                :attr:`param_names`.
-
-        Example:
-
-        .. jupyter-execute::
-
-            import torch
-            from torch_openreml.covariance import DiagonalMatrix
-
-            mat = DiagonalMatrix(3)
-            mat.set_no_grad(index=0)
-            print(mat.no_grad_index)
-            print(mat.grad(torch.zeros(3)))
-        """
-        if (index is None) == (param_name is None):
-            raise ValueError("Provide exactly one of 'index' or 'param_name'!")
-        
-        if param_name is None:
-            if not isinstance(index, list):
-                index = [index]
-            self._check_no_grad_index(index)
-            self._no_grad_index = list(set(index))
-        
-        if index is None:
-            if not isinstance(param_name, list):
-                param_name = [param_name]
-            index_map = {name: i for i, name in enumerate(self._param_names)}
-            index = [index_map[name] for name in param_name]
-            self._no_grad_index = list(set(index))
-
-    def from_param_dict(self, param_dict):
-        r"""
-        Extract parameter tensors from a dictionary into a flat 1D tensor.
-
-        Converts a parameter dictionary to a concatenated 1D tensor ordered
-        according to :attr:`param_names`. The inverse operation is provided
-        by :meth:`to_param_dict`.
-
-        Args:
-            param_dict (torch.Tensor or dict): Either a flat parameter tensor
-                (returned as-is), or a dictionary mapping parameter names to
-                tensors. All keys must exist in :attr:`param_names` and no
-                extra keys are allowed.
-
-        Returns:
-            torch.Tensor: Concatenated 1D tensor containing all parameters
-                in the order specified by :attr:`param_names`.
-
-        Raises:
-            ValueError: If ``param_dict`` is a dictionary missing required keys
-                or containing unexpected keys, or if the tensor length does not
-                match the number of parameters.
-
-        Example:
-
-        .. jupyter-execute::
-
-            import torch
-            from torch_openreml.covariance import DiagonalMatrix
-
-            mat = DiagonalMatrix(3)
-            param_dict = {"sigma^2_0": torch.tensor([0.0]),
-                          "sigma^2_1": torch.tensor([0.5]),
-                          "sigma^2_2": torch.tensor([1.0])}
-            mat.from_param_dict(param_dict)
-        """
-        if not isinstance(param_dict, dict):
-            return param_dict
-        
-        missing = set(self._param_names) - set(param_dict.keys())
-        if missing:
-            raise ValueError(f"Missing parameters: {missing}!")
-        
-        extra = set(param_dict.keys()) - set(self._param_names)
-        if extra:
-            raise ValueError(f"Unexpected parameters: {extra}!")
-        
-        return torch.cat([param_dict[name] for name in self._param_names])
-
-    def to_param_dict(self, params):
-        """
-        Convert a flat parameter tensor to a parameter dictionary.
-
-        Maps each element of a 1D parameter tensor to its corresponding name
-        in :attr:`param_names`, returning a dictionary of scalar tensors.
-        This is the inverse of :meth:`from_param_dict`.
-
-        Args:
-            params (torch.Tensor or dict): Either a flat 1D tensor of length
-                :attr:`num_params` (converted to a dict), or a dict (returned
-                as-is).
-
-        Returns:
-            dict: Mapping from each name in :attr:`param_names` to a
-            1D single-element tensor.
-
-        Raises:
-            ValueError: If ``params`` is a tensor whose length does not equal
-                :attr:`num_params`.
-
-        Example:
-
-        .. jupyter-execute::
-
-            import torch
-            from torch_openreml.covariance import DiagonalMatrix
-
-            mat = DiagonalMatrix(3)
-            params = torch.tensor([0.0, 0.5, 1.0])
-            mat.to_param_dict(params)
-        """
-        if isinstance(params, dict):
-            return params
-        
-        if len(params) != len(self._param_names):
-            raise ValueError(f"Expected {len(self._param_names)} parameters, got {len(params)}!")
-        
-        return {name: tensor for name, tensor in zip(self.param_names, params.unsqueeze(-1))}
-
-    def trans_params(self, params):
-        """
-        Apply parameter transforms to a flat parameter tensor.
-
-        Applies the transforms in :attr:`trans` element-wise to ``params``.
-        If :attr:`trans` is ``None`` or empty, returns ``params`` unchanged.
-        If :attr:`trans` has a single entry, that transform is broadcast and
-        applied to all parameters simultaneously. Otherwise, each transform
-        is applied to its corresponding parameter individually.
-
-        Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
-                dictionary. Converted via :meth:`from_param_dict` before
-                transformation.
-
-        Returns:
-            torch.Tensor: Transformed parameter tensor of the same shape
-            as ``params``.
-
-        Example:
-
-        .. jupyter-execute::
-
-            import torch
-            from torch_openreml.covariance import DiagonalMatrix
-
-            mat = DiagonalMatrix(3)
-            params = torch.tensor([0.0, 0.5, 1.0])
-            mat.trans_params(params)
-        """
-        params = self.from_param_dict(params)
-        _, _ = self.check_params(params)
-
-        if self.trans is None or len(self.trans) == 0:
-            return params
-
-        if len(self.trans) == 1:
-            return self.trans[0](params)
+            free_mask = torch.tensor([not spec["fixed"] for spec in self.param_spec.values()], dtype=torch.bool, device=device)
+            params[free_mask] = free_params
+            params[~free_mask] = torch.as_tensor([spec["default"] for spec in self.param_spec.values() if spec["fixed"]],
+                                                 device=device, dtype=dtype)
         else:
-            return torch.cat([self.trans[i](x) for i, x in enumerate(params.unsqueeze(-1))])
+            params = free_params
 
-    def trans_grad(self, params):
+        if len(params) == 0:
+            if out_format == "tensor":
+                return torch.tensor([], device=device, dtype=dtype)
+            elif out_format == "dict":
+                return {}
+            else:
+                raise ValueError(f"Unexpected 'out_format': {out_format}!")
+
+        if trans:
+            if include_fixed:
+                param_trans = list(self.param_trans.values())
+            else:
+                param_trans = list(self.free_param_trans.values())
+            ref_dict = param_trans[0].__dict__
+            ref_type = type(param_trans[0])
+            if all(type(trans) is ref_type and trans.__dict__ == ref_dict for trans in param_trans):
+                params = param_trans[0](params)
+            else:
+                params = torch.cat([trans(param) for trans, param in zip(param_trans, params.unsqueeze(-1))])
+
+        if out_format == "tensor":
+            return params
+        elif out_format == "dict":
+            if include_fixed:
+                param_names = self.param_names
+            else:
+                param_names = self.free_param_names
+            return dict(zip(param_names, params.unsqueeze(-1)))
+        else:
+            raise ValueError(f"Unexpected 'out_format': {out_format}!")
+
+    def _from_free_param_dict(self, free_param_dict):
+        if not isinstance(free_param_dict, dict):
+            return free_param_dict
+        
+        missing = set(self.free_param_names) - set(free_param_dict.keys())
+        if missing:
+            raise ValueError(f"Missing free parameters: {missing}!")
+        
+        extra = set(free_param_dict.keys()) - set(self.free_param_names)
+        if extra:
+            raise ValueError(f"Unexpected free parameters: {extra}!")
+        
+        return torch.cat([free_param_dict[name] for name in self.free_param_names])
+
+    def _to_free_param_dict(self, free_params):
+        if isinstance(free_params, dict):
+            return free_params
+        
+        if len(free_params) != len(self.free_param_names):
+            raise ValueError(f"Expected {len(self.free_param_names)} parameters, got {len(free_params)}!")
+        
+        return {name: tensor for name, tensor in zip(self.param_names, free_params.unsqueeze(-1))}
+
+    def trans_grad(self, free_params):
         """
-        Compute the element-wise derivative of the parameter transforms.
+        Compute the element-wise derivative of the transforms for the free parameters.
 
-        Returns the Jacobian diagonal of :meth:`trans_params` with respect
+        Returns the Jacobian diagonal of :meth:`trans_free_params` with respect
         to the raw (untransformed) parameters. Used in the chain rule when
         computing gradients of the matrix with respect to the original
         parameterisation.
 
-        If :attr:`trans` is ``None`` or empty, returns a tensor of ones
-        (identity derivative). If :attr:`trans` has a single entry, its
-        derivative is broadcast across all parameters. Otherwise, each
-        transform's derivative is evaluated at its corresponding parameter.
-
         Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
-                dictionary. Converted via :meth:`from_param_dict` before
-                evaluation.
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                dictionary.
 
         Returns:
             torch.Tensor: 1D tensor of element-wise transform derivatives,
-            of the same length as ``params``.
+            of the same length as ``free_params``.
 
         Example:
 
@@ -413,36 +280,35 @@ class Matrix(ABC):
             from torch_openreml.covariance import DiagonalMatrix
 
             mat = DiagonalMatrix(3)
-            params = torch.tensor([0.0, 0.5, 1.0])
-            mat.trans_grad(params)
+            free_params = torch.tensor([0.0, 0.5, 1.0])
+            mat.trans_grad(free_params)
         """
-        params = self.from_param_dict(params)
-        device, dtype = self.check_params(params)
+        free_params = self._from_free_param_dict(free_params)
+        device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
 
-        if self.trans is None or len(self.trans) == 0:
-            return torch.tensor([1.0], dtype=dtype, device=device)
-
-        if len(self.trans) == 1:
-            return self.trans[0].grad(params)
+        free_param_trans = list(self.free_param_trans.values())
+        ref_dict = free_param_trans[0].__dict__
+        ref_type = type(free_param_trans[0])
+        if all(type(trans) is ref_type and trans.__dict__ == ref_dict for trans in free_param_trans):
+            return free_param_trans[0].grad(free_params)
         else:
-            return torch.cat([self.trans[i].grad(x) for i, x in enumerate(params.unsqueeze(-1))])
-      
-    def auto_grad(self, params):
+            return torch.cat([trans.grad(free_param) for trans, free_param in zip(free_param_trans, free_params.unsqueeze(-1))])
+
+    def auto_grad(self, free_params):
         """
         Compute the Jacobian of :meth:`build` with respect to
-        trainable parameters using automatic differentiation.
+        free parameters using automatic differentiation.
 
-        Uses :func:`torch.func.jacrev` to compute the full Jacobian, then
-        masks out parameters listed in :attr:`no_grad_index`.
+        Uses :func:`torch.func.jacrev` to compute the full Jacobian.
 
-        If all parameters are excluded via ``no_grad_index``, returns ``(None, [])``
+        If all parameters are fixed, returns ``(None, [])``
 
         Args:
-            params (torch.Tensor): Flat 1D parameter tensor.
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or dict.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_params - len(no_grad_index), *shape)``, and
+            shape ``(num_free_params, *shape)``, and
             ``grad_names`` has the same length as ``grad``.
 
         Example:
@@ -453,26 +319,25 @@ class Matrix(ABC):
             from torch_openreml.covariance import DiagonalMatrix
 
             mat = DiagonalMatrix(2)
-            params = torch.tensor([0.0, 0.5])
-            grad, grad_names = mat.auto_grad(params)
+            free_params = torch.tensor([0.0, 0.5])
+            grad, grad_names = mat.auto_grad(free_params)
             grad, grad_names
         """
-        if len(self.no_grad_index) == self._num_params:
+        if len(free_params) == 0:
             return None, []
+
+        free_params = self._from_free_param_dict(free_params)
+        device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
 
         self.reset_intermediates()
 
-        jacobian = torch.func.jacrev(self.__call__)(params)
-        jacobian = jacobian.permute(2, 0, 1)
-
-        mask = torch.ones(self.num_params, dtype=torch.bool)
-        mask[self.no_grad_index] = False
-        grad = jacobian[mask]
-        grad_names = [name for i, name in enumerate(self.param_names) if i not in self.no_grad_index]
+        jacobian = torch.func.jacrev(self.__call__)(free_params)
+        grad = jacobian.permute(2, 0, 1)
+        grad_names = self.free_param_names
 
         return grad, grad_names
 
-    def manual_grad(self, params):
+    def manual_grad(self, free_params):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
@@ -485,25 +350,23 @@ class Matrix(ABC):
 
         Implementations must satisfy the following contract:
 
-        - Return ``(None, [])`` if all parameters are excluded via
-          :attr:`no_grad_index`.
+        - Return ``(None, [])`` if all parameters are fixed.
         - Return a 3D gradient tensor of shape
-          ``(num_params - len(no_grad_index), *shape)`` and a matching list
-          of parameter names, omitting any index in :attr:`no_grad_index`.
+          ``(num_free_params, *shape)`` and a matching list
+          of parameter names.
         - Apply transform derivatives from :meth:`trans_grad` via the chain
           rule so that gradients are with respect to the raw (untransformed)
           parameters.
 
         Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_params - len(no_grad_index), *shape)`` and
+            shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are excluded from
-            gradient computation.
+            Returns ``(None, [])`` if all parameters are fixed.
 
         Raises:
             NotImplementedError: If the subclass does not provide an analytic
@@ -513,17 +376,16 @@ class Matrix(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, params):
+    def __call__(self, free_params):
         """
         Construct the matrix from a flat parameter tensor.
 
         Must be implemented by subclasses. Implementations should convert
-        ``params`` via :meth:`from_param_dict` or :meth:`to_param_dict`,
-        then call :meth:`check_params` to validate and :meth:`trans_params`
-        to apply transforms before any computation.
+        ``free_params`` via :meth:`build_params` to validate,
+        include fixed parameters, and apply transforms before any computation.
 
         Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
@@ -531,7 +393,7 @@ class Matrix(ABC):
         """
         raise NotImplementedError
 
-    def grad(self, params):
+    def grad(self, free_params):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters.
@@ -544,7 +406,7 @@ class Matrix(ABC):
         - ``"auto"``: always uses :meth:`auto_grad`.
 
         Args:
-            params (torch.Tensor or dict): Flat 1D parameter tensor or
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
@@ -562,17 +424,17 @@ class Matrix(ABC):
             from torch_openreml.covariance import DiagonalMatrix
 
             mat = DiagonalMatrix(2)
-            params = torch.tensor([0.0, 0.5])
-            grad, grad_names = mat.grad(params)
+            free_params = torch.tensor([0.0, 0.5])
+            grad, grad_names = mat.grad(free_params)
             grad, grad_names
         """
         if self.grad_mode == "default":
             try:
-                return self.manual_grad(params)
+                return self.manual_grad(free_params)
             except NotImplementedError:
-                return self.auto_grad(params)
+                return self.auto_grad(free_params)
         elif self.grad_mode == "auto":
-            return self.auto_grad(params)
+            return self.auto_grad(free_params)
         else:
             raise RuntimeError(f"Unknown grad mode '{self.grad_mode}'")
       
@@ -603,15 +465,11 @@ class Matrix(ABC):
 
         Returns:
             torch.Tensor or None: Jacobian tensor of shape
-            ``(num_grad_params, *shape)``, or ``None`` if all parameters
-            are excluded from gradient computation.
+            ``(num_free_params, *shape)``, or ``None`` if all parameters
+            are fixed.
         """
         grad, grad_name = self.grad(theta)
         return grad
-    
-    def _check_n(self, n):
-        if not isinstance(n, int):
-            raise TypeError("'n' must be an int!")
           
     def _check_shape(self, shape):
         if shape is None:
@@ -625,60 +483,44 @@ class Matrix(ABC):
         if not all([isinstance(p, int) and p > 0 for p in shape]):
             raise TypeError("All elements of 'shape' must be positive int!")
 
-    def _check_trans(self, trans):
-        if trans is None or len(trans) == 0:
-            return
+    def _check_param_spec(self, param_spec):
+        if not isinstance(param_spec, dict):
+            raise TypeError("'param_sepc' must be a dict!")
 
-        if isinstance(trans, (list, tuple)):
-            for t in trans:
-                if not isinstance(t, Transform):
-                    raise TypeError("'trans' must be a list of Transform objects!")
-        else:
-            raise TypeError("'trans' must be a list of Transform objects!")
+        for param_name, spec in param_spec.items():
+            if not isinstance(param_name, str):
+                raise TypeError(f"Parameter name must be a str, got {type(param_name).__name__}!")
 
-        if len(trans) not in (0, 1, self._num_params):
-            raise ValueError(f"'trans' must be 0, 1, or 'num_params'!")
-      
-    def _check_no_grad_index(self, no_grad_index):
-        if no_grad_index is not None:
-            if any(idx < 0 or idx >= self._num_params for idx in no_grad_index):
-                raise ValueError("Parameter index outside range!")
-              
-    def check_params(self, params):
-        """
-        Validate a parameter tensor and return its device and dtype.
+            if not isinstance(spec, dict):
+                raise TypeError(f"Individual parameter specification must be a dict, got {type(spec).__name__}!")
 
-        Accepts a parameter dictionary and converts it to a flat tensor
-        via :meth:`from_param_dict` before validation.
+            if sorted(list(spec.keys())) != ["default", "fixed", "trans"]:
+                raise TypeError(f"Parameter specification fields must be 'fixed', 'default', and 'trans', got {sorted(list(spec.keys()))}!")
 
-        Args:
-            params (torch.Tensor or dict): Parameters to validate.
+            if not isinstance(spec["fixed"], bool):
+                raise TypeError(f"Parameter specification field 'fixed' must be a bool, got {type(spec["fixed"]).__name__}!")
 
-        Returns:
-            tuple: ``(device, dtype)`` of the parameter tensor.
+            if not torch.is_tensor(spec["default"]):
+                raise TypeError(f"Parameter specification field 'default' must be a torch.Tensor, got {type(spec["default"]).__name__}!")
 
-        Raises:
-            TypeError: If ``params`` is not a tensor.
-            ValueError: If ``params`` is not 1D or has the wrong length.
-        """
-        params = self.from_param_dict(params)
-        
+            if spec["default"].ndim != 1:
+                raise TypeError(f"Parameter specification field 'default' must be a 1D torch.Tensor, got {spec["default"].shape}!")
+
+            if not isinstance(spec["trans"], Transform):
+                raise TypeError(f"Parameter specification field 'trans' must be a Transform, got {type(spec["trans"]).__name__}!")
+
+    def _check_param_tensor(self, params, length=None):
         if not torch.is_tensor(params):
             raise TypeError("Parameters must be a Torch tensor!")
-    
+
         if params.dim() != 1:
             raise ValueError("Parameters must be a 1D tensor!")
-    
-        if params.shape[0] != self._num_params:
-            raise ValueError(f"Parameters must have length {self.num_params}, got {params.shape[0]}!")
-        
+
+        if length:
+            if params.shape[0] != length:
+                raise ValueError(f"Parameters must have length {length}, got {params.shape[0]}!")
+
         return params.device, params.dtype
-    
-    def _check_param_names(self, param_names):
-        if not isinstance(param_names, (list, tuple)) or not all(isinstance(x, str) for x in param_names):
-            raise TypeError("'param_names' must be a list or tuple of strings!")
-        if len(param_names) != len(set(param_names)):
-            raise ValueError(f"Parameter names must be unique!")
 
     def __repr__(self):
         return self._repr_indented(0)
@@ -690,10 +532,17 @@ class Matrix(ABC):
             args = []
             for key, value in self.repr_dict.items():
                 if value:
-                    if key in ("param_names", "trans") and len(value) > 3:
-                        args.append(f"{key}=[{value[0]}, ..., {value[-1]}]")
-                    else:
-                        args.append(f"{key}={repr(value)}")
+                    # if key == "param_spec":
+                    #     if len(value) < 3:
+                    #         list(value.keys())
+                    #         args.append(f"{value}")
+                    #     else:
+                    #         items = list(value.items())
+                    #         first = items[0]
+                    #         last = items[-1]
+                    #         args.append(f"{key}={{{first[0]!r}: {first[1]!r}, ..., {last[0]!r}: {last[1]!r}}}")
+                    # else:
+                    args.append(f"{key}={repr(value)}")
             args = ", ".join(args)
             return f"{self.__class__.__name__}({args})"
           
@@ -745,29 +594,82 @@ class Matrix(ABC):
     def shape(self):
         """tuple: Output matrix shape."""
         return self._shape
+    
+    @property
+    def param_spec(self):
+        """dict: Parameter specifications."""
+        return self._param_spec
       
     @property  
     def param_names(self):
-        """list of str: Ordered parameter names."""
-        return self._param_names
+        """list of str: Parameter names."""
+        return list(self.param_spec.keys())
+
+    @property
+    def free_param_names(self):
+        """list of str: Free parameter names."""
+        return [param_name for param_name, spec in self.param_spec.items() if not spec["fixed"]]
+
+    @property
+    def fixed_param_names(self):
+        """list of str: Fixed parameter names."""
+        return [param_name for param_name, spec in self.param_spec.items() if spec["fixed"]]
+
+    @property
+    def free_param_index(self):
+        return [i for i, spec in enumerate(self.param_spec.values()) if not spec["fixed"]]
+
+    @property
+    def fixed_param_index(self):
+        return [i for i, spec in enumerate(self.param_spec.values()) if spec["fixed"]]
     
     @property
     def num_params(self):
         """int: Total number of parameters."""
-        return self._num_params
+        return len(self.param_spec)
+    
+    @property
+    def num_free_params(self):
+        """int: Total number of free parameters."""
+        return len(self.free_param_names)
+    
+    @property
+    def num_fixed_params(self):
+        """int: Total number of fixed parameters."""
+        return len(self.fixed_param_names)
+    
+    @property
+    def param_defaults(self):
+        """Dict of torch.Tensor: Parameter defaults."""
+        return {param_name: spec["default"] for param_name, spec in self.param_spec.items()}
 
     @property
-    def trans(self):
-        """list of Transform: Parameter transforms."""
-        return self._trans
+    def free_param_defaults(self):
+        """Dict of torch.Tensor: Free parameter defaults."""
+        return {param_name: spec["default"] for param_name, spec in self.param_spec.items() if not spec["fixed"]}
+
+    @property
+    def fixed_param_defaults(self):
+        """Dict of torch.Tensor: Fixed parameter defaults."""
+        return {param_name: spec["default"] for param_name, spec in self.param_spec.items() if spec["fixed"]}
+
+    @property
+    def param_trans(self):
+        """Dict of Transform: Parameter transforms."""
+        return {param_name: spec["trans"] for param_name, spec in self.param_spec.items()}
     
     @property
-    def no_grad_index(self):
-        """list of int: Indices of parameters excluded from gradient computation."""
-        return self._no_grad_index
-    
+    def free_param_trans(self):
+        """Dict of Transform: Transforms for free parameters."""
+        return {param_name: spec["trans"] for param_name, spec in self.param_spec.items() if not spec["fixed"]}
+
+    @property
+    def fixed_param_trans(self):
+        """Dict of Transform: Transforms for fixed parameters."""
+        return {param_name: spec["trans"] for param_name, spec in self.param_spec.items() if spec["fixed"]}
+
     @property
     def repr_dict(self):
         """dict: Key-value pairs used to build the string representation."""
-        return {"shape": self._shape, "param_names": self._param_names, "trans": self._trans, "no_grad_index": self._no_grad_index}
+        return {"shape": self._shape, "param_spec": self.param_spec}
 
