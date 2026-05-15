@@ -33,5 +33,5 @@ fit_openreml <- REML(V)
 result <- fit_openreml$optimize(y, X, torch$zeros(3L), verbose = 2L)
 
 print(py_to_r(fit_openreml$get_theta()$numpy()))
-print(py_to_r(V$trans_params(fit_openreml$get_theta())$numpy()))
+print(py_to_r(V$build_params(fit_openreml$get_theta())$numpy()))
 print(py_to_r(fit_openreml$get_beta()$numpy()))
