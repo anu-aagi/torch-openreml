@@ -112,7 +112,7 @@ class DummyMatrix(Matrix):
         self._colnames = x.columns.tolist()
         self._matrix = torch.tensor(x.to_numpy(), dtype=dtype, device=device)
 
-        super().__init__((self._matrix.shape[0], self._matrix.shape[1]), [], [])
+        super().__init__((self._matrix.shape[0], self._matrix.shape[1]), {})
 
     def __call__(self, *args, **kwargs):
         return self._matrix
