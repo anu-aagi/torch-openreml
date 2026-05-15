@@ -29,7 +29,7 @@ class DummyMatrix(Matrix):
     so :meth:`grad` always returns ``(None, [])``.
     """
 
-    def __init__(self, *args, levels=None, lex_order=True, drop_first=False, dtype=None, device=None):
+    def __init__(self, *args, levels=None, lex_order=True, drop_first=False, drop_empty_cols=False, dtype=None, device=None):
         """
         Initialize a fixed dummy matrix from numeric or categorical input.
 
@@ -43,6 +43,7 @@ class DummyMatrix(Matrix):
                 lexically ordered.
             drop_first (bool, optional): Whether to drop the first column.
                 Defaults to ``False``.
+            drop_empty_cols (bool, optional): Whether to drop empty columns.
             dtype (torch.dtype, optional): Desired dtype of the matrix.
             device (torch.device, optional): Desired device of the matrix.
 
@@ -71,6 +72,10 @@ class DummyMatrix(Matrix):
             print(mat.colnames)
 
             mat = DummyMatrix(rep, block, levels=[["rep3", "rep1"], ["block1", "block2"]], lex_order=False)
+            print(mat())
+            print(mat.colnames)
+
+            mat = DummyMatrix(rep, block, levels=[["rep2", "rep1"], ["block1", "block2"]], lex_order=False, drop_empty_cols=True)
             print(mat())
             print(mat.colnames)
         """
@@ -108,6 +113,9 @@ class DummyMatrix(Matrix):
 
         if drop_first:
             x = x.iloc[:, 1:]
+
+        if drop_empty_cols:
+            x = x.loc[:, (x != 0).any(axis=0)]
 
         self._colnames = x.columns.tolist()
         self._matrix = torch.tensor(x.to_numpy(), dtype=dtype, device=device)
