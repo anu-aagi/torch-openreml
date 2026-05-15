@@ -37,7 +37,7 @@
 .. raw:: html
 
    <p>
-     <img src="https://img.shields.io/badge/version-0.1.0--alpha-blue" alt="Version 0.1.0-alpha">
+     <img src="https://img.shields.io/badge/version-0.1.1--alpha-blue" alt="Version 0.1.1-alpha">
      <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="GPL-3.0 License">
      <a href="https://www.python.org/">
        <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12">
@@ -236,14 +236,14 @@ REML Optimizer
 
 Once the covariance structure has been defined, it is passed to :py:class:`REML <torch_openreml.REML>` to initialize the estimation procedure. The :py:meth:`optimize <torch_openreml.REML.optimize>` method is then called with :math:`\mathbf{y}`, :math:`\mathbf{X}`, and an initial value for :math:`\boldsymbol{\theta}` (set to zeros in this example). The `verbose` argument controls the level of diagnostic output.
 
-Because the optimization is performed on the transformed parameter scale, the estimated parameters can be mapped back to variance components using :py:meth:`V.trans_params <torch_openreml.covariance.Matrix.trans_params>`. The resulting values correspond to the variance components associated with the parameter names stored in :py:attr:`V.param_names <torch_openreml.covariance.Matrix.param_names>`.
+Because the optimization is performed on the transformed parameter scale, the estimated parameters can be mapped back to variance components using :py:meth:`V.build_params <torch_openreml.covariance.Matrix.build_params>`. The resulting values correspond to the variance components associated with the parameter names stored in :py:attr:`V.param_names <torch_openreml.covariance.Matrix.param_names>`.
 
 .. jupyter-execute::
 
     reml = REML(V)
     theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=2)
-    print(theta_hat, V.trans_params(theta_hat))
-    print(V.param_names)
+    print(theta_hat, V.build_params(theta_hat))
+    print(V.free_param_names)
     print(beta_hat)
 
 
@@ -284,3 +284,4 @@ Citing
    r_user
    tech
    api
+   change_log
