@@ -86,15 +86,44 @@ class KroneckerProduct(Operator):
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
 
+        Applies the product rule: if :math:`\\symbf{V} = \\symbf{A} \\otimes \\symbf{B}`
+        then the gradient with respect to :math:`\\theta_{\\symbf{A}}` is
+        :math:`\\frac{\\partial \\symbf{A}}{\\partial \\theta_{\\symbf{A}}} \\otimes \\symbf{B}`,
+        and similarly for :math:`\\theta_{\\symbf{B}}`. Per-operand Jacobians
+        from :meth:`~torch_openreml.covariance.operator.Operator.operands_grad`
+        are Kronecker-multiplied by the other operand's value.
+
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_free_params, *shape)`` and
-            ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are fixed.
+            shape ``(num_free_params, *shape)`` and ``grad_names`` is a list
+            of the corresponding parameter names. Returns ``(None, [])`` if
+            all parameters are fixed.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the
+                wrong length, or if ``free_params`` is a dict with missing
+                or unexpected keys.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import AR1Matrix, ScalarMatrix, KroneckerProduct
+
+            op = KroneckerProduct(time=AR1Matrix(2), subject=ScalarMatrix(2))
+            params = torch.tensor([1.0, 1.0, 1.0])
+            grad, grad_names = op.manual_grad(params)
+            grad
+
+        .. jupyter-execute::
+
+            grad_names
         """
         grad_groups, grad_name_groups = self.operands_grad(free_params)
 
