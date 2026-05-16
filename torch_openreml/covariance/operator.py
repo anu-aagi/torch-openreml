@@ -70,15 +70,24 @@ class Operator(Matrix):
                 from torch_openreml.covariance import Sum, ScalarMatrix
 
                 x = Sum(ScalarMatrix(2), ScalarMatrix(2))
-                print(x)
+                x
+
+            .. jupyter-execute::
 
                 x = Sum(A = ScalarMatrix(2), B = ScalarMatrix(2))
-                print(x)
+                x
 
-                print(x.param_names)
+            .. jupyter-execute::
 
-                print(x(torch.zeros(2)))
-                print(x({"A/sigma^2": torch.zeros(1), "B/sigma^2": torch.zeros(1)}))
+                x.param_names
+
+            .. jupyter-execute::
+
+                x(torch.zeros(2))
+
+            .. jupyter-execute::
+
+                x({"A/sigma^2": torch.zeros(1), "B/sigma^2": torch.zeros(1)})
 
         """
 
@@ -139,6 +148,58 @@ class Operator(Matrix):
             raise TypeError("operands must include at least one Matrix!")
 
     def build_params(self, free_params, include_fixed=True, trans=True, out_format="tensor"):
+        """
+        Construct the full parameter tensor by delegating to each operand.
+
+        Splits ``free_params`` into per-operand slices according to each
+        operand's :attr:`~torch_openreml.covariance.matrix.Matrix.num_free_params`,
+        calls :meth:`~torch_openreml.covariance.matrix.Matrix.build_params` on
+        each :class:`~torch_openreml.covariance.matrix.Matrix` operand, and
+        concatenates the results. Fixed tensor operands are skipped.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D tensor of free parameters
+                or a dictionary mapping parameter names to tensors.
+            include_fixed (bool, optional): Whether to include fixed parameters in
+                the output. Passed through to each operand's
+                :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
+                Default: ``True``.
+            trans (bool, optional): Whether to apply parameter transforms to the
+                output. Passed through to each operand's
+                :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
+                Default: ``True``.
+            out_format (str, optional): Output format. One of ``"tensor"`` or
+                ``"dict"``. Default: ``"tensor"``.
+
+        Returns:
+            torch.Tensor or dict: Concatenated parameter tensor or dictionary
+                mapping namespaced parameter names to value tensors.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the wrong
+                length, or if ``free_params`` is a dict with missing or
+                unexpected keys.
+            ValueError: If ``out_format`` is not ``"tensor"`` or ``"dict"``.
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import Sum, ScalarMatrix
+
+            x = Sum(ScalarMatrix(2), ScalarMatrix(2))
+            free_params = torch.tensor([0.0, 0.5])
+
+            x.build_params(free_params)
+
+        .. jupyter-execute::
+
+            x.build_params(free_params, trans=False)
+
+        .. jupyter-execute::
+
+            x.build_params(free_params, out_format="dict")
+        """
         free_params = self._from_free_param_dict(free_params)
         self._check_param_tensor(free_params, length=self.num_free_params)
 
@@ -267,13 +328,13 @@ class Operator(Matrix):
         return self._operands
 
     @property
-    def param_spec(self):
-        param_spec = {}
+    def param_specs(self):
+        param_specs = {}
         for name, operand in self.operands.items():
             if isinstance(operand, Matrix):
-                this_param_spec = {f"{name}/{param_name}": spec for param_name, spec in operand.param_spec.items()}
-                param_spec.update(this_param_spec)
-        return param_spec
+                this_param_specs = {f"{name}/{param_name}": spec for param_name, spec in operand.param_specs.items()}
+                param_specs.update(this_param_specs)
+        return param_specs
     
     @property
     def repr_dict(self):
