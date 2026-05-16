@@ -34,23 +34,23 @@ class Matrix(ABC):
   
     _repr_single_line = True
 
-    def __init__(self, shape, param_spec):
+    def __init__(self, shape, param_specs):
         r"""
         Initialize a covariance matrix with parameter specifications.
 
         Args:
             shape (tuple or None): Expected output dimensions of the constructed matrix.
                 Used for validation; the actual shape may be set by subclasses.
-            param_spec (dict): Parameter specifications. Keys should be strings
+            param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
-                dictionary should contain the keys "fixed", "default", and "trans",
+                dictionary should contain the keys ``"fixed"``, ``"default"``, and ``"trans"``,
                 representing whether the parameter is fixed or free (bool), the
                 default value (1D torch.Tensor), and the transform (:class:`~torch_openreml.covariance.transform.Transform`),
                 respectively.
 
         Raises:
-            TypeError: If ``param_spec`` does not follow any of the requirements
+            TypeError: If ``param_specs`` does not follow any of the requirements
                 listed in the argument description, or if ``shape`` is not a tuple or torch.Size.
             ValueError: If ``shape`` values are non-negative.
         """
@@ -58,8 +58,8 @@ class Matrix(ABC):
         self._check_shape(shape)
         self._shape = tuple(shape or ())
 
-        self._check_param_spec(param_spec)
-        self._param_spec = param_spec
+        self._check_param_specs(param_specs)
+        self._param_specs = param_specs
 
         #: Gradient computation mode: ``"manual"`` uses a class-defined manual gradient,
         # ``"auto"`` uses automatic differentiation, and ``"default"`` uses the manual
@@ -230,7 +230,7 @@ class Matrix(ABC):
 
         .. jupyter-execute::
 
-            mat.param_spec["sigma^2_2"]["fixed"] = True
+            mat.param_specs["sigma^2_2"]["fixed"] = True
             mat.build_params(free_params[0:2])
 
         .. jupyter-execute::
@@ -248,9 +248,9 @@ class Matrix(ABC):
         if include_fixed:
             params = free_params.new_empty(self.num_params)
 
-            free_mask = torch.tensor([not spec["fixed"] for spec in self.param_spec.values()], dtype=torch.bool, device=device)
+            free_mask = torch.tensor([not spec["fixed"] for spec in self.param_specs.values()], dtype=torch.bool, device=device)
             params[free_mask] = free_params
-            params[~free_mask] = torch.as_tensor([spec["default"] for spec in self.param_spec.values() if spec["fixed"]],
+            params[~free_mask] = torch.as_tensor([spec["default"] for spec in self.param_specs.values() if spec["fixed"]],
                                                  device=device, dtype=dtype)
         else:
             params = free_params
@@ -550,11 +550,11 @@ class Matrix(ABC):
         if not all([isinstance(p, int) and p > 0 for p in shape]):
             raise ValueError("All elements of 'shape' must be positive int!")
 
-    def _check_param_spec(self, param_spec):
-        if not isinstance(param_spec, dict):
+    def _check_param_specs(self, param_specs):
+        if not isinstance(param_specs, dict):
             raise TypeError("'param_sepc' must be a dict!")
 
-        for param_name, spec in param_spec.items():
+        for param_name, spec in param_specs.items():
             if not isinstance(param_name, str):
                 raise TypeError(f"Parameter name must be a str, got {type(param_name).__name__}!")
 
@@ -599,17 +599,13 @@ class Matrix(ABC):
             args = []
             for key, value in self.repr_dict.items():
                 if value:
-                    # if key == "param_spec":
-                    #     if len(value) < 3:
-                    #         list(value.keys())
-                    #         args.append(f"{value}")
-                    #     else:
-                    #         items = list(value.items())
-                    #         first = items[0]
-                    #         last = items[-1]
-                    #         args.append(f"{key}={{{first[0]!r}: {first[1]!r}, ..., {last[0]!r}: {last[1]!r}}}")
-                    # else:
-                    args.append(f"{key}={repr(value)}")
+                    if key == "param_specs" and len(value) >= 3:
+                            items = list(value.items())
+                            first = items[0]
+                            last = items[-1]
+                            args.append(f"{key}={{{first[0]!r}: {first[1]!r}, ..., {last[0]!r}: {last[1]!r}}}")
+                    else:
+                        args.append(f"{key}={repr(value)}")
             args = ", ".join(args)
             return f"{self.__class__.__name__}({args})"
           
@@ -663,39 +659,39 @@ class Matrix(ABC):
         return self._shape
     
     @property
-    def param_spec(self):
+    def param_specs(self):
         """dict: Parameter specifications."""
-        return self._param_spec
+        return self._param_specs
       
     @property  
     def param_names(self):
         """list of str: Parameter names."""
-        return list(self.param_spec.keys())
+        return list(self.param_specs.keys())
 
     @property
     def free_param_names(self):
         """list of str: Free parameter names."""
-        return [param_name for param_name, spec in self.param_spec.items() if not spec["fixed"]]
+        return [param_name for param_name, spec in self.param_specs.items() if not spec["fixed"]]
 
     @property
     def fixed_param_names(self):
         """list of str: Fixed parameter names."""
-        return [param_name for param_name, spec in self.param_spec.items() if spec["fixed"]]
+        return [param_name for param_name, spec in self.param_specs.items() if spec["fixed"]]
 
     @property
     def free_param_index(self):
         """tuple: Index of free parameters."""
-        return [i for i, spec in enumerate(self.param_spec.values()) if not spec["fixed"]]
+        return [i for i, spec in enumerate(self.param_specs.values()) if not spec["fixed"]]
 
     @property
     def fixed_param_index(self):
         """tuple: Index of fixed parameters."""
-        return [i for i, spec in enumerate(self.param_spec.values()) if spec["fixed"]]
+        return [i for i, spec in enumerate(self.param_specs.values()) if spec["fixed"]]
     
     @property
     def num_params(self):
         """int: Total number of parameters."""
-        return len(self.param_spec)
+        return len(self.param_specs)
     
     @property
     def num_free_params(self):
@@ -710,35 +706,35 @@ class Matrix(ABC):
     @property
     def param_defaults(self):
         """Dict of torch.Tensor: Parameter defaults."""
-        return {param_name: spec["default"] for param_name, spec in self.param_spec.items()}
+        return {param_name: spec["default"] for param_name, spec in self.param_specs.items()}
 
     @property
     def free_param_defaults(self):
         """Dict of torch.Tensor: Free parameter defaults."""
-        return {param_name: spec["default"] for param_name, spec in self.param_spec.items() if not spec["fixed"]}
+        return {param_name: spec["default"] for param_name, spec in self.param_specs.items() if not spec["fixed"]}
 
     @property
     def fixed_param_defaults(self):
         """Dict of torch.Tensor: Fixed parameter defaults."""
-        return {param_name: spec["default"] for param_name, spec in self.param_spec.items() if spec["fixed"]}
+        return {param_name: spec["default"] for param_name, spec in self.param_specs.items() if spec["fixed"]}
 
     @property
     def param_trans(self):
         """Dict of Transform: Parameter transforms."""
-        return {param_name: spec["trans"] for param_name, spec in self.param_spec.items()}
+        return {param_name: spec["trans"] for param_name, spec in self.param_specs.items()}
     
     @property
     def free_param_trans(self):
         """Dict of Transform: Transforms for free parameters."""
-        return {param_name: spec["trans"] for param_name, spec in self.param_spec.items() if not spec["fixed"]}
+        return {param_name: spec["trans"] for param_name, spec in self.param_specs.items() if not spec["fixed"]}
 
     @property
     def fixed_param_trans(self):
         """Dict of Transform: Transforms for fixed parameters."""
-        return {param_name: spec["trans"] for param_name, spec in self.param_spec.items() if spec["fixed"]}
+        return {param_name: spec["trans"] for param_name, spec in self.param_specs.items() if spec["fixed"]}
 
     @property
     def repr_dict(self):
         """dict: Key-value pairs used to build the string representation."""
-        return {"shape": self._shape, "param_spec": self.param_spec}
+        return {"shape": self._shape, "param_specs": self.param_specs}
 
