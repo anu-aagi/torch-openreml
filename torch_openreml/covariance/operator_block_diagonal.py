@@ -104,15 +104,46 @@ class BlockDiagonal(Operator):
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
 
+        Evaluates each operand's gradient via
+        :meth:`~torch_openreml.covariance.operator.Operator.operands_grad`,
+        then places each per-operand Jacobian into the corresponding block
+        of a zero-initialised full Jacobian matching the block diagonal
+        output shape. Non-matrix operands contribute zero blocks.
+
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_free_params, *shape)`` and
-            ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are fixed.
+            shape ``(num_free_params, *shape)`` and ``grad_names`` is a list
+            of the corresponding parameter names. Returns ``(None, [])`` if
+            all parameters are fixed.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the
+                wrong length, or if ``free_params`` is a dict with missing
+                or unexpected keys.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import ScalarMatrix, DiagonalMatrix, BlockDiagonal
+
+            block = BlockDiagonal(
+                A=ScalarMatrix(3),
+                B=DiagonalMatrix(2)
+            )
+            free_params = torch.tensor([0.5, 0.0, 1.0])
+            grad, grad_names = block.manual_grad(free_params)
+            grad
+
+        .. jupyter-execute::
+
+            grad_names
         """
         grad_groups, grad_name_groups = self.operands_grad(free_params)
 
