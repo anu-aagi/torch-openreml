@@ -85,15 +85,47 @@ class HadamardProduct(Operator):
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
 
+        Applies the product rule: if :math:`\\symbf{V} = \\symbf{A} \\odot \\symbf{B}`
+        then the gradient with respect to :math:`\\theta_{\\symbf{A}}` is
+        :math:`\\frac{\\partial \\symbf{A}}{\\partial \\theta_{\\symbf{A}}} \\odot \\symbf{B}`,
+        and similarly for :math:`\\theta_{\\symbf{B}}`. Per-operand Jacobians
+        from :meth:`~torch_openreml.covariance.operator.Operator.operands_grad`
+        are multiplied element-wise by the other operand's value.
+
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_free_params, *shape)`` and
-            ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are fixed.
+            shape ``(num_free_params, *shape)`` and ``grad_names`` is a list
+            of the corresponding parameter names. Returns ``(None, [])`` if
+            all parameters are fixed.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the
+                wrong length, or if ``free_params`` is a dict with missing
+                or unexpected keys.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import EquicorrelationMatrix, HadamardProduct
+
+            op = HadamardProduct(
+                a=EquicorrelationMatrix(4),
+                b=torch.tensor([5.0])
+            )
+            free_params = torch.tensor([1.0])
+            grad, grad_names = op.manual_grad(free_params)
+            grad
+
+        .. jupyter-execute::
+
+            grad_names
         """
         grad_groups, grad_name_groups = self.operands_grad(free_params)
 
