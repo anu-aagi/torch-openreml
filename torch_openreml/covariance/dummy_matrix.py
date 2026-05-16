@@ -63,17 +63,25 @@ class DummyMatrix(Matrix):
             print(mat())
             print(mat.colnames)
 
+        .. jupyter-execute::
+
             mat = DummyMatrix(rep, block, drop_first=True)
             print(mat())
             print(mat.colnames)
+
+        .. jupyter-execute::
 
             mat = DummyMatrix(rep, block, levels=[["rep1", "rep2", "rep3"], ["block1", "block2"]])
             print(mat())
             print(mat.colnames)
 
+        .. jupyter-execute::
+
             mat = DummyMatrix(rep, block, levels=[["rep3", "rep1"], ["block1", "block2"]], lex_order=False)
             print(mat())
             print(mat.colnames)
+
+        .. jupyter-execute::
 
             mat = DummyMatrix(rep, block, levels=[["rep2", "rep1"], ["block1", "block2"]], lex_order=False, drop_empty_cols=True)
             print(mat())
