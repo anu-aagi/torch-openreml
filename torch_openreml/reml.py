@@ -50,7 +50,7 @@ class REML:
     is computed automatically via :func:`torch.func.jacrev`.
     """
     
-    def __init__(self, v_builder=None, map_theta_to_v=None, map_theta_to_g=None, map_theta_to_dv=None):
+    def __init__(self, v_builder=None, map_theta_to_v=None, map_theta_to_g=None, mask_theta_to_g=None, map_theta_to_dv=None):
         """
         Initialize a REML estimator.
 
@@ -58,17 +58,19 @@ class REML:
             v_builder (Matrix, optional): A :class:`~torch_openreml.covariance.matrix.Matrix`
                 instance whose :meth:`~torch_openreml.covariance.matrix.Matrix.map_theta_to_v`
                 and :meth:`~torch_openreml.covariance.matrix.Matrix.map_theta_to_dv`
-                methods are used to construct :math:`\symbf{V}` and its Jacobian.
+                methods are used to construct :math:`\\symbf{V}` and its Jacobian.
                 Takes precedence over ``map_theta_to_v`` and ``map_theta_to_dv``
                 if both are provided.
             map_theta_to_v (callable, optional): Maps a flat parameter tensor
-                :math:`\\boldsymbol{\\theta}`  to the covariance matrix :math:`\symbf{V}`.
+                :math:`\\boldsymbol{\\theta}`  to the covariance matrix :math:`\\symbf{V}`.
                 Required if ``v_builder`` is not provided.
             map_theta_to_g (callable, optional): Maps :math:`\\boldsymbol{\\theta}` to
-                the random-effect covariance matrix :math:`\symbf{G}`. Required
+                the random-effect covariance matrix :math:`\\symbf{G}`. Required
                 for :meth:`blup`, :meth:`predict`, and :meth:`residual`.
+            mask_theta_to_g (torch.Tensor, optional): Masks to filter out part of :math:`\\boldsymbol{\\theta}`
+                elements when calling ``map_theta_to_g``.
             map_theta_to_dv (callable, optional): Maps :math:`\\boldsymbol{\\theta}` to
-                the Jacobian of :math:`\symbf{V}`, a 3D tensor of shape
+                the Jacobian of :math:`\\symbf{V}`, a 3D tensor of shape
                 ``(num_params, n, n)``. If ``None`` and ``v_builder`` is not
                 provided, the Jacobian is computed via automatic differentiation.
 
@@ -111,6 +113,7 @@ class REML:
             self.map_theta_to_dv = map_theta_to_dv
             
         self.map_theta_to_g = map_theta_to_g
+        self.mask_theta_to_g = mask_theta_to_g
 
     def blue(self, y, x, theta):
         r"""
@@ -195,7 +198,7 @@ class REML:
         """
         return y - self.marginal_predict(y, x, theta)
 
-    def blup(self, y, x, z, theta, map_theta_to_g=None):
+    def blup(self, y, x, z, theta, map_theta_to_g=None, mask_theta_to_g=None):
         r"""
         Compute the best linear unbiased predictor (BLUP) of random effects.
 
@@ -212,12 +215,17 @@ class REML:
             map_theta_to_g (callable, optional): Maps ``theta`` to the
                 random-effect covariance matrix :math:`\symbf{G}`. Defaults
                 to :attr:`map_theta_to_g` set at initialisation.
+            mask_theta_to_g (torch.Tensor, optional): Masks to filter out part of :math:`\\boldsymbol{\\theta}`
+                elements when calling ``map_theta_to_g``.
 
         Returns:
             torch.Tensor: Random-effect predictions of shape ``(q,)``.
         """
         if map_theta_to_g is None:
             map_theta_to_g = self.map_theta_to_g
+
+        if mask_theta_to_g is None:
+            mask_theta_to_g = self.mask_theta_to_g
       
         device = get_device(y, x, z, theta)
         dtype = get_dtype(y, x, z, theta)
@@ -237,12 +245,15 @@ class REML:
         matrix["e"] = self.marginal_residual(y, x, theta).unsqueeze(-1)
         
         matrix["V^{-1} e"] = torch.cholesky_solve(matrix["e"], matrix["L"])
-        
-        matrix["G"] = map_theta_to_g(theta)
+
+        if mask_theta_to_g is None:
+            matrix["G"] = map_theta_to_g(theta)
+        else:
+            matrix["G"] = map_theta_to_g(theta[mask_theta_to_g])
         
         return (matrix["G"] @ (z.T @ matrix["V^{-1} e"])).squeeze()
 
-    def predict(self, y, x, z, theta, map_theta_to_g=None):
+    def predict(self, y, x, z, theta, map_theta_to_g=None, mask_theta_to_g=None):
         r"""
         Compute conditional fitted values including random effects.
 
@@ -258,12 +269,17 @@ class REML:
             map_theta_to_g (callable, optional): Maps ``theta`` to
                 :math:`\symbf{G}`. Defaults to :attr:`map_theta_to_g` set
                 at initialisation.
+            mask_theta_to_g (torch.Tensor, optional): Masks to filter out part of :math:`\\boldsymbol{\\theta}`
+                elements when calling ``map_theta_to_g``.
 
         Returns:
             torch.Tensor: Conditional fitted values of shape ``(n,)``.
         """
         if map_theta_to_g is None:
             map_theta_to_g = self.map_theta_to_g
+
+        if mask_theta_to_g is None:
+            mask_theta_to_g = self.mask_theta_to_g
             
         device = get_device(y, x, z, theta)
         dtype = get_dtype(y, x, z, theta)
@@ -295,12 +311,15 @@ class REML:
         matrix["e"] = matrix["Y"] - matrix[r"\hat{Y}"]
         
         matrix["V^{-1} e"] = torch.cholesky_solve(matrix["e"], matrix["L"])
-        
-        matrix["G"] = map_theta_to_g(theta)
-        
-        return (matrix[r"\hat{Y}"] + (matrix["G"] @ (z.T @ matrix["V^{-1} e"]))).squeeze()
 
-    def residual(self, y, x, z, theta, map_theta_to_g=None):
+        if mask_theta_to_g is None:
+            matrix["G"] = map_theta_to_g(theta)
+        else:
+            matrix["G"] = map_theta_to_g(theta[mask_theta_to_g])
+        
+        return (matrix[r"\hat{Y}"] + z @ (matrix["G"] @ (z.T @ matrix["V^{-1} e"]))).squeeze()
+
+    def residual(self, y, x, z, theta, map_theta_to_g=None, mask_theta_to_g=None):
         r"""
         Compute conditional residuals including random effects.
 
@@ -318,14 +337,13 @@ class REML:
             map_theta_to_g (callable, optional): Maps ``theta`` to
                 :math:`\symbf{G}`. Defaults to :attr:`map_theta_to_g` set
                 at initialisation.
+            mask_theta_to_g (torch.Tensor, optional): Masks to filter out part of :math:`\\boldsymbol{\\theta}`
+                elements when calling ``map_theta_to_g``.
 
         Returns:
             torch.Tensor: Conditional residuals of shape ``(n,)``.
         """
-        if map_theta_to_g is None:
-            map_theta_to_g = self.map_theta_to_g
-            
-        return y - self.predict(y, x, z, theta, map_theta_to_g)
+        return y - self.predict(y, x, z, theta, map_theta_to_g, mask_theta_to_g)
 
     def loglik(self, y, x, theta):
         r"""
@@ -353,6 +371,7 @@ class REML:
         matrix = {}
         
         scalar["N"] = y.shape[0]
+        matrix["X"] = x
         
         matrix["V"] = self.map_theta_to_v(theta)
         matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device, dtype=dtype)
