@@ -258,6 +258,9 @@ Documentation
    * - Section
      - Description
 
+   * - :ref:`vig`
+     - Vignettes
+
    * - :ref:`tech`
      - Model formulation, REML and ML theory, score and AI matrix derivations.
 
@@ -281,6 +284,7 @@ Citing
 .. toctree::
    :hidden:
 
+   vig
    r_user
    tech
    api
