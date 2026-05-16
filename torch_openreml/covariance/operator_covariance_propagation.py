@@ -52,11 +52,14 @@ class CovariancePropagation(Operator):
         .. jupyter-execute::
 
             import torch
-            from torch_openreml.covariance import DiagonalMatrix, CovariancePropagation
+            from torch_openreml.covariance import DummyMatrix, DiagonalMatrix, CovariancePropagation
 
-            n, q = 6, 3
-            z = torch.randn(n, q)
-            g = DiagonalMatrix(q)
+            z = DummyMatrix(["a", "b", "c", "a"])
+            z()
+
+        .. jupyter-execute::
+
+            g = DiagonalMatrix(3)
             op = CovariancePropagation(z=z, g=g)
             free_params = torch.tensor([0.0, 0.5, 1.0])
             op(free_params)
@@ -96,15 +99,59 @@ class CovariancePropagation(Operator):
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
 
+        Applies the product rule to :math:`\\symbf{V} = \\symbf{Z} \\symbf{G} \\symbf{Z}^\\top`:
+
+        - With respect to :math:`\\theta_{\\symbf{Z}}`:
+          :math:`\\frac{\\partial \\symbf{V}}{\\partial \\theta} =
+          \\frac{\\partial \\symbf{Z}}{\\partial \\theta} \\symbf{G} \\symbf{Z}^\\top +
+          \\symbf{Z} \\symbf{G} \\frac{\\partial \\symbf{Z}^\\top}{\\partial \\theta}`
+          (two terms because :math:`\\symbf{Z}` appears twice).
+        - With respect to :math:`\\theta_{\\symbf{G}}`:
+          :math:`\\frac{\\partial \\symbf{V}}{\\partial \\theta} =
+          \\symbf{Z} \\frac{\\partial \\symbf{G}}{\\partial \\theta} \\symbf{Z}^\\top`
+          (linear in :math:`\\symbf{G}`).
+
+        Per-operand Jacobians from
+        :meth:`~torch_openreml.covariance.operator.Operator.operands_grad`
+        are propagated through the same structure.
+
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_free_params, *shape)`` and
-            ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are fixed.
+            shape ``(num_free_params, *shape)`` and ``grad_names`` is a list
+            of the corresponding parameter names. Returns ``(None, [])`` if
+            all parameters are fixed.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the
+                wrong length, or if ``free_params`` is a dict with missing
+                or unexpected keys.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DummyMatrix, DiagonalMatrix, CovariancePropagation
+
+            z = DummyMatrix(["a", "b", "c", "a"])
+            z()
+
+        .. jupyter-execute::
+
+            g = DiagonalMatrix(3)
+            op = CovariancePropagation(z=z, g=g)
+            free_params = torch.tensor([0.0, 0.5, 1.0])
+            grad, grad_names = op.manual_grad(free_params)
+            grad
+
+        .. jupyter-execute::
+
+            grad_names
         """
         grad_groups, grad_name_groups = self.operands_grad(free_params)
 
