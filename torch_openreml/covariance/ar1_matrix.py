@@ -29,18 +29,18 @@ class AR1Matrix(Matrix):
     """
 
   
-    def __init__(self, n, param_spec=None):
+    def __init__(self, n, param_specs=None):
         """
         Initialize an AR(1) covariance matrix of size ``n x n``.
 
         Args:
             n (int): Matrix dimension.
-            param_spec (dict): Parameter specifications. Keys should be strings
+            param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
-                dictionary should contain the keys "fixed", "default", and "trans",
+                dictionary should contain the keys ``"fixed"``, ``"default"``, and ``"trans"``,
                 representing whether the parameter is fixed or free (bool), the
-                default value (1D torch.Tensor), and the transform (Transform),
+                default value (1D torch.Tensor), and the transform (:class:`~torch_openreml.covariance.transform.Transform`),
                 respectively.
 
         Example:
@@ -51,10 +51,14 @@ class AR1Matrix(Matrix):
             from torch_openreml.covariance import AR1Matrix
 
             mat = AR1Matrix(4)
-            free_params = torch.tensor([0.5, 0.0])
+            mat
+
+        .. jupyter-execute::
+
+            free_params = torch.tensor([0.5, 1.0])
             mat(free_params)
         """
-        param_spec = param_spec or {
+        param_specs = param_specs or {
             "sigma^2": {
                 "fixed": False,
                 "default": torch.tensor([0.0]),
@@ -65,7 +69,7 @@ class AR1Matrix(Matrix):
                 "trans": TransformChain([TransformSigmoid(), TransformScaleShift(2.0, -1.0)])
             }
         }
-        super().__init__((n, n), param_spec)
+        super().__init__((n, n), param_specs)
 
     def _get_or_build_intermediates(self, free_params):
         built_params = self.build_params(free_params)
