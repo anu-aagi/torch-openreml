@@ -26,18 +26,18 @@ class ScalarMatrix(Matrix):
     structure assumes equal, independent variances across all observations.
     """
   
-    def __init__(self, n, param_spec=None):
+    def __init__(self, n, param_specs=None):
         """
         Initialize a scaled identity covariance matrix of size ``n x n``.
 
         Args:
             n (int): Matrix dimension.
-            param_spec (dict): Parameter specifications. Keys should be strings
+            param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
-                dictionary should contain the keys "fixed", "default", and "trans",
+                dictionary should contain the keys ``"fixed"``, ``"default"``, and ``"trans"``,
                 representing whether the parameter is fixed or free (bool), the
-                default value (1D torch.Tensor), and the transform (Transform),
+                default value (1D torch.Tensor), and the transform (:class:`~torch_openreml.covariance.transform.Transform`),
                 respectively.
 
         Example:
@@ -48,19 +48,26 @@ class ScalarMatrix(Matrix):
             from torch_openreml.covariance import ScalarMatrix
 
             mat = ScalarMatrix(3)
+            mat
+
+        .. jupyter-execute::
+
             free_params = torch.tensor([0.5])
-            print(mat(free_params))
-            print(mat.grad(free_params))
+            mat(free_params)
+
+        .. jupyter-execute::
+
+            mat.grad(free_params)
         """
 
-        param_spec = param_spec or {
+        param_specs = param_specs or {
             "sigma^2": {
                 "fixed": False,
                 "default": torch.tensor([0.0]),
                 "trans": TransformExpPow2()
             }
         }
-        super().__init__((n, n), param_spec)
+        super().__init__((n, n), param_specs)
         
     def __call__(self, free_params):
         sigma2 = self.build_params(free_params)
