@@ -34,18 +34,18 @@ class EquicorrelationMatrix(Matrix):
     matrix has no variance parameter.
     """
 
-    def __init__(self, n, param_spec=None):
+    def __init__(self, n, param_specs=None):
         """
         Initialize an equicorrelation matrix of size ``n x n``.
 
         Args:
             n (int): Matrix dimension.
-            param_spec (dict): Parameter specifications. Keys should be strings
+            param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
-                dictionary should contain the keys "fixed", "default", and "trans",
+                dictionary should contain the keys ``"fixed"``, ``"default"``, and ``"trans"``,
                 representing whether the parameter is fixed or free (bool), the
-                default value (1D torch.Tensor), and the transform (Transform),
+                default value (1D torch.Tensor), and the transform (:class:`~torch_openreml.covariance.transform.Transform`),
                 respectively.
 
         Example:
@@ -56,18 +56,25 @@ class EquicorrelationMatrix(Matrix):
             from torch_openreml.covariance import EquicorrelationMatrix
 
             mat = EquicorrelationMatrix(3)
+            mat
+
+        .. jupyter-execute::
+
             free_params = torch.tensor([0.0])
-            print(mat(free_params))
-            print(mat.grad(free_params))
+            mat(free_params)
+
+        .. jupyter-execute::
+
+            mat.grad(free_params)
         """
         self.rho_min = -1 / (n - 1)
-        param_spec = param_spec or {
+        param_specs = param_specs or {
             "rho": {
                 "fixed": False,
                 "default": torch.tensor([0.0]),
                 "trans": TransformChain([TransformSigmoid(), TransformScaleShift((1 - self.rho_min), self.rho_min)])}
         }
-        super().__init__((n, n), param_spec)
+        super().__init__((n, n), param_specs)
 
     def _get_or_build_intermediates(self, free_params):
         built_params = self.build_params(free_params)
