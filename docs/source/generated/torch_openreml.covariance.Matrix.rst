@@ -47,7 +47,7 @@
       ~Matrix.num_params
       ~Matrix.param_defaults
       ~Matrix.param_names
-      ~Matrix.param_spec
+      ~Matrix.param_specs
       ~Matrix.param_trans
       ~Matrix.repr_dict
       ~Matrix.shape

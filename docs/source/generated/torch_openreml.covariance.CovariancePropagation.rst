@@ -50,7 +50,7 @@
       ~CovariancePropagation.operands
       ~CovariancePropagation.param_defaults
       ~CovariancePropagation.param_names
-      ~CovariancePropagation.param_spec
+      ~CovariancePropagation.param_specs
       ~CovariancePropagation.param_trans
       ~CovariancePropagation.repr_dict
       ~CovariancePropagation.shape

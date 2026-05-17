@@ -50,7 +50,7 @@
       ~Sum.operands
       ~Sum.param_defaults
       ~Sum.param_names
-      ~Sum.param_spec
+      ~Sum.param_specs
       ~Sum.param_trans
       ~Sum.repr_dict
       ~Sum.shape

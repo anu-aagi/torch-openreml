@@ -50,7 +50,7 @@
       ~BlockDiagonal.operands
       ~BlockDiagonal.param_defaults
       ~BlockDiagonal.param_names
-      ~BlockDiagonal.param_spec
+      ~BlockDiagonal.param_specs
       ~BlockDiagonal.param_trans
       ~BlockDiagonal.repr_dict
       ~BlockDiagonal.shape

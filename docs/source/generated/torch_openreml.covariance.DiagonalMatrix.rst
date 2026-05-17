@@ -47,7 +47,7 @@
       ~DiagonalMatrix.num_params
       ~DiagonalMatrix.param_defaults
       ~DiagonalMatrix.param_names
-      ~DiagonalMatrix.param_spec
+      ~DiagonalMatrix.param_specs
       ~DiagonalMatrix.param_trans
       ~DiagonalMatrix.repr_dict
       ~DiagonalMatrix.shape

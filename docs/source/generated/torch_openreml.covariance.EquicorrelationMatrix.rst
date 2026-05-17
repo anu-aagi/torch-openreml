@@ -47,7 +47,7 @@
       ~EquicorrelationMatrix.num_params
       ~EquicorrelationMatrix.param_defaults
       ~EquicorrelationMatrix.param_names
-      ~EquicorrelationMatrix.param_spec
+      ~EquicorrelationMatrix.param_specs
       ~EquicorrelationMatrix.param_trans
       ~EquicorrelationMatrix.repr_dict
       ~EquicorrelationMatrix.shape

@@ -47,7 +47,7 @@
       ~AR1Matrix.num_params
       ~AR1Matrix.param_defaults
       ~AR1Matrix.param_names
-      ~AR1Matrix.param_spec
+      ~AR1Matrix.param_specs
       ~AR1Matrix.param_trans
       ~AR1Matrix.repr_dict
       ~AR1Matrix.shape

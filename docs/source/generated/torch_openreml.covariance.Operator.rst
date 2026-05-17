@@ -50,7 +50,7 @@
       ~Operator.operands
       ~Operator.param_defaults
       ~Operator.param_names
-      ~Operator.param_spec
+      ~Operator.param_specs
       ~Operator.param_trans
       ~Operator.repr_dict
       ~Operator.shape

@@ -47,7 +47,7 @@
       ~IdentityMatrix.num_params
       ~IdentityMatrix.param_defaults
       ~IdentityMatrix.param_names
-      ~IdentityMatrix.param_spec
+      ~IdentityMatrix.param_specs
       ~IdentityMatrix.param_trans
       ~IdentityMatrix.repr_dict
       ~IdentityMatrix.shape

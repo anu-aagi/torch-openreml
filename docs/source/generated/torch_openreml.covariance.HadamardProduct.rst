@@ -50,7 +50,7 @@
       ~HadamardProduct.operands
       ~HadamardProduct.param_defaults
       ~HadamardProduct.param_names
-      ~HadamardProduct.param_spec
+      ~HadamardProduct.param_specs
       ~HadamardProduct.param_trans
       ~HadamardProduct.repr_dict
       ~HadamardProduct.shape

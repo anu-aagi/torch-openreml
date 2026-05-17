@@ -47,7 +47,7 @@
       ~CompoundSymmetricMatrix.num_params
       ~CompoundSymmetricMatrix.param_defaults
       ~CompoundSymmetricMatrix.param_names
-      ~CompoundSymmetricMatrix.param_spec
+      ~CompoundSymmetricMatrix.param_specs
       ~CompoundSymmetricMatrix.param_trans
       ~CompoundSymmetricMatrix.repr_dict
       ~CompoundSymmetricMatrix.shape

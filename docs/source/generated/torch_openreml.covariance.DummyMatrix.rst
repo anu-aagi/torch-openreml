@@ -48,7 +48,7 @@
       ~DummyMatrix.num_params
       ~DummyMatrix.param_defaults
       ~DummyMatrix.param_names
-      ~DummyMatrix.param_spec
+      ~DummyMatrix.param_specs
       ~DummyMatrix.param_trans
       ~DummyMatrix.repr_dict
       ~DummyMatrix.shape

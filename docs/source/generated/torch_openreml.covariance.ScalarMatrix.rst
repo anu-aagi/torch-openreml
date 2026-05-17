@@ -47,7 +47,7 @@
       ~ScalarMatrix.num_params
       ~ScalarMatrix.param_defaults
       ~ScalarMatrix.param_names
-      ~ScalarMatrix.param_spec
+      ~ScalarMatrix.param_specs
       ~ScalarMatrix.param_trans
       ~ScalarMatrix.repr_dict
       ~ScalarMatrix.shape

@@ -50,7 +50,7 @@
       ~KroneckerProduct.operands
       ~KroneckerProduct.param_defaults
       ~KroneckerProduct.param_names
-      ~KroneckerProduct.param_spec
+      ~KroneckerProduct.param_specs
       ~KroneckerProduct.param_trans
       ~KroneckerProduct.repr_dict
       ~KroneckerProduct.shape
