@@ -18,6 +18,13 @@ class TransformPow(Transform):
     r"""
     Power transform with configurable exponent.
 
+
+    .. note::
+
+        Negative values raised to non-integer exponents return ``torch.nan``
+        with the same shape as the input; this can occur in both the forward and
+        inverse computations.
+
     .. math::
 
         f(x) = x^p
@@ -60,13 +67,13 @@ class TransformPow(Transform):
 
     def inverse(self, x):
         r"""
-        Apply the inverse transform (square root).
+        Apply the inverse transform.
 
         Args:
             x (torch.Tensor): Input tensor in :math:`\mathbb{R}`.
 
         Returns:
-            torch.Tensor: Element-wise :math:`\sqrt{x}`.
+            torch.Tensor: Element-wise :math:`x^{1/p}`.
 
         Example:
 
@@ -79,7 +86,7 @@ class TransformPow(Transform):
             x = torch.tensor([1.0, 4.0, 9.0])
             t.inverse(x)
         """
-        return torch.sqrt(x)
+        return torch.pow(x, 1.0 / self.factor)
 
     def grad(self, x):
         r"""
