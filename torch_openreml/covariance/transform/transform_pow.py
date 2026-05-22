@@ -106,7 +106,7 @@ class TransformPow(Transform):
             x = torch.tensor([2.0, 3.0])
             t.grad(x)
         """
-        return self.factor * x
+        return self.factor * torch.pow(x, self.factor - 1.0)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(factor={self.factor})"
