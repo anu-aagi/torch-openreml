@@ -67,6 +67,8 @@ class EquicorrelationMatrix(Matrix):
 
             mat.grad(free_params)
         """
+        if n <= 1:
+            raise ValueError("'n' must be greater than 1!")
         self.rho_min = -1 / (n - 1)
         param_specs = param_specs or {
             "rho": {
