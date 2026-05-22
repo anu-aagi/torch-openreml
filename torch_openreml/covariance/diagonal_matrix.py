@@ -96,7 +96,7 @@ class DiagonalMatrix(Matrix):
         grad = torch.zeros(self.shape[0], self.shape[0], self.shape[0], device=device, dtype=dtype)
         idx = torch.arange(self.shape[0], device=device)
 
-        mask = torch.ones(self.shape[0], dtype=torch.bool, device=device)
+        mask = torch.zeros(self.shape[0], dtype=torch.bool, device=device)
         mask[self.free_param_index] = True
         idx = idx[mask]
 
