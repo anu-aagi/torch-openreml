@@ -16,3 +16,5 @@ from torch_openreml.covariance.operator_hadamard_product import HadamardProduct
 from torch_openreml.covariance.dummy_matrix import DummyMatrix
 
 import torch_openreml.covariance.transform
+
+from torch_openreml.covariance.adapter import Adapter
