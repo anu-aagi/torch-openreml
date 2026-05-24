@@ -96,13 +96,15 @@ class EquicorrelationMatrix(Matrix):
 
         return cache
 
-    def __call__(self, free_params):
+    def __call__(self, free_params=None):
+        if free_params is None:
+            free_params = self.free_param_defaults
         cache = self._get_or_build_intermediates(free_params)
         v = cache["v"]
 
         return v
 
-    def manual_grad(self, free_params):
+    def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
@@ -110,6 +112,7 @@ class EquicorrelationMatrix(Matrix):
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
+                If omitted, default values are used. Default: ``None``.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
@@ -117,6 +120,8 @@ class EquicorrelationMatrix(Matrix):
             ``grad_names`` is a list of the corresponding parameter names.
             Returns ``(None, [])`` if all parameters are fixed.
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
         if len(free_params) == 0:
             return None, []
 

@@ -83,6 +83,7 @@ class DiagonalMatrix(Matrix):
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
+                If omitted, default values are used. Default: ``None``.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
