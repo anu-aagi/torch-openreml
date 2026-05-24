@@ -147,7 +147,7 @@ class Operator(Matrix):
         if not any(isinstance(v, Matrix) for v in operands.values()):
             raise TypeError("operands must include at least one Matrix!")
 
-    def build_params(self, free_params, include_fixed=True, trans=True, out_format="tensor"):
+    def build_params(self, free_params=None, include_fixed=True, trans=True, out_format="tensor"):
         """
         Construct the full parameter tensor by delegating to each operand.
 
@@ -160,6 +160,7 @@ class Operator(Matrix):
         Args:
             free_params (torch.Tensor or dict): Flat 1D tensor of free parameters
                 or a dictionary mapping parameter names to tensors.
+                If omitted, default values are used. Default: ``None``.
             include_fixed (bool, optional): Whether to include fixed parameters in
                 the output. Passed through to each operand's
                 :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
@@ -194,12 +195,18 @@ class Operator(Matrix):
 
         .. jupyter-execute::
 
+            x.build_params()
+
+        .. jupyter-execute::
+
             x.build_params(free_params, trans=False)
 
         .. jupyter-execute::
 
             x.build_params(free_params, out_format="dict")
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
         free_params = self._from_free_param_dict(free_params)
         self._check_param_tensor(free_params, length=self.num_free_params)
 
@@ -221,7 +228,7 @@ class Operator(Matrix):
         else:
             raise ValueError(f"Unexpected 'out_format': {out_format}!")
     
-    def build_operands(self, free_params):
+    def build_operands(self, free_params=None):
         """
         Evaluate each operand at the current free parameters.
 
@@ -232,6 +239,7 @@ class Operator(Matrix):
         Args:
             free_params (torch.Tensor or dict): Flat 1D joint parameter tensor or
                 parameter dictionary of length :attr:`num_free_params`.
+                If omitted, default values are used. Default: ``None``.
 
         Returns:
             list of torch.Tensor: Evaluated operand matrices in the same
@@ -248,6 +256,8 @@ class Operator(Matrix):
                 print(v_groups[0])
                 print(v_groups[1])
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
         free_params = self._from_free_param_dict(free_params)
         self._check_param_tensor(free_params, length=self.num_free_params)
         
@@ -264,7 +274,7 @@ class Operator(Matrix):
         
         return v_groups
 
-    def operands_grad(self, free_params):
+    def operands_grad(self, free_params=None):
         """
         Compute the Jacobian of each operand with respect to its parameters.
 
@@ -277,6 +287,7 @@ class Operator(Matrix):
         Args:
             params (torch.Tensor or dict): Flat 1D joint parameter tensor or
                 parameter dictionary of length :attr:`num_params`.
+                If omitted, default values are used. Default: ``None``.
 
         Returns:
             tuple: ``(grad_groups, grad_name_groups)``, where
@@ -297,6 +308,8 @@ class Operator(Matrix):
                 print(grad_name_groups[0])
                 print(grad_name_groups[1])
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
         free_params = self._from_free_param_dict(free_params)
         self._check_param_tensor(free_params, length=self.num_free_params)
 
