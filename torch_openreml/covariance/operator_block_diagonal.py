@@ -62,8 +62,8 @@ class BlockDiagonal(Operator):
             raise ValueError("At least two operands are required")
 
     def _get_or_build_intermediates(self, free_params):
-        bulit_params = self.build_params(free_params)
-        cache = self.get_intermediates(bulit_params)
+        built_params = self.build_params(free_params)
+        cache = self.get_intermediates(built_params)
 
         if cache is None:
             v_groups = self.build_operands(free_params)
@@ -88,18 +88,20 @@ class BlockDiagonal(Operator):
                 "col_offsets": col_offsets
             }
 
-            self.set_intermediates(bulit_params, cache)
+            self.set_intermediates(built_params, cache)
 
         return cache
 
-    def __call__(self, free_params):
+    def __call__(self, free_params=None):
+        if free_params is None:
+            free_params = self.free_param_defaults
         cache = self._get_or_build_intermediates(free_params)
         v = cache["v"]
         self._shape = tuple(v.shape)
 
         return v
 
-    def manual_grad(self, free_params):
+    def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
@@ -113,6 +115,7 @@ class BlockDiagonal(Operator):
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
+                If omitted, default values are used. Default: ``None``.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
@@ -145,6 +148,8 @@ class BlockDiagonal(Operator):
 
             grad_names
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
         grad_groups, grad_name_groups = self.operands_grad(free_params)
 
         cache = self._get_or_build_intermediates(free_params)
