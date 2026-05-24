@@ -188,7 +188,7 @@ class Matrix(ABC):
         """
         self._intermediates = {"hash": None, "dtype": None, "device": None, "intermediates": None}
 
-    def build_params(self, free_params, include_fixed=True, trans=True, out_format="tensor"):
+    def build_params(self, free_params=None, include_fixed=True, trans=True, out_format="tensor"):
         """
         Construct the full parameter tensor from free parameters.
 
@@ -199,6 +199,7 @@ class Matrix(ABC):
         Args:
             free_params (torch.Tensor or dict): Flat 1D tensor of free parameters
               or a dictionary mapping parameter names to tensors.
+              If omitted, default values are used. Default: ``None``.
             include_fixed (bool, optional): Whether to include fixed parameters in
               the output. Default: ``True``.
             trans (bool, optional): Whether to apply parameter transforms to the
@@ -230,6 +231,10 @@ class Matrix(ABC):
 
         .. jupyter-execute::
 
+            mat.build_params()
+
+        .. jupyter-execute::
+
             mat.param_specs["sigma^2_2"]["fixed"] = True
             mat.build_params(free_params[0:2])
 
@@ -241,6 +246,8 @@ class Matrix(ABC):
 
             mat.build_params(free_params[0:2], include_fixed=False, trans=False)
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
 
         free_params = self._from_free_param_dict(free_params)
         device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
@@ -250,8 +257,7 @@ class Matrix(ABC):
 
             free_mask = torch.tensor([not spec["fixed"] for spec in self.param_specs.values()], dtype=torch.bool, device=device)
             params[free_mask] = free_params
-            params[~free_mask] = torch.as_tensor([spec["default"] for spec in self.param_specs.values() if spec["fixed"]],
-                                                 device=device, dtype=dtype)
+            params[~free_mask] = torch.cat([spec["default"] for spec in self.param_specs.values() if spec["fixed"]]).to(device=device, dtype=dtype)
         else:
             params = free_params
 
@@ -309,7 +315,7 @@ class Matrix(ABC):
         
         return {name: tensor for name, tensor in zip(self.param_names, free_params.unsqueeze(-1))}
 
-    def trans_grad(self, free_params):
+    def trans_grad(self, free_params=None):
         """
         Compute the element-wise derivative of the free parameter transforms.
 
@@ -321,6 +327,7 @@ class Matrix(ABC):
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
               dictionary of free parameters.
+              If omitted, default values are used. Default: ``None``.
 
         Raises:
             TypeError: If ``free_params`` is not a Torch tensor.
@@ -341,7 +348,14 @@ class Matrix(ABC):
             mat = DiagonalMatrix(3)
             free_params = torch.tensor([0.0, 0.5, 1.0])
             mat.trans_grad(free_params)
+
+        .. jupyter-execute::
+
+            mat.trans_grad()
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
+
         free_params = self._from_free_param_dict(free_params)
         device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
 
@@ -353,7 +367,7 @@ class Matrix(ABC):
         else:
             return torch.cat([trans.grad(free_param) for trans, free_param in zip(free_param_trans, free_params.unsqueeze(-1))])
 
-    def auto_grad(self, free_params):
+    def auto_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`build` with respect to
         free parameters using automatic differentiation.
@@ -364,6 +378,7 @@ class Matrix(ABC):
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or dict.
+                If omitted, default values are used. Default: ``None``.
 
         Raises:
             TypeError: If ``free_params`` is not a Torch tensor.
@@ -387,6 +402,9 @@ class Matrix(ABC):
             grad, grad_names = mat.auto_grad(free_params)
             grad, grad_names
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
+
         if len(free_params) == 0:
             return None, []
 
@@ -401,7 +419,7 @@ class Matrix(ABC):
 
         return grad, grad_names
 
-    def manual_grad(self, free_params):
+    def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to free
         parameters using a closed-form analytic expression.
@@ -425,6 +443,7 @@ class Matrix(ABC):
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
+                If omitted, default values are used. Default: ``None``.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
@@ -440,7 +459,7 @@ class Matrix(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, free_params):
+    def __call__(self, free_params=None):
         """
         Construct the matrix from a flat parameter tensor.
 
@@ -450,14 +469,15 @@ class Matrix(ABC):
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
-                parameter dictionary.
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
 
         Returns:
             torch.Tensor: Constructed matrix of shape :attr:`shape`.
         """
         raise NotImplementedError
 
-    def grad(self, free_params):
+    def grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters.
@@ -471,7 +491,8 @@ class Matrix(ABC):
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
-                parameter dictionary.
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
 
         Returns:
             tuple: ``(grad, grad_names)`` as described in :meth:`manual_grad`
