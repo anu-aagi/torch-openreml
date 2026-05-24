@@ -334,6 +334,12 @@ class Operator(Matrix):
                 grad_name_groups.append([])
 
         return grad_groups, grad_name_groups
+
+    def auto_grad(self, free_params=None):
+        for operand in self.operands:
+            if isinstance(operand, Matrix):
+                operand.reset_intermediates()
+        return super().auto_grad(free_params)
         
     @property
     def operands(self):
