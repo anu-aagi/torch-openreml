@@ -21,8 +21,8 @@ class Adapter(Matrix):
         if free_params is None:
             free_params = self.free_param_defaults
         params = self.build_params(free_params)
-        adapted_params = self.param_map(params)
-        return self.adaptee(adapted_params)
+        adaptee_free_params = self.param_map(params)
+        return self.adaptee(adaptee_free_params)
 
     def auto_grad(self, free_params=None):
         self.adaptee.reset_intermediates()
@@ -36,12 +36,12 @@ class Adapter(Matrix):
             return None, []
 
         params = self.build_params(free_params)
-        adapted_params = self.param_map(params)
-        original_grad, _ = self.adaptee.grad(adapted_params)
+        adaptee_free_params = self.param_map(params)
+        adaptee_grad, _ = self.adaptee.grad(adaptee_free_params)
 
         jacobian = torch.func.jacrev(self.param_map)(params)
 
-        grad = (jacobian[:, :, None, None] * original_grad[:, None, :, :]).sum(dim=0)
+        grad = (jacobian[:, :, None, None] * adaptee_grad[:, None, :, :]).sum(dim=0)
 
         return grad, self.free_param_names
 
