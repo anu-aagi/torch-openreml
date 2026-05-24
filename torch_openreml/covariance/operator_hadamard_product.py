@@ -73,14 +73,16 @@ class HadamardProduct(Operator):
 
         return cache
 
-    def __call__(self, free_params):
+    def __call__(self, free_params=None):
+        if free_params is None:
+            free_params = self.free_param_defaults
         cache = self._get_or_build_intermediates(free_params)
         v = cache["v"]
         self._shape = tuple(v.shape)
 
         return v
 
-    def manual_grad(self, free_params):
+    def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
@@ -95,6 +97,7 @@ class HadamardProduct(Operator):
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
+                If omitted, default values are used. Default: ``None``.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
@@ -127,6 +130,8 @@ class HadamardProduct(Operator):
 
             grad_names
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
         grad_groups, grad_name_groups = self.operands_grad(free_params)
 
         cache = self._get_or_build_intermediates(free_params)
