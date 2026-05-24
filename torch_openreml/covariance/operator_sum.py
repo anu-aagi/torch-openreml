@@ -61,14 +61,16 @@ class Sum(Operator):
         if len(self.operands) < 2:
             raise ValueError("At least two operands are required")
     
-    def __call__(self, free_params):
+    def __call__(self, free_params=None):
+        if free_params is None:
+            free_params = self.free_param_defaults
         v_groups = self.build_operands(free_params)
         v = sum(v_groups)
         self._shape = tuple(v.shape)
 
         return v
 
-    def manual_grad(self, free_params):
+    def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
@@ -83,6 +85,7 @@ class Sum(Operator):
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
                 parameter dictionary.
+                If omitted, default values are used. Default: ``None``.
 
         Returns:
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
@@ -112,6 +115,8 @@ class Sum(Operator):
 
             grad_names
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
         grad_groups, grad_name_groups = self.operands_grad(free_params)
 
         grad_groups = [grad for grad in grad_groups if grad is not None]
