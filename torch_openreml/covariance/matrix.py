@@ -257,7 +257,8 @@ class Matrix(ABC):
 
             free_mask = torch.tensor([not spec["fixed"] for spec in self.param_specs.values()], dtype=torch.bool, device=device)
             params[free_mask] = free_params
-            params[~free_mask] = torch.cat([spec["default"] for spec in self.param_specs.values() if spec["fixed"]]).to(device=device, dtype=dtype)
+            params[~free_mask] = torch.as_tensor([spec["default"] for spec in self.param_specs.values() if spec["fixed"]],
+                                                 device=device, dtype=dtype)
         else:
             params = free_params
 
