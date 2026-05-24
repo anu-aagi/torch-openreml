@@ -68,12 +68,14 @@ class DiagonalMatrix(Matrix):
         }
         super().__init__((n, n), param_specs)
 
-    def __call__(self, free_params):
+    def __call__(self, free_params=None):
+        if free_params is None:
+            free_params = self.free_param_defaults
         sigma2 = self.build_params(free_params)
         
         return torch.diag(sigma2)
 
-    def manual_grad(self, free_params):
+    def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
         parameters using a closed-form analytic expression.
@@ -88,6 +90,8 @@ class DiagonalMatrix(Matrix):
             ``grad_names`` is a list of the corresponding parameter names.
             Returns ``(None, [])`` if all parameters are fixed.
         """
+        if free_params is None:
+            free_params = self.free_param_defaults
         if len(free_params) == 0:
             return None, []
         device = free_params.device

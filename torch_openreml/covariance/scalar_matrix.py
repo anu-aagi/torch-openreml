@@ -72,7 +72,6 @@ class ScalarMatrix(Matrix):
     def __call__(self, free_params=None):
         if free_params is None:
             free_params = self.free_param_defaults
-
         sigma2 = self.build_params(free_params)
         device = sigma2.device
         dtype = sigma2.dtype
@@ -100,7 +99,6 @@ class ScalarMatrix(Matrix):
         """
         if free_params is None:
             free_params = self.free_param_defaults
-
         if len(free_params) == 0:
             return None, []
 
