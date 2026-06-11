@@ -14,6 +14,7 @@ from torch_openreml.covariance.operator_block_diagonal import BlockDiagonal
 from torch_openreml.covariance.operator_covariance_propagation import CovariancePropagation
 from torch_openreml.covariance.operator_kronecker_product import KroneckerProduct
 from torch_openreml.covariance.operator_hadamard_product import HadamardProduct
+from torch_openreml.covariance.operator_gram import OperatorGram
 
 from torch_openreml.covariance.dummy_matrix import DummyMatrix
 
