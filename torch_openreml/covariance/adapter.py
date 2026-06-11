@@ -27,10 +27,10 @@ class Adapter(Matrix):
     parameter tensor into the parameter tensor expected by the adaptee:
 
     .. math::
-        \symbf{V}(\boldsymbol{\\theta}) =
-        \symbf{V}_{\text{adaptee}}\!\big(f(\boldsymbol{\\theta})\big)
+        \symbf{V}(\boldsymbol{\theta}) =
+        \symbf{V}_{\text{adaptee}}\!\big(f(\boldsymbol{\theta})\big)
 
-    where :math:`f` is ``param_map`` and :math:`\boldsymbol{\\theta}` are the
+    where :math:`f` is ``param_map`` and :math:`\boldsymbol{\theta}` are the
     adapter's free parameters.
 
     Gradients are computed via the chain rule: the adaptee's gradient with
