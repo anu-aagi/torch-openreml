@@ -9,6 +9,7 @@ API Reference
    api/reml
    api/covariance
    api/operators
+   api/adapter
    api/transforms
    api/utils
    api/example_data
