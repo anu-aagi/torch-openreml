@@ -168,8 +168,8 @@ class BlockDiagonal(Operator):
             (c0, c1) = col_offsets[i]
 
             tmp = torch.zeros((grad.shape[0],) + tuple(v.shape),
-                              dtype=free_params.dtype,
-                              device=free_params.device)
+                              dtype=v.dtype,
+                              device=v.device)
 
             tmp[:, r0:r1, c0:c1] = grad
 
