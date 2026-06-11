@@ -78,7 +78,7 @@ class LowerTriangularMatrix(Matrix):
         param_specs = param_specs or {
             f"L_{i}_{j}": {
                 "fixed": False,
-                "default": torch.tensor([0.0]),
+                "default": torch.tensor([1.0]),
                 "trans": TransformIdentity()
             } for i in range(n) for j in range(min(i + 1, m))
         }
