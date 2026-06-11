@@ -5,6 +5,8 @@ from torch_openreml.covariance.diagonal_matrix import DiagonalMatrix
 from torch_openreml.covariance.equicorrelation_matrix import EquicorrelationMatrix
 from torch_openreml.covariance.compound_symmetric_matrix import CompoundSymmetricMatrix
 from torch_openreml.covariance.ar1_matrix import AR1Matrix
+from torch_openreml.covariance.unconstrained_matrix import UnconstrainedMatrix
+from torch_openreml.covariance.lower_triangular_matrix import LowerTriangularMatrix
 
 from torch_openreml.covariance.operator import Operator
 from torch_openreml.covariance.operator_sum import Sum
