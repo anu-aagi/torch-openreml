@@ -95,17 +95,19 @@ class DiagonalMatrix(Matrix):
             free_params = self.free_param_defaults
         if len(free_params) == 0:
             return None, []
+
+        free_params = self.build_params(free_params, include_fixed=False, trans=False)
         device = free_params.device
         dtype = free_params.dtype
 
-        grad = torch.zeros(self.shape[0], self.shape[0], self.shape[0], device=device, dtype=dtype)
+        grad = torch.zeros(free_params.shape[0], self.shape[0], self.shape[0], device=device, dtype=dtype)
         idx = torch.arange(self.shape[0], device=device)
 
         mask = torch.zeros(self.shape[0], dtype=torch.bool, device=device)
         mask[self.free_param_index] = True
         idx = idx[mask]
 
-        grad[idx, idx, idx] = self.trans_grad(free_params)
+        grad[:, idx, idx] = self.trans_grad(free_params)
 
         return grad, self.free_param_names
 
