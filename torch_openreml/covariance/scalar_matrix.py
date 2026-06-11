@@ -102,9 +102,9 @@ class ScalarMatrix(Matrix):
         if len(free_params) == 0:
             return None, []
 
-        sigma2 = self.build_params(free_params)
-        device = sigma2.device
-        dtype = sigma2.dtype
+        free_params = self.build_params(free_params, include_fixed=False, trans=False, out_format="tensor")
+        device = free_params.device
+        dtype = free_params.dtype
 
         i_n = torch.eye(self.shape[0], device=device, dtype=dtype)
         grad = (self.trans_grad(free_params) * i_n).unsqueeze(0)
