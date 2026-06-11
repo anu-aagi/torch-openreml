@@ -27,10 +27,10 @@ class UnconstrainedMatrix(Matrix):
     then mirrored to the upper triangle to ensure symmetry:
 
     .. math::
-        \symbf{V}_{ij} = \\begin{cases}
-            \\theta_{ij} & i \\ge j \\\\
-            \\theta_{ji} & i < j
-        \\end{cases}
+        \symbf{V}_{ij} = \begin{cases}
+            \theta_{ij} & i \ge j \\
+            \theta_{ji} & i < j
+        \end{cases}
 
     Diagonal entries (:math:`i = j`) are transformed to positive values via
     :class:`~torch_openreml.covariance.transform.TransformExpPow2` by default.

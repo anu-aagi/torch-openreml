@@ -23,14 +23,14 @@ class LowerTriangularMatrix(Matrix):
     Lower triangular matrix parameterised by its lower-triangular entries.
 
     The matrix has free parameters for all entries on or below the diagonal
-    (i.e., :math:`j \\le i` and :math:`j < m`). Entries above the diagonal
+    (i.e., :math:`j \le i` and :math:`j < m`). Entries above the diagonal
     are fixed at zero:
 
     .. math::
-        \symbf{L}_{ij} = \\begin{cases}
-            \\theta_{ij} & i \\ge j \\;\\text{and}\\; j < m \\\\
+        \symbf{L}_{ij} = \begin{cases}
+            \theta_{ij} & i \ge j \;\text{and}\; j < m \\
             0 & i < j
-        \\end{cases}
+        \end{cases}
 
     All parameters (including diagonal entries) are unconstrained and use
     :class:`~torch_openreml.covariance.transform.TransformIdentity` by default.
