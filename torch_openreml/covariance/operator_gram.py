@@ -6,7 +6,7 @@ or :math:`\symbf{X} \symbf{X}^\top` from a supplied matrix,
 for use in linear mixed-effects models.
 
 Classes:
-    OperatorGram:
+    Gram:
         A covariance operator representing a Gram matrix.
 """
 
@@ -15,7 +15,7 @@ from torch_openreml.covariance.matrix import Matrix
 import torch
 
 
-class OperatorGram(Operator):
+class Gram(Operator):
     r"""
     Gram matrix operator: :math:`\symbf{X}^\top \symbf{X}` or
     :math:`\symbf{X} \symbf{X}^\top`.
@@ -41,13 +41,15 @@ class OperatorGram(Operator):
     via the product rule.
     """
 
-    def __init__(self, x, gram_type="xtx"):
+    def __init__(self, *args, gram_type="xtx", **kwargs):
         """
         Initialise a Gram operator.
 
         Args:
-            x (:class:`torch.Tensor` or :class:`~torch_openreml.covariance.matrix.Matrix`):
-                The input matrix of shape ``(n, m)``.
+            *args: Exactly one operand as positional arguments or a single
+                dict. The first is :math:`\\symbf{Z}`, the second
+                :math:`\\symbf{G}`.
+            **kwargs: Exactly one operand as keyword arguments.
             gram_type (str): Which Gram product to compute. Must be one of
                 ``"xtx"`` (:math:`\\symbf{X}^\\top \\symbf{X}`) or
                 ``"xxt"`` (:math:`\\symbf{X} \\symbf{X}^\\top`).
@@ -61,15 +63,15 @@ class OperatorGram(Operator):
         .. jupyter-execute::
 
             import torch
-            from torch_openreml.covariance import OperatorGram, LowerTriangularMatrix
+            from torch_openreml.covariance import Gram, LowerTriangularMatrix
 
             x = LowerTriangularMatrix(3, 2)
-            op = OperatorGram(x, gram_type="xtx")
+            op = Gram(x, gram_type="xtx")
             op()
 
         .. jupyter-execute::
 
-            op_xxt = OperatorGram(x, gram_type="xxt")
+            op_xxt = Gram(x, gram_type="xxt")
             op_xxt()
         """
         if gram_type not in ("xtx", "xxt"):
@@ -78,7 +80,10 @@ class OperatorGram(Operator):
             )
         self._gram_type = gram_type
 
-        super().__init__(x=x)
+        super().__init__(*args, **kwargs)
+
+        if len(self.operands) != 1:
+            raise ValueError("One operand is required")
 
     def __call__(self, free_params=None):
         if free_params is None:
@@ -133,10 +138,10 @@ class OperatorGram(Operator):
         .. jupyter-execute::
 
             import torch
-            from torch_openreml.covariance import OperatorGram, LowerTriangularMatrix
+            from torch_openreml.covariance import Gram, LowerTriangularMatrix
 
             x = LowerTriangularMatrix(3, 2)
-            op = OperatorGram(x, gram_type="xtx")
+            op = Gram(x, gram_type="xtx")
             free_params = torch.tensor([0.0, 0.5, 1.0, 0.2, -0.3])
             grad, grad_names = op.manual_grad(free_params)
             grad
@@ -147,7 +152,7 @@ class OperatorGram(Operator):
 
         .. jupyter-execute::
 
-            op_xxt = OperatorGram(x, gram_type="xxt")
+            op_xxt = Gram(x, gram_type="xxt")
             grad_xxt, grad_names_xxt  = op_xxt.manual_grad(free_params)
             grad_xxt
         """
