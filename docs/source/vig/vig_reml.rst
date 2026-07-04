@@ -97,49 +97,45 @@ is the residual projection matrix.
 Constructing the REML object
 ----------------------------
 
-The :class:`~torch_openreml.REML` constructor supports multiple ways to
-define the covariance structure. The appropriate approach depends on the
-complexity of the model and the desired level of control.
+The :class:`~torch_openreml.REML` constructor takes a single
+:class:`~torch_openreml.covariance.matrix.Matrix` instance ``v`` that
+defines the marginal covariance structure :math:`\mathbf{V}`.
 
-The most important constructor arguments are:
+.. code-block:: python
 
-``map_theta_to_v``
-    Callable mapping :math:`\boldsymbol{\theta}` to the marginal
-    covariance matrix :math:`\mathbf{V}`.
+    from torch_openreml import REML
 
-``map_theta_to_dv``
-    Callable returning the derivatives
-    :math:`\partial\mathbf{V}/\partial\theta_k`.
+    reml = REML(v)
 
-``v_builder``
-    A covariance :class:`~torch_openreml.covariance.matrix.Matrix`
-    object representing the covariance structure.
+There are two main ways to build ``v``, depending on complexity:
 
-``map_theta_to_g``
-    Optional mapping from parameters to the random-effects covariance
-    matrix :math:`\mathbf{G}`. Required for BLUPs and conditional
-    predictions.
+- :class:`~torch_openreml.covariance.SimpleMatrix` — wrap a plain
+  function for quick prototyping.
+- The :mod:`~torch_openreml.covariance` builder system — compose
+  pre-built covariance components with operators.
 
-``mask_theta_to_g``
-    Boolean mask selecting which parameters are passed to
-    ``map_theta_to_g``.
+For random-effect predictions, a separate
+:class:`~torch_openreml.covariance.matrix.Matrix` instance ``g``
+for :math:`\mathbf{G}` is passed directly to
+:meth:`~torch_openreml.REML.blup`,
+:meth:`~torch_openreml.REML.predict`, and
+:meth:`~torch_openreml.REML.residual`.
 
-Exactly one of ``map_theta_to_v`` or ``v_builder`` must be supplied.
+Via ``SimpleMatrix`` (function-based)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Via ``map_theta_to_v`` only
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The minimal interface requires only a function mapping parameters to the
-marginal covariance matrix.
+For quick prototyping, :class:`~torch_openreml.covariance.SimpleMatrix`
+wraps a plain function. All parameters are free and unconstrained.
 
 .. code-block:: python
 
     import torch
     from torch_openreml import REML
+    from torch_openreml.covariance import SimpleMatrix
 
     n = 50
 
-    def map_theta_to_v(theta):
+    def my_v(theta):
 
         sigma2 = theta[0].exp()
         rho = torch.sigmoid(theta[1])
@@ -149,7 +145,8 @@ marginal covariance matrix.
 
         return sigma2 * (I + rho * J)
 
-    reml = REML(map_theta_to_v=map_theta_to_v)
+    v = SimpleMatrix(num_free_params=2, call=my_v)
+    reml = REML(v)
 
 In this example:
 
@@ -166,28 +163,29 @@ The covariance matrix is
 
 where :math:`\mathbf{J}` is the all-ones matrix.
 
-When only ``map_theta_to_v`` is supplied,
-:class:`~torch_openreml.REML` computes derivatives automatically using
-:func:`torch.func.jacrev`.
+When no ``manual_grad`` is supplied,
+:class:`~torch_openreml.covariance.SimpleMatrix` computes derivatives
+automatically via :meth:`~torch_openreml.covariance.matrix.Matrix.auto_grad`.
 
 This approach is convenient for prototyping, but automatic differentiation can become expensive for large covariance matrices. At the same time, it offers essentially unrestricted flexibility: the marginal covariance can be constructed through arbitrary differentiable PyTorch operations, ranging from simple parameterizations to highly sophisticated matrix algebra, iterative procedures, decompositions, simulation-based constructions, dynamically assembled covariance components, or even neural networks that directly output or parameterize covariance structure.
 
 Because the covariance construction is defined directly in Python/PyTorch code rather than through a fixed covariance specification, users are free to incorporate conditional branching, stochastic generation, adaptive logic, external modules, or even entirely different covariance structures across optimization iterations (although such behavior is usually not statistically meaningful in practice). In effect, any covariance model that can be expressed as a differentiable computational graph in PyTorch can be used within this framework.
 
-Via ``map_theta_to_v`` and ``map_theta_to_dv``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Via ``SimpleMatrix`` with manual gradients
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For better performance, analytical derivatives can be supplied
-explicitly.
+For better performance, analytical derivatives can be supplied via the
+``manual_grad`` argument.
 
 .. code-block:: python
 
     import torch
     from torch_openreml import REML
+    from torch_openreml.covariance import SimpleMatrix
 
     n = 50
 
-    def map_theta_to_v(theta):
+    def my_v(theta):
 
         sigma2 = theta[0].exp()
         rho = torch.sigmoid(theta[1])
@@ -197,7 +195,7 @@ explicitly.
 
         return sigma2 * (I + rho * J)
 
-    def map_theta_to_dv(theta):
+    def my_dv(theta):
 
         sigma2 = theta[0].exp()
         rho = torch.sigmoid(theta[1])
@@ -211,15 +209,16 @@ explicitly.
         dV_dtheta0 = dsigma2 * (I + rho * J)
         dV_dtheta1 = sigma2 * drho * J
 
-        return torch.stack([dV_dtheta0, dV_dtheta1])
+        grad = torch.stack([dV_dtheta0, dV_dtheta1])
+        return grad, ["sigma2", "rho"]
 
-    reml = REML(
-        map_theta_to_v=map_theta_to_v,
-        map_theta_to_dv=map_theta_to_dv,
-    )
+    v = SimpleMatrix(num_free_params=2, call=my_v, manual_grad=my_dv)
+    reml = REML(v)
 
-The derivative function must return a tensor of shape
-``(num_free_params, n, n)``, where slice ``k`` corresponds to
+The gradient function must return a tuple ``(grad, grad_names)``, where
+``grad`` is a tensor of shape ``(num_free_params, n, n)`` and
+``grad_names`` is a list of parameter name strings. Slice ``k`` of
+``grad`` corresponds to
 
 .. math::
 
@@ -282,7 +281,7 @@ Example:
         ScalarMatrix(n),
     )
 
-    reml = REML(v_builder=V)
+    reml = REML(V)
 
 The builder automatically manages:
 
@@ -293,10 +292,10 @@ The builder automatically manages:
 
 Internally, :class:`~torch_openreml.REML` calls
 
-- :meth:`~torch_openreml.covariance.matrix.Matrix.map_theta_to_v`
-- :meth:`~torch_openreml.covariance.matrix.Matrix.map_theta_to_dv`
-
-provided by the builder.
+- :meth:`~torch_openreml.covariance.matrix.Matrix.__call__` to build
+  :math:`\mathbf{V}`,
+- :meth:`~torch_openreml.covariance.matrix.Matrix.grad` for the
+  Jacobian.
 
 The derivative calculation uses
 :meth:`~torch_openreml.covariance.matrix.Matrix.grad`,
@@ -305,8 +304,8 @@ which attempts a closed-form
 implementation first and falls back to automatic differentiation when
 necessary.
 
-Providing ``map_theta_to_g``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Providing ``g`` for random effects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some methods require access to the random-effects covariance matrix
 :math:`\mathbf{G}` separately from the marginal covariance matrix
@@ -318,29 +317,20 @@ These include:
 - :meth:`~torch_openreml.REML.predict`
 - :meth:`~torch_openreml.REML.residual`
 
-The ``map_theta_to_g`` argument may be:
-
-- a callable,
-- a covariance :class:`~torch_openreml.covariance.matrix.Matrix`,
-- or ``None``.
-
-Example:
+The ``g`` argument accepts a
+:class:`~torch_openreml.covariance.matrix.Matrix` instance and is
+passed directly at call time (not at construction):
 
 .. code-block:: python
 
     G = ScalarMatrix(2)
 
-    reml = REML(
-        v_builder=V,
-        map_theta_to_g=G,
-        mask_theta_to_g=torch.tensor([True, False]),
-    )
+    b_hat = reml.blup(y, X, Z, theta_hat, g=G)
 
-The mask specifies which elements of
-:math:`\boldsymbol{\theta}` are passed into ``G``.
-
-This is useful when the full parameter vector contains both random-effect
-and residual variance parameters.
+The ``g`` matrix receives the same flat parameter vector
+:math:`\boldsymbol{\theta}` as ``v``. When different subsets of
+parameters are needed for :math:`\mathbf{G}`, use separate matrix
+instances with their own parameter specifications.
 
 Running the optimiser
 ---------------------
@@ -376,7 +366,7 @@ Once the REML object is constructed, optimisation is performed using
         ScalarMatrix(n),
     )
 
-    reml = REML(v_builder=V)
+    reml = REML(V)
 
     theta_start = torch.zeros(V.num_free_params)
 
@@ -586,16 +576,10 @@ Compute it using:
 
 .. jupyter-execute::
 
-    b_hat = reml.blup(
-        y,
-        X,
-        Z,
-        theta_hat,
-        map_theta_to_g=ScalarMatrix(2),
-        mask_theta_to_g=torch.tensor([True, False]),
-    )
+    G = ScalarMatrix(2)
+    b_hat = reml.blup(y, X, Z, theta_hat, g=G)
 
-This method requires ``map_theta_to_g``.
+This method requires ``g``.
 
 Predictions
 ~~~~~~~~~~~
@@ -628,14 +612,7 @@ Example:
         theta_hat,
     )
 
-    y_hat_conditional = reml.predict(
-        y,
-        X,
-        Z,
-        theta_hat,
-        map_theta_to_g=ScalarMatrix(2),
-        mask_theta_to_g=torch.tensor([True, False]),
-    )
+    y_hat_conditional = reml.predict(y, X, Z, theta_hat, g=ScalarMatrix(2))
 
 Residuals
 ~~~~~~~~~
@@ -670,14 +647,7 @@ Example:
         theta_hat,
     )
 
-    e_conditional = reml.residual(
-        y,
-        X,
-        Z,
-        theta_hat,
-        map_theta_to_g=ScalarMatrix(2),
-        mask_theta_to_g=torch.tensor([True, False]),
-    )
+    e_conditional = reml.residual(y, X, Z, theta_hat, g=ScalarMatrix(2))
 
 Evaluating the log-likelihood
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -753,7 +723,7 @@ The following example demonstrates a mixed model with:
     )
 
     # --- REML fit ---
-    reml = REML(v_builder=V)
+    reml = REML(V)
 
     theta_start = torch.zeros(V.num_free_params)
 
