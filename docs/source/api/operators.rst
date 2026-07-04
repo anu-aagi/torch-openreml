@@ -9,5 +9,5 @@ Operators
    torch_openreml.covariance.HadamardProduct
    torch_openreml.covariance.KroneckerProduct
    torch_openreml.covariance.CovariancePropagation
-   torch_openreml.covariance.OperatorGram
+   torch_openreml.covariance.Gram
    torch_openreml.covariance.Sum
