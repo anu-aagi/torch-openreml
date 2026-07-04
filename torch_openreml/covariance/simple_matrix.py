@@ -31,7 +31,7 @@ class SimpleMatrix(Matrix):
     directly.
 
     Args:
-        n (int): Number of free parameters.
+        num_free_params (int): Number of free parameters.
         call (callable): Function with signature
             ``call(free_params) -> torch.Tensor`` that constructs the
             covariance matrix from a flat 1D parameter tensor.
@@ -54,7 +54,7 @@ class SimpleMatrix(Matrix):
             n = free_params.shape[0]
             return torch.diag(free_params)
 
-        mat = SimpleMatrix(n=3, call=my_v)
+        mat = SimpleMatrix(num_free_params=3, call=my_v)
         mat(torch.tensor([1.0, 2.0, 3.0]))
 
     .. jupyter-execute::
@@ -62,11 +62,11 @@ class SimpleMatrix(Matrix):
         mat.grad(torch.tensor([1.0, 2.0, 3.0]))
     """
 
-    def __init__(self, n, call, manual_grad=None, default=0.0):
+    def __init__(self, num_free_params, call, manual_grad=None, default=0.0):
         if call is None:
             raise ValueError("'call' must be provided.")
 
-        super().__init__(None, simple_param_specs(n, default=default))
+        super().__init__(None, simple_param_specs(num_free_params, default=default))
         self._call = call
         self._manual_grad = manual_grad
 
