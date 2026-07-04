@@ -9,3 +9,4 @@ Utils
    torch_openreml.utils.numeric_to_design_matrix
    torch_openreml.utils.augment
    torch_openreml.utils.interaction
+   torch_openreml.utils.n_distinct
