@@ -14,3 +14,5 @@ Covariance
    torch_openreml.covariance.LowerTriangularMatrix
    torch_openreml.covariance.ScalarMatrix
    torch_openreml.covariance.UnconstrainedMatrix
+   torch_openreml.covariance.SimpleMatrix
+   torch_openreml.covariance.simple_param_specs

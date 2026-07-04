@@ -21,3 +21,5 @@ from torch_openreml.covariance.dummy_matrix import DummyMatrix
 import torch_openreml.covariance.transform
 
 from torch_openreml.covariance.adapter import Adapter
+from torch_openreml.covariance.simple_matrix import SimpleMatrix
+from torch_openreml.covariance.param import simple_param_specs
