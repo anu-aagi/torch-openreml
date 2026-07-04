@@ -523,41 +523,6 @@ class Matrix(ABC):
         else:
             raise RuntimeError(f"Unknown grad mode '{self.grad_mode}'")
       
-    def map_theta_to_v(self, theta):
-        """
-        An interface compatible with :class:`torch_openreml.REML` that maps
-        parameters to a matrix.
-
-        Invokes :meth:`__call__`.
-
-        Args:
-            theta (torch.Tensor): Flat 1D parameter tensor.
-
-        Returns:
-            torch.Tensor: Constructed matrix.
-        """
-        return self(theta)
-      
-    def map_theta_to_dv(self, theta):
-        """
-        An interface compatible with :class:`torch_openreml.REML` that maps parameters
-        to the matrix Jacobian.
-
-        Invokes :meth:`grad`.
-
-        Args:
-            theta (torch.Tensor): Flat 1D parameter tensor.
-
-        Raises:
-            RuntimeError: If :attr:`grad_mode` is not a recognised value.
-
-        Returns:
-            torch.Tensor or None: Jacobian tensor of shape
-            ``(num_free_params, *shape)``, or ``None`` if all parameters
-            are fixed.
-        """
-        grad, grad_name = self.grad(theta)
-        return grad
           
     def _check_shape(self, shape):
         if shape is None:
