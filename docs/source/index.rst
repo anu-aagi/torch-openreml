@@ -163,7 +163,7 @@ We begin by importing the required modules.
 .. jupyter-execute::
 
     import torch
-    from torch_openreml import REML
+    from torch_openreml import MarginalREML
     from torch_openreml.utils import augment, n_distinct
     from torch_openreml.covariance import DummyMatrix, IdentityMatrix, ScalarMatrix, Sum, CovariancePropagation, KroneckerProduct
     from torch_openreml.example_data import john_alpha
@@ -231,16 +231,16 @@ The logarithmic parameterization ensures that the variance components remain pos
 
     print(V)
 
-REML Optimizer
+MarginalREML Optimizer
 ~~~~~~~~~~~~~~
 
-Once the covariance structure has been defined, it is passed to :py:class:`REML <torch_openreml.REML>` to initialize the estimation procedure. The :py:meth:`optimize <torch_openreml.REML.optimize>` method is then called with :math:`\mathbf{y}`, :math:`\mathbf{X}`, and an initial value for :math:`\boldsymbol{\theta}` (set to zeros in this example). The `verbose` argument controls the level of diagnostic output.
+Once the covariance structure has been defined, it is passed to :py:class:`MarginalREML <torch_openreml.MarginalREML>` to initialize the estimation procedure. The :py:meth:`optimize <torch_openreml.MarginalREML.optimize>` method is then called with :math:`\mathbf{y}`, :math:`\mathbf{X}`, and an initial value for :math:`\boldsymbol{\theta}` (set to zeros in this example). The `verbose` argument controls the level of diagnostic output.
 
 Because the optimization is performed on the transformed parameter scale, the estimated parameters can be mapped back to variance components using :py:meth:`V.build_params <torch_openreml.covariance.Matrix.build_params>`. The resulting values correspond to the variance components associated with the parameter names stored in :py:attr:`V.param_names <torch_openreml.covariance.Matrix.param_names>`.
 
 .. jupyter-execute::
 
-    reml = REML(V)
+    reml = MarginalREML(V)
     theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=2)
     print(theta_hat, V.build_params(theta_hat))
     print(V.free_param_names)
@@ -265,7 +265,7 @@ Documentation
      - Model formulation, REML and ML theory, score and AI matrix derivations.
 
    * - :ref:`api`
-     - Full documentation for ``REML``, covariance matrices, operators, transforms, and utilities.
+     - Full documentation for ``MarginalREML``, covariance matrices, operators, transforms, and utilities.
 
 Citing
 ------
