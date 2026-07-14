@@ -15,6 +15,7 @@ from torch_openreml.covariance.operator_covariance_propagation import Covariance
 from torch_openreml.covariance.operator_kronecker_product import KroneckerProduct
 from torch_openreml.covariance.operator_hadamard_product import HadamardProduct
 from torch_openreml.covariance.operator_gram import Gram
+from torch_openreml.covariance.operator_augment import Augment
 
 from torch_openreml.covariance.dummy_matrix import DummyMatrix
 
