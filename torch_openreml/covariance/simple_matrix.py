@@ -19,7 +19,7 @@ class SimpleMatrix(Matrix):
     r"""
     A covariance matrix for simple, function-based parameterisations.
 
-    This is the easiest way to use :class:`~torch_openreml.REML` with a custom
+    This is the easiest way to use :class:`~torch_openreml.MarginalREML` with a custom
     covariance structure: provide the number of parameters and a function that
     maps a flat parameter tensor to the covariance matrix. All parameters are
     free and use an identity transform (unconstrained). The ``default``
