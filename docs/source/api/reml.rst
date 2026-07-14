@@ -1,7 +1,7 @@
-REML
-====
+MarginalREML
+============
 
 .. autosummary::
    :toctree: ../generated
 
-   torch_openreml.REML
+   torch_openreml.MarginalREML
