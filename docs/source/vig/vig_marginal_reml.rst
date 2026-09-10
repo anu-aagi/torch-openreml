@@ -1,58 +1,37 @@
 .. _vig_reml:
 
-Introduction to REML Estimation
-===============================
+Introduction to Marginal REML Estimation
+========================================
 
-The :class:`~torch_openreml.REML` class implements restricted maximum
-likelihood (REML) estimation for linear mixed models using the average
-information (AI) algorithm. The AI algorithm combines the stability of
-the expected information matrix with the curvature information of the
-observed information matrix, leading to efficient and robust estimation
-of variance components.
+The :class:`~torch_openreml.MarginalREML` class implements restricted maximum
+likelihood (REML) estimation for generalised least squares with a parametric
+marginal covariance matrix, using the average information (AI) algorithm.
+The AI algorithm combines the stability of the expected information matrix
+with the curvature information of the observed information matrix, leading to
+efficient and robust estimation of covariance parameters.
 
-This vignette introduces the REML model formulation, explains how to
+This vignette introduces the marginal REML model formulation, explains how to
 construct covariance models, demonstrates optimisation workflows, and
-covers post-estimation utilities such as BLUEs, BLUPs, predictions,
+covers post-estimation utilities such as BLUEs, marginal predictions,
 residuals, and convergence diagnostics.
 
 The model
 ---------
 
-The :class:`~torch_openreml.REML` class assumes the linear mixed model
+The :class:`~torch_openreml.MarginalREML` class assumes the generalised
+least squares model
 
 .. math::
 
-    \mathbf{y} =
-    \mathbf{X}\boldsymbol{\beta} +
-    \mathbf{Z}\mathbf{b} +
-    \boldsymbol{\varepsilon},
+    \mathbf{y} \sim \mathcal{N}(\mathbf{X}\boldsymbol{\beta}, \mathbf{V}(\boldsymbol{\theta})),
 
 where
 
 - :math:`\mathbf{y}` is the response vector of length :math:`n`,
 - :math:`\mathbf{X}` is the fixed-effects design matrix,
 - :math:`\boldsymbol{\beta}` is the vector of fixed effects,
-- :math:`\mathbf{Z}` is the random-effects design matrix,
-- :math:`\mathbf{b}` is the vector of random effects,
-- :math:`\boldsymbol{\varepsilon}` is the residual error vector.
-
-The random effects and residuals are assumed independent with
-
-.. math::
-
-    \mathbf{b} \sim \mathcal{N}(\mathbf{0}, \mathbf{G}), \qquad
-    \boldsymbol{\varepsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{R}).
-
-The marginal covariance of :math:`\mathbf{y}` is therefore
-
-.. math::
-
-    \mathbf{V}(\boldsymbol{\theta}) =
-    \mathbf{Z}\mathbf{G}(\boldsymbol{\theta})\mathbf{Z}^\top +
-    \mathbf{R}(\boldsymbol{\theta}),
-
-where :math:`\boldsymbol{\theta}` denotes the variance-component
-parameters.
+- :math:`\mathbf{V}(\boldsymbol{\theta})` is a parametric marginal covariance
+  matrix parameterised by :math:`\boldsymbol{\theta}`.
 
 The REML estimator maximises the restricted log-likelihood
 
@@ -85,7 +64,7 @@ is the residual projection matrix.
 
 .. important::
 
-    Internally, :class:`~torch_openreml.REML` repeatedly evaluates
+    Internally, :class:`~torch_openreml.MarginalREML` repeatedly evaluates
 
     - the covariance matrix :math:`\mathbf{V}`,
     - its derivatives :math:`\partial \mathbf{V} / \partial \theta_k`,
@@ -97,15 +76,15 @@ is the residual projection matrix.
 Constructing the REML object
 ----------------------------
 
-The :class:`~torch_openreml.REML` constructor takes a single
+The :class:`~torch_openreml.MarginalREML` constructor takes a single
 :class:`~torch_openreml.covariance.matrix.Matrix` instance ``v`` that
 defines the marginal covariance structure :math:`\mathbf{V}`.
 
 .. code-block:: python
 
-    from torch_openreml import REML
+    from torch_openreml import MarginalREML
 
-    reml = REML(v)
+    reml = MarginalREML(v)
 
 There are two main ways to build ``v``, depending on complexity:
 
@@ -114,12 +93,9 @@ There are two main ways to build ``v``, depending on complexity:
 - The :mod:`~torch_openreml.covariance` builder system — compose
   pre-built covariance components with operators.
 
-For random-effect predictions, a separate
-:class:`~torch_openreml.covariance.matrix.Matrix` instance ``g``
-for :math:`\mathbf{G}` is passed directly to
-:meth:`~torch_openreml.REML.blup`,
-:meth:`~torch_openreml.REML.predict`, and
-:meth:`~torch_openreml.REML.residual`.
+The MarginalREML class works directly with the marginal covariance matrix
+:math:`\mathbf{V}` and does not require separate :math:`\mathbf{G}`
+or :math:`\mathbf{R}` components as in mixed model.
 
 Via ``SimpleMatrix`` (function-based)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -130,7 +106,7 @@ wraps a plain function. All parameters are free and unconstrained.
 .. code-block:: python
 
     import torch
-    from torch_openreml import REML
+    from torch_openreml import MarginalREML
     from torch_openreml.covariance import SimpleMatrix
 
     n = 50
@@ -146,7 +122,7 @@ wraps a plain function. All parameters are free and unconstrained.
         return sigma2 * (I + rho * J)
 
     v = SimpleMatrix(num_free_params=2, call=my_v)
-    reml = REML(v)
+    reml = MarginalREML(v)
 
 In this example:
 
@@ -180,7 +156,7 @@ For better performance, analytical derivatives can be supplied via the
 .. code-block:: python
 
     import torch
-    from torch_openreml import REML
+    from torch_openreml import MarginalREML
     from torch_openreml.covariance import SimpleMatrix
 
     n = 50
@@ -213,7 +189,7 @@ For better performance, analytical derivatives can be supplied via the
         return grad, ["sigma2", "rho"]
 
     v = SimpleMatrix(num_free_params=2, call=my_v, manual_grad=my_dv)
-    reml = REML(v)
+    reml = MarginalREML(v)
 
 The gradient function must return a tuple ``(grad, grad_names)``, where
 ``grad`` is a tensor of shape ``(num_free_params, n, n)`` and
@@ -258,20 +234,15 @@ Example:
 
     import torch
 
-    from torch_openreml import REML
-    from torch_openreml.covariance import (
-        DummyMatrix,
-        ScalarMatrix,
-        CovariancePropagation,
-        Sum,
-    )
+    from torch_openreml import MarginalREML
+    from torch_openreml.covariance import DummyMatrix, ScalarMatrix, CovariancePropagation, Sum
 
     n, p = 50, 2
 
     y = torch.randn(n)
     X = torch.randn(n, p)
 
-    Z = DummyMatrix(["a", "b"] * 25)()
+    Z = DummyMatrix(["a", "b"] * 25)
 
     V = Sum(
         CovariancePropagation(
@@ -281,7 +252,7 @@ Example:
         ScalarMatrix(n),
     )
 
-    reml = REML(V)
+    reml = MarginalREML(V)
 
 The builder automatically manages:
 
@@ -290,7 +261,7 @@ The builder automatically manages:
 - covariance assembly,
 - covariance derivatives.
 
-Internally, :class:`~torch_openreml.REML` calls
+Internally, :class:`~torch_openreml.MarginalREML` calls
 
 - :meth:`~torch_openreml.covariance.matrix.Matrix.__call__` to build
   :math:`\mathbf{V}`,
@@ -304,59 +275,26 @@ which attempts a closed-form
 implementation first and falls back to automatic differentiation when
 necessary.
 
-Providing ``g`` for random effects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Some methods require access to the random-effects covariance matrix
-:math:`\mathbf{G}` separately from the marginal covariance matrix
-:math:`\mathbf{V}`.
-
-These include:
-
-- :meth:`~torch_openreml.REML.blup`
-- :meth:`~torch_openreml.REML.predict`
-- :meth:`~torch_openreml.REML.residual`
-
-The ``g`` argument accepts a
-:class:`~torch_openreml.covariance.matrix.Matrix` instance and is
-passed directly at call time (not at construction):
-
-.. code-block:: python
-
-    G = ScalarMatrix(2)
-
-    b_hat = reml.blup(y, X, Z, theta_hat, g=G)
-
-The ``g`` matrix receives the same flat parameter vector
-:math:`\boldsymbol{\theta}` as ``v``. When different subsets of
-parameters are needed for :math:`\mathbf{G}`, use separate matrix
-instances with their own parameter specifications.
-
 Running the optimiser
 ---------------------
 
 Once the REML object is constructed, optimisation is performed using
-:meth:`~torch_openreml.REML.optimize`.
+:meth:`~torch_openreml.MarginalREML.optimize`.
 
 .. jupyter-execute::
 
 
     import torch
 
-    from torch_openreml import REML
-    from torch_openreml.covariance import (
-        DummyMatrix,
-        ScalarMatrix,
-        CovariancePropagation,
-        Sum,
-    )
+    from torch_openreml import MarginalREML
+    from torch_openreml.covariance import DummyMatrix, ScalarMatrix, CovariancePropagation, Sum
 
     n, p = 50, 2
 
     y = torch.randn(n)
     X = torch.randn(n, p)
 
-    Z = DummyMatrix(["a", "b"] * 25)()
+    Z = DummyMatrix(["a", "b"] * 25)
 
     V = Sum(
         CovariancePropagation(
@@ -366,7 +304,7 @@ Once the REML object is constructed, optimisation is performed using
         ScalarMatrix(n),
     )
 
-    reml = REML(V)
+    reml = MarginalREML(V)
 
     theta_start = torch.zeros(V.num_free_params)
 
@@ -554,100 +492,49 @@ Compute it using:
 
     beta_hat = reml.blue(y, X, theta_hat)
 
-BLUP — random effects
-~~~~~~~~~~~~~~~~~~~~~
-
-The best linear unbiased predictor (BLUP) of the random effects is
-
-.. math::
-
-    \widehat{\mathbf{b}}
-    =
-    \mathbf{G}
-    \mathbf{Z}^\top
-    \mathbf{V}^{-1}
-    \left(
-        \mathbf{y}
-        -
-        \mathbf{X}\widehat{\boldsymbol{\beta}}
-    \right).
-
-Compute it using:
-
-.. jupyter-execute::
-
-    G = ScalarMatrix(2)
-    b_hat = reml.blup(y, X, Z, theta_hat, g=G)
-
-This method requires ``g``.
-
 Predictions
 ~~~~~~~~~~~
 
-Marginal predictions use only fixed effects:
+Predictions use the fixed effects:
 
 .. math::
 
-    \widehat{\mathbf{y}}_{\mathrm{marginal}}
+    \widehat{\mathbf{y}}
     =
     \mathbf{X}\widehat{\boldsymbol{\beta}}.
-
-Conditional predictions additionally include random effects:
-
-.. math::
-
-    \widehat{\mathbf{y}}_{\mathrm{conditional}}
-    =
-    \mathbf{X}\widehat{\boldsymbol{\beta}}
-    +
-    \mathbf{Z}\widehat{\mathbf{b}}.
 
 Example:
 
 .. jupyter-execute::
 
-    y_hat_marginal = reml.marginal_predict(
+    y_hat = reml.predict(
         y,
         X,
         theta_hat,
     )
-
-    y_hat_conditional = reml.predict(y, X, Z, theta_hat, g=ScalarMatrix(2))
 
 Residuals
 ~~~~~~~~~
 
-Marginal residuals:
+Residuals:
 
 .. math::
 
-    \mathbf{e}_{\mathrm{marginal}}
+    \mathbf{e}
     =
     \mathbf{y}
     -
-    \widehat{\mathbf{y}}_{\mathrm{marginal}}.
-
-Conditional residuals:
-
-.. math::
-
-    \mathbf{e}_{\mathrm{conditional}}
-    =
-    \mathbf{y}
-    -
-    \widehat{\mathbf{y}}_{\mathrm{conditional}}.
+    \widehat{\mathbf{y}}.
 
 Example:
 
 .. jupyter-execute::
 
-    e_marginal = reml.marginal_residual(
+    e = reml.residual(
         y,
         X,
         theta_hat,
     )
-
-    e_conditional = reml.residual(y, X, Z, theta_hat, g=ScalarMatrix(2))
 
 Evaluating the log-likelihood
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -678,7 +565,7 @@ The following example demonstrates a mixed model with:
 
     import torch
 
-    from torch_openreml import REML
+    from torch_openreml import MarginalREML
     from torch_openreml.utils import augment, n_distinct
 
     from torch_openreml.covariance import (
@@ -723,7 +610,7 @@ The following example demonstrates a mixed model with:
     )
 
     # --- REML fit ---
-    reml = REML(V)
+    reml = MarginalREML(V)
 
     theta_start = torch.zeros(V.num_free_params)
 
@@ -747,7 +634,7 @@ Optimisation history
 --------------------
 
 After optimisation, the full iteration history is stored in
-:attr:`reml.history <torch_openreml.REML.history>`.
+:attr:`reml.history <torch_openreml.MarginalREML.history>`.
 
 This dictionary contains per-iteration records including:
 
