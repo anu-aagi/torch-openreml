@@ -9,6 +9,7 @@ Covariance
    torch_openreml.covariance.CompoundSymmetricMatrix
    torch_openreml.covariance.DiagonalMatrix
    torch_openreml.covariance.DummyMatrix
+   torch_openreml.covariance.EqualEntryMatrix
    torch_openreml.covariance.EquicorrelationMatrix
    torch_openreml.covariance.IdentityMatrix
    torch_openreml.covariance.LowerTriangularMatrix
