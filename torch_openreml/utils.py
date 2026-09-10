@@ -8,8 +8,6 @@ Functions:
         Validate and return the shared dtype of a collection of tensors.
     numeric_to_design_matrix:
         Construct a design matrix from one or more numeric vectors or tensors.
-    categorical_to_design_matrix:
-        Construct a one-hot encoded design matrix from a categorical vector.
     augment:
         Horizontally concatenate design matrices.
     interaction:
