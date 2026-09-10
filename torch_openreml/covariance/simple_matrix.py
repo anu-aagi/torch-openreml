@@ -29,40 +29,43 @@ class SimpleMatrix(Matrix):
     For more advanced needs (custom transforms, fixed parameters, manual
     gradients), subclass :class:`~torch_openreml.covariance.matrix.Matrix`
     directly.
-
-    Args:
-        num_free_params (int): Number of free parameters.
-        call (callable): Function with signature
-            ``call(free_params) -> torch.Tensor`` that constructs the
-            covariance matrix from a flat 1D parameter tensor.
-        manual_grad (callable, optional): Function with signature
-            ``manual_grad(free_params) -> (grad, grad_names)`` for a
-            closed-form Jacobian. If ``None`` (default), automatic
-            differentiation is used.
-        default (float or torch.Tensor, optional): Default value for each
-            parameter. Passed to :func:`simple_param_specs`. Defaults to
-            ``0.0``.
-
-    Example:
-
-    .. jupyter-execute::
-
-        import torch
-        from torch_openreml.covariance import SimpleMatrix
-
-        def my_v(free_params):
-            n = free_params.shape[0]
-            return torch.diag(free_params)
-
-        mat = SimpleMatrix(num_free_params=3, call=my_v)
-        mat(torch.tensor([1.0, 2.0, 3.0]))
-
-    .. jupyter-execute::
-
-        mat.grad(torch.tensor([1.0, 2.0, 3.0]))
     """
 
     def __init__(self, num_free_params, call, manual_grad=None, default=0.0):
+        """
+        Initialize a simple covariance matrix.
+
+        Args:
+            num_free_params (int): Number of free parameters.
+            call (callable): Function with signature
+                ``call(free_params) -> torch.Tensor`` that constructs the
+                covariance matrix from a flat 1D parameter tensor.
+            manual_grad (callable, optional): Function with signature
+                ``manual_grad(free_params) -> (grad, grad_names)`` for a
+                closed-form Jacobian. If ``None`` (default), automatic
+                differentiation is used.
+            default (float or torch.Tensor, optional): Default value for each
+                parameter. Passed to :func:`simple_param_specs`. Defaults to
+                ``0.0``.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import SimpleMatrix
+
+            def my_v(free_params):
+                return torch.diag(free_params)
+
+            mat = SimpleMatrix(num_free_params=3, call=my_v)
+            mat(torch.tensor([1.0, 2.0, 3.0]))
+
+        .. jupyter-execute::
+
+            mat.grad(torch.tensor([1.0, 2.0, 3.0]))
+        """
+
         if call is None:
             raise ValueError("'call' must be provided.")
 
