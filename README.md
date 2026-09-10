@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/anu-aagi/torch-openreml/main/docs/source/_static/hex-icon-readme.png" alt="torch-openreml" width="200">
+</p>
+
 # torch-openreml
 
 <p>
