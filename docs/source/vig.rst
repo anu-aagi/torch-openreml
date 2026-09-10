@@ -6,4 +6,4 @@ Vignettes
 .. toctree::
    :maxdepth: 1
 
-   vig/vig_reml
+   vig/vig_marginal_reml
