@@ -94,8 +94,8 @@ There are two main ways to build ``v``, depending on complexity:
   pre-built covariance components with operators.
 
 The MarginalREML class works directly with the marginal covariance matrix
-:math:`\mathbf{V}` and does not require separate :math:`\mathbf{G}`
-or :math:`\mathbf{R}` components as in mixed model.
+:math:`\mathbf{V}` and does not require separate :math:`\mathbf{G}` (random)
+or :math:`\mathbf{R}` (error) components as in mixed model.
 
 Via ``SimpleMatrix`` (function-based)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -221,7 +221,7 @@ as:
 - :class:`~torch_openreml.covariance.AR1Matrix`
 - :class:`~torch_openreml.covariance.CompoundSymmetricMatrix`
 
-along with composition operators including:
+along with composition operators such as:
 
 - :class:`~torch_openreml.covariance.Sum`
 - :class:`~torch_openreml.covariance.BlockDiagonal`
@@ -384,6 +384,100 @@ Detailed diagnostics include:
 - log-likelihood,
 - learning rate,
 - iteration count.
+
+``trace_approx`` (default ``False``)
+    Whether to start the optimisation with the stochastic probe estimate for
+    the score. The estimator is Hutch++ — Meyer, Musco, Musco & Woodruff,
+    *Hutch++: Optimal stochastic trace estimation*, SOSA 2021, pp. 142--155,
+    doi:`10.1137/1.9781611976496.16 <https://doi.org/10.1137/1.9781611976496.16>`_.
+
+    With
+
+    .. math::
+
+        \mathbf{A}_k =
+        \mathbf{V}^{-1} \frac{\partial \mathbf{V}}{\partial \theta_k},
+        \qquad
+        \mathbf{B}_k =
+        \mathbf{V}^{-1} \mathbf{X}
+        \left(\mathbf{X}^\top \mathbf{V}^{-1} \mathbf{X}\right)^{-1}
+        \mathbf{X}^\top \mathbf{V}^{-1}
+        \frac{\partial \mathbf{V}}{\partial \theta_k}
+
+    the trace term of the score splits as
+    :math:`\mathrm{tr}(\mathbf{P} \, \partial \mathbf{V} / \partial
+    \theta_k) = \mathrm{tr}(\mathbf{A}_k) - \mathrm{tr}(\mathbf{B}_k)`, and
+    the two terms are estimated separately, so neither matrix is formed in
+    full.
+
+    The estimate of a matrix :math:`\mathbf{C}` draws two independent
+    Rademacher probe matrices :math:`\mathbf{S}, \mathbf{G} \in \{\pm
+    1\}^{n \times m}` with :math:`m = \lfloor n f \rfloor + 1` probes each,
+    where :math:`f` is ``subspace_fraction``, and combines a QR sketch with
+    Hutchinson's estimator on the deflated residual:
+
+    .. math::
+
+        \mathbf{Q} = \mathrm{qr}(\mathbf{C} \mathbf{S}),
+        \qquad
+        \hat{h}(\mathbf{C}) =
+        \mathrm{tr}(\mathbf{Q}^\top \mathbf{C} \mathbf{Q})
+        +
+        \frac{1}{m}
+        \mathrm{tr}\!\left(
+            \mathbf{G}^\top
+            (\mathbf{I} - \mathbf{Q}\mathbf{Q}^\top)
+            \mathbf{C}
+            (\mathbf{I} - \mathbf{Q}\mathbf{Q}^\top)
+            \mathbf{G}
+        \right).
+
+    :math:`\mathbf{Q}` spans the dominant range of :math:`\mathbf{C}`, so
+    the first term is exact there; the second applies Hutchinson's estimator
+    to the deflated residual.
+
+    The estimate has an inherent noise floor: its error remains roughly
+    constant even as the optimisation approaches the optimum, while the true
+    score norm tends to zero. Far from the optimum, the score is much larger
+    than this error, so the estimate is sufficiently accurate to make
+    progress. Once the true score norm becomes comparable to the error,
+    however, the norm seen by the optimiser stops decreasing and plateaus. As
+    a result, ``tol_score`` is never reached, and the optimisation continues
+    until ``max_iter`` rather than stopping. The average information matrix
+    and log-likelihood are exact at every iteration and are computed
+    regardless, so these additional iterations provide no benefit. In fact, a
+    run that uses the approximation throughout can cost more than one that
+    uses the exact score from the beginning.
+
+    To avoid this, the optimiser monitors the score norm and switches to the
+    exact score once the norm falls below ``exact_score_threshold``. The
+    exact score is then used for that iteration and all subsequent
+    iterations. This is what makes the approximation worthwhile: it
+    accelerates the early iterations, when the score is well above the noise
+    floor, while leaving the final stage of optimisation to the exact score.
+    By default, ``trace_approx=False``, so the entire optimisation uses the
+    exact score. Set ``trace_approx=True`` to opt in to the approximation.
+
+``subspace_fraction`` (default ``0.01``)
+    Fraction of the ``n`` observations used as the dimension of the random
+    probe subspace in the stochastic trace estimate that forms the score on
+    iterations that are still far from the optimum.
+
+    Each of the two probe matrices holds ``int(n * subspace_fraction) + 1``
+    vectors, so the value must lie in ``[0, 1]`` and the total probe budget
+    is about twice that. Larger values give a more accurate approximate
+    score at a higher cost per iteration. Only used when
+    ``trace_approx=True``. Only the score is affected: the average
+    information matrix and the log-likelihood are always computed exactly.
+
+``exact_score_threshold`` (default ``10.0``)
+    Score norm below which the stochastic probe estimate is switched off for
+    the remainder of the optimisation.
+
+    Since the first score is always computed with the current setting,
+    ``inf`` switches the approximation off after the first iteration while
+    ``0.0`` keeps it on throughout. Use ``trace_approx=False`` instead to skip it
+    entirely.
 
 Convergence criteria
 --------------------
