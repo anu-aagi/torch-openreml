@@ -9,7 +9,7 @@ IdentityMatrix <- openreml$covariance$IdentityMatrix
 KroneckerProduct <- openreml$covariance$KroneckerProduct
 CovariancePropagation <- openreml$covariance$CovariancePropagation
 Sum <- openreml$covariance$Sum
-REML <- openreml$REML
+MarginalREML <- openreml$MarginalREML
 
 data <- agridat::john.alpha
 
@@ -29,7 +29,7 @@ V <- Sum(CovariancePropagation(Z_gen, G_gen),
          CovariancePropagation(Z_rep_block, G_rep_block),
          ScalarMatrix(nrow(data)))
 
-fit_openreml <- REML(V)
+fit_openreml <- MarginalREML(V)
 result <- fit_openreml$optimize(y, X, torch$zeros(3L), verbose = 2L)
 
 print(py_to_r(fit_openreml$get_theta()$numpy()))

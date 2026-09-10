@@ -37,7 +37,10 @@
 .. raw:: html
 
    <p>
-     <img src="https://img.shields.io/badge/version-0.1.1--alpha-blue" alt="Version 0.1.1-alpha">
+     <img src="https://img.shields.io/badge/dev-0.2.0--alpha-blue" alt="Development version 0.2.0-alpha">
+     <a href="https://pypi.org/project/torch-openreml/">
+       <img src="https://img.shields.io/pypi/v/torch-openreml?include_prereleases" alt="PyPI version">
+     </a>
      <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="GPL-3.0 License">
      <a href="https://www.python.org/">
        <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12">
