@@ -11,3 +11,4 @@ Operators
    torch_openreml.covariance.CovariancePropagation
    torch_openreml.covariance.Gram
    torch_openreml.covariance.Sum
+   torch_openreml.covariance.Augment
