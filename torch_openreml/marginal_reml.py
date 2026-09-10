@@ -181,7 +181,7 @@ class MarginalREML:
         dv, _ = self.v.grad(theta)
         return v, dv
 
-    def ai_step(self, y, x, theta, require_loglik=True, require_beta=True):
+    def ai_step(self, y, x, theta, require_loglik=True, require_beta=True, trace_approx=False, subspace_fraction=0.01):
         r"""
         Perform a single average information (AI) algorithm step.
 
@@ -204,6 +204,57 @@ class MarginalREML:
                 \frac{\partial\symbf{V}(\boldsymbol{\theta})}{\partial\theta_j}
                 \symbf{P} \symbf{y}
 
+        When ``trace_approx`` is ``True``, the trace term
+        :math:`\mathrm{tr}(\symbf{P}\,\partial\symbf{V}/\partial\theta_k)`
+        is replaced by a stochastic probe estimate, which avoids forming
+        :math:`\symbf{V}^{-1}\partial\symbf{V}` in full. With
+
+        .. math::
+            \symbf{A}_k = \symbf{V}^{-1}
+                \frac{\partial \symbf{V}}{\partial \theta_k},
+            \qquad
+            \symbf{B}_k = \symbf{V}^{-1} \symbf{X}
+                (\symbf{X}^\top \symbf{V}^{-1} \symbf{X})^{-1}
+                \symbf{X}^\top \symbf{V}^{-1}
+                \frac{\partial \symbf{V}}{\partial \theta_k},
+
+        the trace splits as
+
+        .. math::
+            \mathrm{tr}\!\left(\symbf{P}
+                \frac{\partial \symbf{V}}{\partial \theta_k}\right)
+            = \mathrm{tr}(\symbf{A}_k) - \mathrm{tr}(\symbf{B}_k),
+
+        and each of the two terms is estimated on its own, so that neither
+        :math:`\symbf{A}_k` nor :math:`\symbf{B}_k` is ever formed in full.
+
+        The estimator is Hutch++ (Meyer, Musco, Musco & Woodruff,
+        *Hutch++: Optimal stochastic trace estimation*, SOSA 2021,
+        pp. 142--155, `doi:10.1137/1.9781611976496.16
+        <https://doi.org/10.1137/1.9781611976496.16>`_). For a matrix
+        :math:`\symbf{C}`, two independent Rademacher probe matrices
+        :math:`\symbf{S}, \symbf{G} \in \{\pm 1\}^{n \times m}` are drawn
+        once per call and shared across parameters, with
+        :math:`m = \lfloor n f \rfloor + 1` probes each and :math:`f` the
+        ``subspace_fraction``, and
+
+        .. math::
+            \symbf{Q} &= \mathrm{qr}(\symbf{C} \symbf{S}), \\
+            \hat{h}(\symbf{C}) &= \mathrm{tr}(\symbf{Q}^\top \symbf{C}
+                \symbf{Q})
+                + \frac{1}{m} \mathrm{tr}\!\left( \symbf{G}^\top
+                (\symbf{I} - \symbf{Q}\symbf{Q}^\top) \symbf{C}
+                (\symbf{I} - \symbf{Q}\symbf{Q}^\top) \symbf{G} \right).
+
+        :math:`\symbf{Q}` spans the dominant range of :math:`\symbf{C}`, so
+        the first term is exact there; the second applies Hutchinson's
+        estimator to the deflated residual.
+
+        When ``trace_approx`` is ``False`` the traces are evaluated
+        exactly. The average information matrix and the log-likelihood are
+        computed exactly either way; only the trace term of the score is
+        approximated.
+
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Design matrix of shape ``(n, p)``.
@@ -212,6 +263,23 @@ class MarginalREML:
                 log-likelihood. Defaults to ``True``.
             require_beta (bool, optional): Whether to compute the coefficient
                 estimate. Defaults to ``True``.
+            trace_approx (bool, optional): Whether to estimate the trace term of
+                the score stochastically. ``False`` computes the exact
+                score, which is more expensive per call. This is a plain
+                switch with no internal state:
+                :meth:`optimize` owns the decision of when to turn it off.
+                Defaults to ``False``.
+            subspace_fraction (float, optional): Fraction of the ``n``
+                observations used as the dimension of the random probe
+                subspace in the stochastic trace estimate. Each of the two
+                probe matrices holds ``int(n * subspace_fraction) + 1``
+                vectors, so the total probe budget is about twice that.
+                Must lie in ``[0, 1]``; larger values trade time for
+                accuracy of the approximate score. Only used when
+                ``trace_approx`` is ``True``. Defaults to ``0.01``.
+
+        Raises:
+            ValueError: If ``subspace_fraction`` is outside ``[0, 1]``.
 
         Returns:
             tuple: ``(beta, score, ai, loglik)``, where ``beta`` is of shape
@@ -222,6 +290,9 @@ class MarginalREML:
         """
         device = get_device(y, x, theta)
         dtype = get_dtype(y, x, theta)
+
+        if not 0.0 <= subspace_fraction <= 1.0:
+            raise ValueError(f"subspace_fraction must be between 0 and 1, got {subspace_fraction}.")
         
         matrix = {}
         vector = {}
@@ -254,26 +325,70 @@ class MarginalREML:
         matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} Y"] = matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ matrix["Y"]
         
         matrix["P Y"] = matrix["V^{-1} Y"] - matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} Y"]
-        
-        tensor3d["V^{-1} dV"] = torch.cholesky_solve(tensor3d["dV"], matrix["L"])
-        
-        tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV"] = matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ tensor3d["dV"]
-        
-        tensor3d["P dV"] = tensor3d["V^{-1} dV"] - tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV"]
-        
-        tensor3d["P dV P Y"] = tensor3d["P dV"] @ matrix["P Y"]
-        
-        vector["Y^T P dV P Y"] = (matrix["Y"].T @ tensor3d["P dV P Y"]).squeeze()
-        
-        vector["tr(P dV)"] = torch.vmap(torch.trace)(tensor3d["P dV"])
-        
-        # Score vector
-        vector["score"] = 0.5 * (vector["Y^T P dV P Y"] - vector["tr(P dV)"])
-        
-        # AI matrix
-        tensor3d["Y^T P dV"] = matrix["Y"].T @ tensor3d["P dV"]
-        
-        matrix["AI"] = 0.5 * (tensor3d["Y^T P dV"].squeeze() @ tensor3d["P dV P Y"].squeeze().T)
+
+        if trace_approx:
+            subspace_dim = int(scalar["N"] * subspace_fraction) + 1
+            scalar["m / 3"] = subspace_dim
+
+            matrix["S"] = torch.randint(0, 2, (scalar["N"], scalar["m / 3"]), dtype=dtype, device=device) * 2 - 1.0
+            matrix["G"] = torch.randint(0, 2, (scalar["N"], scalar["m / 3"]), dtype=dtype, device=device) * 2 - 1.0
+
+            tensor3d["dV S"] = tensor3d["dV"] @ matrix["S"]
+            tensor3d["V^{-1} dV S"] = torch.cholesky_solve(tensor3d["dV S"], matrix["L"])
+            tensor3d["Q"], tensor3d["R"] = torch.linalg.qr(tensor3d["V^{-1} dV S"])
+            tensor3d["(I - Q Q^T) G"] = matrix["G"] - tensor3d["Q"] @ (tensor3d["Q"].mT @ matrix["G"])
+            tensor3d["dV (I - Q Q^T) G"] = tensor3d["dV"] @ tensor3d["(I - Q Q^T) G"]
+            tensor3d["V^{-1} dV (I - Q Q^T) G"] = torch.cholesky_solve(tensor3d["dV (I - Q Q^T) G"], matrix["L"])
+            tensor3d["G^T (I - Q Q^T)"] = tensor3d["(I - Q Q^T) G"].mT
+            tensor3d["G^T (I - Q Q^T) (V^{-1} dV) (I - Q Q^T) G"] = tensor3d["G^T (I - Q Q^T)"] @ tensor3d["V^{-1} dV (I - Q Q^T) G"]
+            tensor3d["Q^T (V^{-1} dV) Q"] = tensor3d["Q"].mT @ torch.cholesky_solve(tensor3d["dV"] @ tensor3d["Q"], matrix["L"])
+            vector["tr(V^{-1} dV)"] = torch.vmap(torch.trace)(tensor3d["Q^T (V^{-1} dV) Q"]) + 1.0 / scalar["m / 3"] * torch.vmap(torch.trace)(tensor3d["G^T (I - Q Q^T) (V^{-1} dV) (I - Q Q^T) G"])
+
+            tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV S"] = matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ tensor3d["dV S"]
+            tensor3d["Q"], tensor3d["R"] = torch.linalg.qr(tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV S"])
+            tensor3d["(I - Q Q^T) G"] = matrix["G"] - tensor3d["Q"] @ (tensor3d["Q"].mT @ matrix["G"])
+            tensor3d["dV (I - Q Q^T) G"] = tensor3d["dV"] @ tensor3d["(I - Q Q^T) G"]
+            tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV (I - Q Q^T) G"] = matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ tensor3d["dV (I - Q Q^T) G"]
+            tensor3d["G^T (I - Q Q^T)"] = matrix["G"].T - (matrix["G"].T @ tensor3d["Q"]) @ tensor3d["Q"].mT
+            tensor3d["G^T (I - Q Q^T) (V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV) (I - Q Q^T) G"] = tensor3d["G^T (I - Q Q^T)"] @ tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV (I - Q Q^T) G"]
+            tensor3d["Q^T (V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV) Q"] = (tensor3d["Q"].mT @ matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"]) @ (tensor3d["dV"] @ tensor3d["Q"])
+            vector["tr(V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV)"] = torch.vmap(torch.trace)(tensor3d["Q^T (V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV) Q"]) + 1.0 / scalar["m / 3"] * torch.vmap(torch.trace)(tensor3d["G^T (I - Q Q^T) (V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV) (I - Q Q^T) G"])
+            vector["tr(P dV)"] = vector["tr(V^{-1} dV)"] - vector["tr(V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV)"]
+
+            tensor3d["dV P Y"] = tensor3d["dV"] @ matrix["P Y"]
+            vector["Y^T P dV P Y"] = (matrix["P Y"].T @ tensor3d["dV P Y"]).squeeze()
+
+            # Score vector
+            vector["score"] = 0.5 * (vector["Y^T P dV P Y"] - vector["tr(P dV)"])
+
+            # AI matrix
+            tensor3d["Y^T P dV"] = matrix["P Y"].T @ tensor3d["dV"]
+
+            tensor3d["V^{-1} dV P Y"] = torch.cholesky_solve(tensor3d["dV P Y"], matrix["L"])
+            tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV P Y"] = matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ tensor3d["dV P Y"]
+            tensor3d["P dV P Y"] = tensor3d["V^{-1} dV P Y"] - tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV P Y"]
+
+            matrix["AI"] = 0.5 * (tensor3d["Y^T P dV"].squeeze() @ tensor3d["P dV P Y"].squeeze().T)
+        else:
+            tensor3d["V^{-1} dV"] = torch.cholesky_solve(tensor3d["dV"], matrix["L"])
+
+            tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV"] = matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ tensor3d["dV"]
+
+            tensor3d["P dV"] = tensor3d["V^{-1} dV"] - tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV"]
+
+            tensor3d["P dV P Y"] = tensor3d["P dV"] @ matrix["P Y"]
+
+            vector["Y^T P dV P Y"] = (matrix["Y"].T @ tensor3d["P dV P Y"]).squeeze()
+
+            vector["tr(P dV)"] = torch.vmap(torch.trace)(tensor3d["P dV"])
+
+            # Score vector
+            vector["score"] = 0.5 * (vector["Y^T P dV P Y"] - vector["tr(P dV)"])
+
+            # AI matrix
+            tensor3d["Y^T P dV"] = matrix["Y"].T @ tensor3d["P dV"]
+
+            matrix["AI"] = 0.5 * (tensor3d["Y^T P dV"].squeeze() @ tensor3d["P dV P Y"].squeeze().T)
 
         if matrix["AI"].ndim != 2:
             if matrix["AI"].numel() == 1:
@@ -451,8 +566,11 @@ class MarginalREML:
                  check_loglik=True,
                  tol_score=1e-4,
                  tol_delta=1e-4,
-                 tol_loglik=1e-4):
-        """
+                 tol_loglik=1e-4,
+                 trace_approx=False,
+                 subspace_fraction=0.01,
+                 exact_score_threshold=10.0):
+        r"""
         Run the AI-REML optimisation loop.
 
         Iterates :meth:`ai_step` and :meth:`update` until convergence or
@@ -489,6 +607,32 @@ class MarginalREML:
                 tolerance. Defaults to ``1e-4``.
             tol_loglik (float, optional): Log-likelihood change tolerance.
                 Defaults to ``1e-4``.
+            trace_approx (bool, optional): Whether to start the optimisation with
+                the stochastic probe estimate of :meth:`ai_step` for the
+                score, which follows Hutch++ (Meyer, Musco, Musco & Woodruff,
+                *Hutch++: Optimal stochastic trace estimation*, SOSA 2021,
+                pp. 142--155, `doi:10.1137/1.9781611976496.16
+                <https://doi.org/10.1137/1.9781611976496.16>`_). While it is
+                on, the optimiser monitors the score norm, and once that norm
+                drops below ``exact_score_threshold`` the exact score is used
+                for that and every remaining iteration. The probe estimate has
+                a noise floor that does not decay, so an optimisation left on
+                the approximation cannot satisfy ``tol_score`` and will run to
+                ``max_iter``; the switch is what makes the approximation
+                usable. Defaults to ``False``, which runs the whole
+                optimisation with the exact score.
+            subspace_fraction (float, optional): Fraction of the ``n``
+                observations used as the dimension of the random probe
+                subspace in the stochastic trace estimate of :meth:`ai_step`.
+                Must lie in ``[0, 1]``; larger values trade time for accuracy
+                of the score on iterations that are still far from the
+                optimum. Defaults to ``0.01``.
+            exact_score_threshold (float, optional): Score norm below which
+                the stochastic probe estimate is switched off for the
+                remainder of the optimisation. Since the first score is
+                always computed with the current setting, ``inf`` switches off
+                after the first iteration while ``0.0`` keeps the
+                approximation on throughout. Defaults to ``10.0``.
 
         Returns:
             tuple: ``(theta, beta, n_iter)``, where ``theta`` is the final
@@ -510,7 +654,14 @@ class MarginalREML:
         
         with torch.no_grad():
             for i in range(max_iter):
-                beta, score, ai, loglik = self.ai_step(y, x, theta, require_loglik=require_loglik)
+                beta, score, ai, loglik = self.ai_step(y, x, theta,
+                                                       require_loglik=require_loglik,
+                                                       subspace_fraction=subspace_fraction,
+                                                       trace_approx=trace_approx)
+
+                if trace_approx and torch.norm(score) < exact_score_threshold:
+                    trace_approx = False
+
                 delta = torch.linalg.lstsq(ai, score.unsqueeze(-1)).solution.squeeze()
                 theta, update = self.update(theta, delta, eta, lb, ub)
                 
