@@ -37,7 +37,7 @@ You can skip this step if conda is already installed on your system.
 
     reticulate::conda_install("torch-openreml",
                               pip = TRUE,
-                              packages = c("torch-openreml")))
+                              packages = c("git+https://github.com/anu-aagi/torch-openreml.git"))
 
 
 Usage
