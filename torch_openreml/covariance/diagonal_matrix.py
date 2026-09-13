@@ -107,7 +107,7 @@ class DiagonalMatrix(Matrix):
         mask[self.free_param_index] = True
         idx = idx[mask]
 
-        grad[:, idx, idx] = self.trans_grad(free_params)
+        grad[torch.arange(free_params.shape[0], device=device), idx, idx] = self.trans_grad(free_params)
 
         return grad, self.free_param_names
 
