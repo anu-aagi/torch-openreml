@@ -14,6 +14,7 @@ Classes:
 """
 
 import torch
+from torch_openreml.config import get_default_jacobian_method
 from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.covariance.transform import TransformIdentity
 
@@ -61,7 +62,8 @@ class Adapter(Matrix):
             param_map (callable): A function ``f(params) -> adaptee_params``
                 that maps the adapter's parameter tensor to the parameter
                 tensor expected by ``adaptee``.  Must be differentiable
-                (compatible with :func:`torch.func.jacrev`).
+                (compatible with the configured Jacobian method; see
+                :func:`~torch_openreml.config.set_default_jacobian_method`).
 
         Raises:
             ValueError: If any parameter specification uses a non-identity
@@ -118,7 +120,7 @@ class Adapter(Matrix):
 
         Resets the adaptee's intermediate cache before calling the parent
         :meth:`~torch_openreml.covariance.matrix.Matrix.auto_grad`, which
-        uses :func:`torch.func.jacrev`.
+        uses the configured Jacobian method.
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
@@ -172,7 +174,7 @@ class Adapter(Matrix):
         adaptee_free_params = self.param_map(params)
         adaptee_grad, _ = self.adaptee.grad(adaptee_free_params)
 
-        jacobian = torch.func.jacrev(self.param_map)(params)
+        jacobian = get_default_jacobian_method()(self.param_map)(params)
 
         grad = (jacobian[:, :, None, None] * adaptee_grad[:, None, :, :]).sum(dim=0)
 
