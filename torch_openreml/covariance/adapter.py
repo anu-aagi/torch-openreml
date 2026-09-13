@@ -14,7 +14,6 @@ Classes:
 """
 
 import torch
-from torch_openreml.config import get_default_jacobian_method
 from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.covariance.transform import TransformIdentity
 
@@ -62,8 +61,7 @@ class Adapter(Matrix):
             param_map (callable): A function ``f(params) -> adaptee_params``
                 that maps the adapter's parameter tensor to the parameter
                 tensor expected by ``adaptee``.  Must be differentiable
-                (compatible with the configured Jacobian method; see
-                :func:`~torch_openreml.config.set_default_jacobian_method`).
+                (compatible with :attr:`~torch_openreml.covariance.matrix.Matrix.jacobian_method`).
 
         Raises:
             ValueError: If any parameter specification uses a non-identity
@@ -174,7 +172,16 @@ class Adapter(Matrix):
         adaptee_free_params = self.param_map(params)
         adaptee_grad, _ = self.adaptee.grad(adaptee_free_params)
 
-        jacobian = get_default_jacobian_method()(self.param_map)(params)
+        chunk_size = self.jacobian_chunk_size
+
+        if self.jacobian_method == "jacrev":
+            jacobian = torch.func.jacrev(self.param_map, chunk_size=chunk_size)(params)
+        elif self.jacobian_method == "jacfwd":
+            jacobian = torch.func.jacfwd(self.param_map)(params)
+        elif self.jacobian_method == "jacobian":
+            jacobian = torch.autograd.functional.jacobian(self.param_map, params)
+        else:
+            raise ValueError(f"Unknown Jacobian method {self.jacobian_method!r}! Expected one of 'jacrev', 'jacfwd', 'jacobian'.")
 
         grad = (jacobian[:, :, None, None] * adaptee_grad[:, None, :, :]).sum(dim=0)
 
