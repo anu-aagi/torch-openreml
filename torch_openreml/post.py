@@ -3,21 +3,27 @@ Post-hoc estimation for linear mixed models fitted by REML.
 
 Given fitted covariance parameters :math:`\boldsymbol{\theta}` and a
 marginal covariance matrix :math:`\symbf{V}(\boldsymbol{\theta})`,
-these functions compute quantities from a fitted model:
-
-- :func:`blue`: best linear unbiased estimator of the fixed effects
-  :math:`\boldsymbol{\beta}`;
-- :func:`blup`: best linear unbiased predictor of the random effects
-  :math:`\symbf{b}`, requiring the random-effect covariance
-  :math:`\symbf{G}` and design matrix :math:`\symbf{Z}`;
-- :func:`loglik`: restricted log-likelihood evaluated at given
-  covariance parameters;
-- :func:`marginal_predict`: fitted values from fixed effects only;
-- :func:`predict`: fitted values from fixed and random effects;
-- :func:`marginal_residual`: residuals after removing the fixed effects;
-- :func:`residual`: residuals after removing both fixed and random effects.
-
+these functions compute quantities from a fitted model.
 All inputs are ``torch.Tensor`` objects.
+
+Functions:
+    blue:
+        Best linear unbiased estimator of the fixed effects
+        :math:`\boldsymbol{\beta}`.
+    blup:
+        Best linear unbiased predictor of the random effects
+        :math:`\symbf{b}`, requiring the random-effect covariance
+        :math:`\symbf{G}` and design matrix :math:`\symbf{Z}`.
+    loglik:
+        Restricted log-likelihood evaluated at given covariance parameters.
+    marginal_predict:
+        Fitted values from fixed effects only.
+    predict:
+        Fitted values from fixed and random effects.
+    marginal_residual:
+        Residuals after removing the fixed effects.
+    residual:
+        Residuals after removing both fixed and random effects.
 """
 
 import torch
