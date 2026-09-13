@@ -14,6 +14,7 @@ Classes:
 
 import torch
 from abc import ABC, abstractmethod
+from torch_openreml.config import get_default_jacobian_method
 from torch_openreml.covariance.transform import Transform
 
 class Matrix(ABC):
@@ -372,7 +373,9 @@ class Matrix(ABC):
         Compute the Jacobian of :meth:`build` with respect to
         free parameters using automatic differentiation.
 
-        Uses :func:`torch.func.jacrev` to compute the full Jacobian.
+        Uses the configured Jacobian method (see
+        :func:`~torch_openreml.config.set_default_jacobian_method`) to compute
+        the full Jacobian.
 
         If all parameters are fixed, returns ``(None, [])``
 
@@ -413,7 +416,7 @@ class Matrix(ABC):
 
         self.reset_intermediates()
 
-        jacobian = torch.func.jacrev(self.__call__)(free_params)
+        jacobian = get_default_jacobian_method()(self.__call__)(free_params)
         grad = jacobian.permute(2, 0, 1)
         grad_names = self.free_param_names
 
