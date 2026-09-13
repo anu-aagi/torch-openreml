@@ -14,7 +14,6 @@ Classes:
 
 import torch
 from abc import ABC, abstractmethod
-from torch_openreml.config import get_default_jacobian_method
 from torch_openreml.covariance.transform import Transform
 
 class Matrix(ABC):
@@ -66,6 +65,17 @@ class Matrix(ABC):
         # ``"auto"`` uses automatic differentiation, and ``"default"`` uses the manual
         # gradient if :meth:`manual_grad` is defined, otherwise automatic differentiation.
         self.grad_mode = "default"
+
+        #: Jacobian method used by :meth:`auto_grad`, one of ``"jacrev"``,
+        #: ``"jacfwd"``, or ``"jacobian"``.
+        self.jacobian_method = "jacfwd"
+
+        #: Number of outputs held per batch when :meth:`auto_grad` differentiates
+        #: with ``"jacrev"``, or ``None`` to compute the Jacobian in a single
+        #: batch. Ignored by ``"jacfwd"``, which takes no chunk size argument,
+        #: and by ``"jacobian"``, which already loops over the outputs one at a
+        #: time.
+        self.jacobian_chunk_size = None
 
         self.reset_intermediates()
 
@@ -373,8 +383,7 @@ class Matrix(ABC):
         Compute the Jacobian of :meth:`build` with respect to
         free parameters using automatic differentiation.
 
-        Uses the configured Jacobian method (see
-        :func:`~torch_openreml.config.set_default_jacobian_method`) to compute
+        Uses :attr:`jacobian_method` and :attr:`jacobian_chunk_size` to compute
         the full Jacobian.
 
         If all parameters are fixed, returns ``(None, [])``
@@ -416,7 +425,16 @@ class Matrix(ABC):
 
         self.reset_intermediates()
 
-        jacobian = get_default_jacobian_method()(self.__call__)(free_params)
+        chunk_size = self.jacobian_chunk_size
+
+        if self.jacobian_method == "jacrev":
+            jacobian = torch.func.jacrev(self.__call__, chunk_size=chunk_size)(free_params)
+        elif self.jacobian_method == "jacfwd":
+            jacobian = torch.func.jacfwd(self.__call__)(free_params)
+        elif self.jacobian_method == "jacobian":
+            jacobian = torch.autograd.functional.jacobian(self.__call__, free_params)
+        else:
+            raise ValueError(f"Unknown Jacobian method {self.jacobian_method!r}! Expected one of 'jacrev', 'jacfwd', 'jacobian'.")
         grad = jacobian.permute(2, 0, 1)
         grad_names = self.free_param_names
 
@@ -691,7 +709,7 @@ class Matrix(ABC):
     def num_fixed_params(self):
         """int: Total number of fixed parameters."""
         return len(self.fixed_param_names)
-    
+
     @property
     def param_defaults(self):
         """Dict of torch.Tensor: Parameter defaults."""
