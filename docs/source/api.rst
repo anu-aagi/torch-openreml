@@ -14,4 +14,3 @@ API Reference
    api/post
    api/utils
    api/example_data
-   api/config
