@@ -335,11 +335,21 @@ class Operator(Matrix):
 
         return grad_groups, grad_name_groups
 
-    def auto_grad(self, free_params=None):
-        for operand in self.operands:
+    def reset_intermediates(self):
+        """
+        Clear the intermediate caches of this operator and its operands.
+
+        Extends :meth:`~torch_openreml.covariance.matrix.Matrix.reset_intermediates`,
+        which clears this operator's own cache, by recursively clearing the
+        cache of every :class:`~torch_openreml.covariance.matrix.Matrix`
+        operand. Nested operators continue the descent through this same
+        override, so resetting a node resets everything below it.
+        """
+        super().reset_intermediates()
+
+        for operand in self.operands.values():
             if isinstance(operand, Matrix):
                 operand.reset_intermediates()
-        return super().auto_grad(free_params)
         
     @property
     def operands(self):
