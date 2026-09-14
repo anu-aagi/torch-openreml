@@ -61,16 +61,16 @@ class Matrix(ABC):
         self._check_param_specs(param_specs)
         self._param_specs = param_specs
 
-        #: Gradient computation mode: ``"manual"`` uses a class-defined manual gradient,
-        # ``"auto"`` uses automatic differentiation, and ``"default"`` uses the manual
-        # gradient if :meth:`manual_grad` is defined, otherwise automatic differentiation.
+        #: str: Gradient computation mode. ``"manual"`` uses a class-defined manual gradient,
+        #: ``"auto"`` uses automatic differentiation, and ``"default"`` uses the manual
+        #: gradient if :meth:`manual_grad` is defined, otherwise automatic differentiation.
         self.grad_mode = "default"
 
-        #: Jacobian method used by :meth:`auto_grad`, one of ``"jacrev"``,
+        #: str: Jacobian method used by :meth:`auto_grad`, one of ``"jacrev"``,
         #: ``"jacfwd"``, or ``"jacobian"``.
         self.jacobian_method = "jacfwd"
 
-        #: Number of outputs held per batch when :meth:`auto_grad` differentiates
+        #: int or None: Number of outputs held per batch when :meth:`auto_grad` differentiates
         #: with ``"jacrev"``, or ``None`` to compute the Jacobian in a single
         #: batch. Ignored by ``"jacfwd"``, which takes no chunk size argument,
         #: and by ``"jacobian"``, which already loops over the outputs one at a
@@ -539,6 +539,8 @@ class Matrix(ABC):
                 return self.manual_grad(free_params)
             except NotImplementedError:
                 return self.auto_grad(free_params)
+        elif self.grad_mode == "manual":
+            return self.manual_grad(free_params)
         elif self.grad_mode == "auto":
             return self.auto_grad(free_params)
         else:
