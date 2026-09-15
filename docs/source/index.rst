@@ -37,7 +37,7 @@
 .. raw:: html
 
    <p>
-     <img src="https://img.shields.io/badge/dev-0.2.0--alpha-blue" alt="Development version 0.2.0-alpha">
+     <img src="https://img.shields.io/badge/dev-0.2.1--alpha-blue" alt="Development version 0.2.1-alpha">
      <a href="https://pypi.org/project/torch-openreml/">
        <img src="https://img.shields.io/pypi/v/torch-openreml?include_prereleases" alt="PyPI version">
      </a>
