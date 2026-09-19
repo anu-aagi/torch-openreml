@@ -351,6 +351,10 @@ class Matrix(ABC):
         if extra:
             raise ValueError(f"Unexpected free parameters: {extra}!")
         
+        if self.num_free_params == 0:
+            device, dtype = self.get_default_dtype_device()
+            return torch.tensor([], device=device, dtype=dtype)
+
         return torch.cat([free_param_dict[name] for name in self.free_param_names])
 
     def _to_free_param_dict(self, free_params):
