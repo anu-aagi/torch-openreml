@@ -387,7 +387,8 @@ class Matrix(ABC):
 
         Returns:
             torch.Tensor: 1D tensor of element-wise transform derivatives,
-            of the same length as ``free_params``.
+            of the same length as ``free_params``. An empty 1D tensor is
+            returned when the matrix has no free parameters.
 
         Example:
 
@@ -409,6 +410,9 @@ class Matrix(ABC):
 
         free_params = self._from_free_param_dict(free_params)
         device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
+
+        if len(free_params) == 0:
+            return torch.tensor([], device=device, dtype=dtype)
 
         free_param_trans = list(self.free_param_trans.values())
         ref_dict = free_param_trans[0].__dict__
