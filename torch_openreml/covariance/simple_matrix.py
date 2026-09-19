@@ -39,7 +39,12 @@ class SimpleMatrix(Matrix):
             num_free_params (int): Number of free parameters.
             call (callable): Function with signature
                 ``call(free_params) -> torch.Tensor`` that constructs the
-                covariance matrix from a flat 1D parameter tensor.
+                covariance matrix from a flat 1D parameter tensor. It receives
+                the output of
+                :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`
+                with ``include_fixed=False`` and ``trans=False``, so a parameter
+                dict or ``None`` is resolved to the free parameter tensor
+                itself, untransformed, before the call.
             manual_grad (callable, optional): Function with signature
                 ``manual_grad(free_params) -> (grad, grad_names)`` for a
                 closed-form Jacobian. If ``None`` (default), automatic
