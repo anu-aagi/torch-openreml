@@ -87,4 +87,4 @@ class IdentityMatrix(Matrix):
             mat(torch.tensor([], dtype=torch.float64))
         """
         params = self.build_params(free_params, include_fixed=False, trans=False)
-        return self._matrix.to(device=params.device, dtype=params.dtype)
+        return self._matrix.to(device=params.device, dtype=params.dtype).clone()
