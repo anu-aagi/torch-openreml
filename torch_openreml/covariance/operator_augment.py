@@ -144,7 +144,7 @@ class Augment(Operator):
         for grad, names, (c0, c1) in zip(grad_groups, grad_name_groups, col_offsets):
             if grad is not None:
                 tmp = torch.zeros(grad.shape[0], grad.shape[1], total_cols,
-                                  dtype=free_params.dtype, device=free_params.device)
+                                  dtype=grad.dtype, device=grad.device)
                 tmp[:, :, c0:c1] = grad
                 grad_list.append(tmp)
                 grad_names.extend(names)
