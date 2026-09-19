@@ -355,7 +355,12 @@ class Matrix(ABC):
             device, dtype = self.get_default_dtype_device()
             return torch.tensor([], device=device, dtype=dtype)
 
-        return torch.cat([free_param_dict[name] for name in self.free_param_names])
+        free_params = [free_param_dict[name] for name in self.free_param_names]
+        device, dtype = free_params[0].device, free_params[0].dtype
+        if not all(other.device == device and other.dtype == dtype for other in free_params):
+            raise ValueError("All free parameters must share the same dtype and device!")
+
+        return torch.cat(free_params)
 
     def _to_free_param_dict(self, free_params):
         if isinstance(free_params, dict):
