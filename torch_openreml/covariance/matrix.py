@@ -360,7 +360,7 @@ class Matrix(ABC):
         if len(free_params) != len(self.free_param_names):
             raise ValueError(f"Expected {len(self.free_param_names)} parameters, got {len(free_params)}!")
         
-        return {name: tensor for name, tensor in zip(self.param_names, free_params.unsqueeze(-1))}
+        return {name: tensor for name, tensor in zip(self.free_param_names, free_params.unsqueeze(-1))}
 
     def trans_grad(self, free_params=None):
         """
