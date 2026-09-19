@@ -199,6 +199,42 @@ class Matrix(ABC):
         """
         self._intermediates = {"hash": None, "dtype": None, "device": None, "intermediates": None}
 
+    def get_default_dtype_device(self):
+        """
+        Get the dtype and the device of the parameter defaults.
+
+        All parameter defaults are expected to share the same dtype and device,
+        so that they can be concatenated into a single tensor. When the matrix
+        has no parameters at all, the default dtype and device of Torch are
+        returned instead.
+
+        Returns:
+            tuple: ``(device, dtype)`` shared by the parameter defaults, or the
+            default device and dtype of Torch when the matrix has no parameters.
+
+        Raises:
+            ValueError: If the parameter defaults do not all share the same
+                dtype and device.
+
+        Example:
+
+        .. jupyter-execute::
+
+            from torch_openreml.covariance import ScalarMatrix
+
+            mat = ScalarMatrix(3)
+            mat.get_default_dtype_device()
+        """
+        if self.num_params == 0:
+            return torch.get_default_device(), torch.get_default_dtype()
+
+        defaults = list(self.param_defaults.values())
+        device, dtype = defaults[0].device, defaults[0].dtype
+        if not all(other.device == device and other.dtype == dtype for other in defaults):
+            raise ValueError("All parameter defaults must share the same dtype and device!")
+
+        return device, dtype
+
     def build_params(self, free_params=None, include_fixed=True, trans=True, out_format="tensor"):
         """
         Construct the full parameter tensor from free parameters.
