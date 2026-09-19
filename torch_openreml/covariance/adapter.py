@@ -36,12 +36,6 @@ class Adapter(Matrix):
     Gradients are computed via the chain rule: the adaptee's gradient with
     respect to its own parameters is pulled back through the Jacobian of
     ``param_map``.
-
-    .. note::
-        All adapter parameter transforms **must** be
-        :class:`~torch_openreml.covariance.transform.TransformIdentity`.
-        Non-identity transforms should be applied inside ``param_map`` or
-        on the adaptee directly.
     """
 
     _repr_single_line = False
@@ -54,9 +48,9 @@ class Adapter(Matrix):
             adaptee (:class:`~torch_openreml.covariance.matrix.Matrix`):
                 The matrix to reparameterise.
             param_specs (dict): Parameter specifications for the adapter's
-                own parameters.  Keys are parameter names; values are
+                own parameters. Keys are parameter names; values are
                 dictionaries with keys ``"fixed"``, ``"default"``, and
-                ``"trans"``.  **All transforms must be**
+                ``"trans"``. All parameters should be free and use
                 :class:`~torch_openreml.covariance.transform.TransformIdentity`.
             param_map (callable): A function ``f(params) -> adaptee_params``
                 that maps the adapter's parameter tensor to the parameter
@@ -105,9 +99,32 @@ class Adapter(Matrix):
         self._param_map = param_map
 
     def __call__(self, free_params=None):
+        """
+        Build the covariance matrix from the adapter's parameters.
+
+        ``free_params`` is checked by
+        :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`, called
+        with ``include_fixed=False`` and ``trans=False``: only the free
+        parameters are kept, and no transform is applied. Those free
+        parameters are passed to ``param_map``, and its output builds the
+        adaptee's matrix.
+
+        Args:
+            free_params (torch.Tensor or dict, optional): Flat 1D tensor of the
+                adapter's free parameters, or a parameter dictionary. If
+                omitted, default values are used. Default: ``None``.
+
+        Returns:
+            torch.Tensor: The covariance matrix built by the adaptee.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor or a dict.
+            ValueError: If ``free_params`` is not a 1D tensor or has the wrong
+                length, or if it is a dict with missing or unexpected keys.
+        """
         if free_params is None:
             free_params = self.free_param_defaults
-        params = self.build_params(free_params)
+        params = self.build_params(free_params, include_fixed=False, trans=False)
         adaptee_free_params = self.param_map(params)
         return self.adaptee(adaptee_free_params)
 
@@ -129,7 +146,7 @@ class Adapter(Matrix):
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
             shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are fixed.
+            Returns ``(None, [])`` when the matrix has no free parameters.
         """
         self.adaptee.reset_intermediates()
         return super().auto_grad(free_params)
@@ -149,7 +166,10 @@ class Adapter(Matrix):
             \\frac{\\partial \\phi_k}{\\partial \\boldsymbol{\\theta}}
 
         where :math:`\\boldsymbol{\\phi} = f(\\boldsymbol{\\theta})` are the
-        adaptee's parameters.
+        adaptee's parameters. ``free_params`` is checked by
+        :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`, called
+        with ``include_fixed=False`` and ``trans=False``, and the free
+        parameters are then passed to ``param_map`` untransformed.
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
@@ -160,15 +180,17 @@ class Adapter(Matrix):
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
             shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are fixed.
+            Returns ``(None, [])`` when the matrix has no free parameters,
+            after ``free_params`` is validated via
+            :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
         """
         if free_params is None:
             free_params = self.free_param_defaults
 
+        params = self.build_params(free_params, include_fixed=False, trans=False)
         if self.num_free_params == 0:
             return None, []
 
-        params = self.build_params(free_params)
         adaptee_free_params = self.param_map(params)
         adaptee_grad, _ = self.adaptee.grad(adaptee_free_params)
 
@@ -188,27 +210,11 @@ class Adapter(Matrix):
         return grad, self.free_param_names
 
     @property
-    def param_specs(self):
-        """
-        dict: The adapter's parameter specifications.
-
-        All transforms are forced to
-        :class:`~torch_openreml.covariance.transform.TransformIdentity`.
-        """
-        return {
-            param_name: {
-                "fixed": param_spec["fixed"],
-                "default": param_spec["default"],
-                "trans": TransformIdentity()
-            } for param_name, param_spec in self._param_specs.items()
-        }
-
-    @property
     def param_map(self):
         """
         callable: The mapping function ``f(params) -> adaptee_params`` that
-        translates the adapter's parameter tensor to the adaptee's parameter
-        tensor.
+        translates the adapter's free parameter tensor to the adaptee's
+        parameter tensor. The parameters are untransformed.
         """
         return self._param_map
 
