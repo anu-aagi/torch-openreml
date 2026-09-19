@@ -63,8 +63,20 @@ class SimpleMatrix(Matrix):
             def my_v(free_params):
                 return torch.diag(free_params)
 
-            mat = SimpleMatrix(num_free_params=3, call=my_v)
+            mat = SimpleMatrix(num_free_params=3, call=my_v, default=1.0)
             mat(torch.tensor([1.0, 2.0, 3.0]))
+
+        .. jupyter-execute::
+
+            mat()
+
+        .. jupyter-execute::
+
+            mat({
+                "theta_0": torch.tensor([2.0]),
+                "theta_1": torch.tensor([3.0]),
+                "theta_2": torch.tensor([4.0]),
+            })
 
         .. jupyter-execute::
 
@@ -79,15 +91,13 @@ class SimpleMatrix(Matrix):
         self._manual_grad = manual_grad
 
     def __call__(self, free_params=None):
-        if free_params is None:
-            free_params = self.free_param_defaults
-        result = self._call(free_params)
+        params = self.build_params(free_params, include_fixed=False, trans=False)
+        result = self._call(params)
         self._shape = tuple(result.shape)
         return result
 
     def manual_grad(self, free_params=None):
         if self._manual_grad is None:
             raise NotImplementedError
-        if free_params is None:
-            free_params = self.free_param_defaults
-        return self._manual_grad(free_params)
+        params = self.build_params(free_params, include_fixed=False, trans=False)
+        return self._manual_grad(params)
