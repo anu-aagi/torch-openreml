@@ -36,6 +36,20 @@ class Operator(Matrix):
     At least one operand must be a
     :class:`~torch_openreml.covariance.matrix.Matrix` instance. Pure-tensor
     operands are treated as fixed matrices with no free parameters.
+
+    Every operand is built on a single dtype and device, resolved once for the
+    whole composite:
+
+    1. the input parameters (``free_params``);
+    2. the free-parameter defaults of the :class:`Matrix` operands, or all
+       parameter defaults when no operand has a free parameter;
+    3. the default dtype and device of Torch.
+
+    In case 2 the dtype and the device must be equal across all
+    :class:`Matrix` operands, including any nested inside nested operators, or
+    a :class:`ValueError` is raised. :class:`Matrix` operands follow the
+    resolved dtype and device through the parameter tensor they receive, and
+    fixed tensor operands are cast to it.
     """
   
     _repr_single_line = False
@@ -234,7 +248,8 @@ class Operator(Matrix):
 
         Splits ``free_params`` into per-operand slices and calls each
         :class:`~torch_openreml.covariance.matrix.Matrix` operand to
-        produce its matrix. Fixed tensor operands are included as-is.
+        produce its matrix. Fixed tensor operands are cast to the dtype and
+        the device of ``free_params``.
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D joint parameter tensor or
@@ -259,10 +274,10 @@ class Operator(Matrix):
         if free_params is None:
             free_params = self.free_param_defaults
         free_params = self._from_free_param_dict(free_params)
-        self._check_param_tensor(free_params, length=self.num_free_params)
-        
+        device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
+
         v_groups = []
-        
+
         for name, operand in self.operands.items():
             if isinstance(operand, Matrix):
                 operand_params = free_params[0:operand.num_free_params]
@@ -270,7 +285,7 @@ class Operator(Matrix):
 
                 v_groups.append(operand(operand_params))
             else:
-                v_groups.append(operand)
+                v_groups.append(operand.to(device=device, dtype=dtype))
         
         return v_groups
 
