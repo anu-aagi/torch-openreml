@@ -4,7 +4,8 @@ Dummy matrix.
 This module provides a fixed dummy matrix for use in linear
 mixed-effects models. The matrix is constructed
 from categorical input at initialisation and has no
-trainable parameters.
+trainable parameters, so only the dtype and the device of the input are
+followed.
 
 Classes:
     DummyMatrix:
@@ -27,9 +28,12 @@ class DummyMatrix(Matrix):
     where :math:`\symbf{X}` is constructed from ``*args`` at initialisation
     and remains fixed thereafter. This matrix has no trainable parameters,
     so :meth:`grad` always returns ``(None, [])``.
+
+    :meth:`__call__` follows the dtype and the device of its input; when it
+    receives none, the PyTorch default dtype and device are used.
     """
 
-    def __init__(self, *args, levels=None, lex_order=True, drop_first=False, drop_empty_cols=False, dtype=None, device=None):
+    def __init__(self, *args, levels=None, lex_order=True, drop_first=False, drop_empty_cols=False):
         """
         Initialize a fixed dummy matrix from numeric or categorical input.
 
@@ -44,8 +48,6 @@ class DummyMatrix(Matrix):
             drop_first (bool, optional): Whether to drop the first column.
                 Defaults to ``False``.
             drop_empty_cols (bool, optional): Whether to drop empty columns.
-            dtype (torch.dtype, optional): Desired dtype of the matrix.
-            device (torch.device, optional): Desired device of the matrix.
 
         Raises:
             TypeError: If any ``args`` is not a :class: list or tuple.
@@ -87,9 +89,6 @@ class DummyMatrix(Matrix):
             print(mat())
             print(mat.colnames)
         """
-        dtype = dtype or torch.get_default_dtype()
-        device = device or torch.get_default_device()
-
         for i, arg in enumerate(args):
             if not isinstance(arg, (list, tuple, pd.Series)):
                 raise TypeError(f"Argument {i} must be a list, a tuple or a pandas.Series!")
@@ -126,12 +125,49 @@ class DummyMatrix(Matrix):
             x = x.loc[:, (x != 0).any(axis=0)]
 
         self._colnames = x.columns.tolist()
-        self._matrix = torch.tensor(x.to_numpy(), dtype=dtype, device=device)
+        self._matrix = torch.tensor(x.to_numpy(), dtype=torch.get_default_dtype())
 
         super().__init__((self._matrix.shape[0], self._matrix.shape[1]), {})
 
-    def __call__(self, *args, **kwargs):
-        return self._matrix
+    def __call__(self, free_params=None):
+        """
+        Return the dummy matrix, on the dtype and device of the input.
+
+        The dummy matrix has no parameters, so ``free_params`` carries no
+        values: only its dtype and device are used. When it is omitted, the
+        PyTorch default dtype and device are used.
+
+        Args:
+            free_params (torch.Tensor or dict, optional): Empty 1D parameter
+                tensor whose dtype and device are followed, or an empty
+                parameter dict. If omitted, the PyTorch default dtype and
+                device are used. Default: ``None``.
+
+        Returns:
+            torch.Tensor: The fixed dummy matrix.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor or a dict.
+            ValueError: If ``free_params`` is not empty, since the matrix has
+                no parameters to receive.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DummyMatrix
+
+            rep = ["rep1", "rep2", "rep2"]
+            mat = DummyMatrix(rep)
+            mat()
+
+        .. jupyter-execute::
+
+            mat(torch.tensor([], dtype=torch.float64))
+        """
+        params = self.build_params(free_params, include_fixed=False, trans=False)
+        return self._matrix.to(device=params.device, dtype=params.dtype)
 
     @property
     def colnames(self):
