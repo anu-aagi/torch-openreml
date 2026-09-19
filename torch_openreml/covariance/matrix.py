@@ -81,10 +81,10 @@ class Matrix(ABC):
 
     def set_intermediates(self, params, intermediates):
         """
-        Cache intermediate computation results keyed by parameter hash.
+        Cache intermediate computation results keyed by the parameter values.
 
-        Stores arbitrary intermediate values alongside a hash of the current
-        parameter tensor, dtype, and device. Cached values can be retrieved
+        Stores arbitrary intermediate values alongside the current parameter
+        tensor, its dtype, and its device. Cached values can be retrieved
         via :meth:`get_intermediates` to avoid redundant computation across
         multiple calls with identical parameters.
 
@@ -99,6 +99,8 @@ class Matrix(ABC):
 
         Note:
             If ``params`` has length 0 (no free parameters), this is a no-op.
+            A copy of ``params`` is stored, so a later in-place edit of the
+            caller's tensor cannot change the key of an entry already cached.
 
         Example:
 
@@ -118,8 +120,7 @@ class Matrix(ABC):
         if params.shape[0] == 0:
             return None
 
-        h = torch.hash_tensor(params).item()
-        self._intermediates["hash"] = h
+        self._intermediates["params"] = params.detach().clone()
         self._intermediates["dtype"] = dtype
         self._intermediates["device"] = device
         self._intermediates["intermediates"] = intermediates
@@ -128,10 +129,16 @@ class Matrix(ABC):
         """
         Retrieve cached intermediate computation results if still valid.
 
-        Compares the hash, dtype, and device of ``params`` against the stored
+        Compares the values, dtype, and device of ``params`` against the stored
         cache from the last :meth:`set_intermediates` call. Returns the cached
         value only if all three match, ensuring stale results are never returned
         after a parameter update, device transfer, or dtype cast.
+
+        Values are compared elementwise, so an entry is reused only when the
+        parameters agree in every position: the same values in a different
+        order, or the same values paired differently, are different models and
+        each gets its own entry. Parameter vectors are a handful of floats, so
+        the comparison is cheap.
 
         Args:
             params (torch.Tensor): Current parameter tensor.
@@ -162,13 +169,20 @@ class Matrix(ABC):
         if params.shape[0] == 0:
             return None
 
-        h = torch.hash_tensor(params).item()
-        if self._intermediates["hash"] == h:
-            if self._intermediates["dtype"] == dtype:
-                if self._intermediates["device"] == device:
-                    return self._intermediates["intermediates"]
+        cached_params = self._intermediates["params"]
+        if cached_params is None:
+            return None
 
-        return None
+        # Both guards are checked before the value comparison: torch.equal
+        # raises rather than returning False on a device mismatch.
+        if self._intermediates["dtype"] != dtype:
+            return None
+        if self._intermediates["device"] != device:
+            return None
+        if not torch.equal(cached_params, params):
+            return None
+
+        return self._intermediates["intermediates"]
 
     def reset_intermediates(self):
         """
@@ -197,7 +211,7 @@ class Matrix(ABC):
             mat.reset_intermediates()
             print(mat.get_intermediates(free_params))
         """
-        self._intermediates = {"hash": None, "dtype": None, "device": None, "intermediates": None}
+        self._intermediates = {"params": None, "dtype": None, "device": None, "intermediates": None}
 
     def get_default_dtype_device(self):
         """
