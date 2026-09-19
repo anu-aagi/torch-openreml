@@ -498,7 +498,9 @@ class Matrix(ABC):
 
         Implementations must satisfy the following contract:
 
-        - Return ``(None, [])`` if all parameters are fixed.
+        - Validate ``free_params`` via :meth:`build_params` first, so bad
+          input raises even when the matrix has no free parameters.
+        - Return ``(None, [])`` when the matrix has no free parameters.
         - Return a 3D gradient tensor of shape
           ``(num_free_params, *shape)`` and a matching list
           of parameter names.
@@ -515,7 +517,7 @@ class Matrix(ABC):
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
             shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are fixed.
+            Returns ``(None, [])`` when the matrix has no free parameters.
 
         Raises:
             NotImplementedError: If the subclass does not provide an analytic
@@ -637,7 +639,7 @@ class Matrix(ABC):
         if params.dim() != 1:
             raise ValueError("Parameters must be a 1D tensor!")
 
-        if length:
+        if length is not None:
             if params.shape[0] != length:
                 raise ValueError(f"Parameters must have length {length}, got {params.shape[0]}!")
 
@@ -714,7 +716,11 @@ class Matrix(ABC):
     
     @property
     def param_specs(self):
-        """dict: Parameter specifications."""
+        """dict: Parameter specifications, returned as stored rather than copied.
+
+        A specification edited in place (for example setting ``"fixed"`` to
+        ``True``) therefore takes effect on the next call.
+        """
         return self._param_specs
       
     @property  
