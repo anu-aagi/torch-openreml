@@ -110,14 +110,17 @@ class LowerTriangularMatrix(Matrix):
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
             shape ``(num_free_params, *shape)`` and
             ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` if all parameters are fixed.
+            Returns ``(None, [])`` when the matrix has no free parameters,
+            after ``free_params`` is validated via
+            :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
         """
         if free_params is None:
             free_params = self.free_param_defaults
+
+        free_params = self.build_params(free_params, include_fixed=False, trans=False)
         if len(free_params) == 0:
             return None, []
 
-        free_params = self.build_params(free_params, include_fixed=False, trans=False)
         device = free_params.device
         dtype = free_params.dtype
 
