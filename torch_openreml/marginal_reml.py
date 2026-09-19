@@ -174,7 +174,7 @@ class MarginalREML:
         Returns:
             tuple: ``(v, dv)``, where ``v`` is the covariance matrix of
             shape ``(n, n)`` and ``dv`` is the Jacobian of shape
-            ``(num_params, n, n)``.
+            ``(num_free_params, n, n)``.
         """
         
         v = self.v(theta)
@@ -283,8 +283,8 @@ class MarginalREML:
 
         Returns:
             tuple: ``(beta, score, ai, loglik)``, where ``beta`` is of shape
-            ``(p,)``, ``score`` is of shape ``(num_params,)``, ``ai`` is of
-            shape ``(num_params, num_params)``, and ``loglik`` is a scalar
+            ``(p,)``, ``score`` is of shape ``(num_free_params,)``, ``ai`` is of
+            shape ``(num_free_params, num_free_params)``, and ``loglik`` is a scalar
             tensor. ``beta`` and ``loglik`` are ``torch.nan`` if their
             respective ``require_*`` flag is ``False``.
         """
@@ -416,7 +416,7 @@ class MarginalREML:
     
         return vector["beta"], vector["score"], matrix["AI"], scalar["loglik"]
 
-    def get_theta(self, select="last", history=None):
+    def get_theta(self, select="last"):
         """
         Retrieve a covariance parameter estimate from the optimisation history.
 
@@ -424,16 +424,11 @@ class MarginalREML:
             select (str, optional): ``"last"`` returns the final iterate;
                 any other value returns the iterate with the highest
                 log-likelihood. Defaults to ``"last"``.
-            history (dict, optional): History dictionary to query. Defaults
-                to :attr:`history` populated by :meth:`optimize`.
 
         Returns:
             torch.Tensor: Selected covariance parameter tensor
             :math:`\\boldsymbol{\\theta}`.
         """
-        if history is None:
-            history = self.history
-            
         if select == "last":
             return self.history["theta"][-1]
         else:
@@ -443,7 +438,7 @@ class MarginalREML:
             else:
                 return self.history["theta"][-1]
 
-    def get_beta(self, select="last", history=None):
+    def get_beta(self, select="last"):
         """
         Retrieve a coefficient estimate from the optimisation history.
 
@@ -451,16 +446,11 @@ class MarginalREML:
             select (str, optional): ``"last"`` returns the final iterate;
                 any other value returns the iterate with the highest
                 log-likelihood. Defaults to ``"last"``.
-            history (dict, optional): History dictionary to query. Defaults
-                to :attr:`history` populated by :meth:`optimize`.
 
         Returns:
             torch.Tensor: Selected coefficient estimate
             :math:`\\hat{\\boldsymbol{\\beta}}`.
         """
-        if history is None:
-            history = self.history
-            
         if select == "last":
             return self.history["beta"][-1]
         else:
