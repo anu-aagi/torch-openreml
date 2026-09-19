@@ -430,7 +430,7 @@ class Matrix(ABC):
         Uses :attr:`jacobian_method` and :attr:`jacobian_chunk_size` to compute
         the full Jacobian.
 
-        If all parameters are fixed, returns ``(None, [])``
+        If the matrix has no free parameters, returns ``(None, [])``.
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or dict.
@@ -445,6 +445,7 @@ class Matrix(ABC):
             tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
             shape ``(num_free_params, *shape)``, and
             ``grad_names`` has the same length as ``grad``.
+            ``(None, [])`` is returned when the matrix has no free parameters.
 
         Example:
 
@@ -461,11 +462,11 @@ class Matrix(ABC):
         if free_params is None:
             free_params = self.free_param_defaults
 
-        if len(free_params) == 0:
-            return None, []
-
         free_params = self._from_free_param_dict(free_params)
         device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
+
+        if len(free_params) == 0:
+            return None, []
 
         self.reset_intermediates()
 
