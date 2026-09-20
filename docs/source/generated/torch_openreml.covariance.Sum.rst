@@ -18,9 +18,11 @@
       ~Sum.auto_grad
       ~Sum.build_operands
       ~Sum.build_params
+      ~Sum.call_tree
       ~Sum.get_default_dtype_device
       ~Sum.get_intermediates
       ~Sum.grad
+      ~Sum.grad_tree
       ~Sum.manual_grad
       ~Sum.operands_grad
       ~Sum.reset_intermediates

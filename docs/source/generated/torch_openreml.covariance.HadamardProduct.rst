@@ -18,9 +18,11 @@
       ~HadamardProduct.auto_grad
       ~HadamardProduct.build_operands
       ~HadamardProduct.build_params
+      ~HadamardProduct.call_tree
       ~HadamardProduct.get_default_dtype_device
       ~HadamardProduct.get_intermediates
       ~HadamardProduct.grad
+      ~HadamardProduct.grad_tree
       ~HadamardProduct.manual_grad
       ~HadamardProduct.operands_grad
       ~HadamardProduct.reset_intermediates

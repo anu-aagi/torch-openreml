@@ -18,9 +18,11 @@
       ~KroneckerProduct.auto_grad
       ~KroneckerProduct.build_operands
       ~KroneckerProduct.build_params
+      ~KroneckerProduct.call_tree
       ~KroneckerProduct.get_default_dtype_device
       ~KroneckerProduct.get_intermediates
       ~KroneckerProduct.grad
+      ~KroneckerProduct.grad_tree
       ~KroneckerProduct.manual_grad
       ~KroneckerProduct.operands_grad
       ~KroneckerProduct.reset_intermediates

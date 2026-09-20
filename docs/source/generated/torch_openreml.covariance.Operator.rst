@@ -18,9 +18,11 @@
       ~Operator.auto_grad
       ~Operator.build_operands
       ~Operator.build_params
+      ~Operator.call_tree
       ~Operator.get_default_dtype_device
       ~Operator.get_intermediates
       ~Operator.grad
+      ~Operator.grad_tree
       ~Operator.manual_grad
       ~Operator.operands_grad
       ~Operator.reset_intermediates

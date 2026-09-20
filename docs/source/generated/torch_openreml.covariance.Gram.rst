@@ -18,9 +18,11 @@
       ~Gram.auto_grad
       ~Gram.build_operands
       ~Gram.build_params
+      ~Gram.call_tree
       ~Gram.get_default_dtype_device
       ~Gram.get_intermediates
       ~Gram.grad
+      ~Gram.grad_tree
       ~Gram.manual_grad
       ~Gram.operands_grad
       ~Gram.reset_intermediates

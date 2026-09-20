@@ -18,9 +18,11 @@
       ~CovariancePropagation.auto_grad
       ~CovariancePropagation.build_operands
       ~CovariancePropagation.build_params
+      ~CovariancePropagation.call_tree
       ~CovariancePropagation.get_default_dtype_device
       ~CovariancePropagation.get_intermediates
       ~CovariancePropagation.grad
+      ~CovariancePropagation.grad_tree
       ~CovariancePropagation.manual_grad
       ~CovariancePropagation.operands_grad
       ~CovariancePropagation.reset_intermediates
