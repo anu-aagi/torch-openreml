@@ -7,7 +7,7 @@
 # torch-openreml
 
 <p>
-  <img src="https://img.shields.io/badge/dev-0.2.0--alpha-blue" alt="Development version 0.2.0-alpha">
+  <img src="https://img.shields.io/badge/dev-0.3.0--alpha-blue" alt="Development version 0.3.0-alpha">
   <img src="https://img.shields.io/pypi/v/torch-openreml?include_prereleases" alt="PyPI version">
   <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="GPL-3.0">
   <img src="https://img.shields.io/badge/python-%3E%3D3.10-blue" alt="Python >=3.10">
