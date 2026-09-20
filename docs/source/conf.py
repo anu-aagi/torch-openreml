@@ -9,7 +9,7 @@
 project = 'torch-openreml'
 copyright = '2026, Patrick Li'
 author = 'Patrick Li'
-release = '0.2.1-alpha'
+release = '0.3.0-alpha'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

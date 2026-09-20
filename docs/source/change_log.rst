@@ -1,6 +1,93 @@
 Changelog
 =========
 
+0.3.0-alpha (2026-09-20)
+------------------------
+
+Breaking changes
+~~~~~~~~~~~~~~~~
+
+* ``IdentityMatrix`` and ``DummyMatrix`` no longer accept ``dtype`` and
+  ``device`` arguments. Both follow the dtype and the device of their input
+  instead, falling back to the PyTorch defaults when they receive none.
+* ``MarginalREML.get_theta`` and ``MarginalREML.get_beta`` no longer accept a
+  ``history`` argument, always reading the history populated by ``optimize``.
+* A composite covariance matrix is now built on a single dtype and device.
+  Where the operands' own defaults disagree and no input parameters override
+  them, a ``ValueError`` is raised instead of ``torch.cat`` silently promoting.
+
+New features
+~~~~~~~~~~~~
+
+* ``Operator.call_tree``, a debugging view of a composite. It returns two
+  dictionaries over one key set, keyed by the path to each node — the operand
+  names leading to it joined with ``"/"``, rooted at ``"/"`` — holding the
+  matrix every node evaluated to and the free parameter slice that node
+  received. Nested operators are reached by recursing through ``call_tree``
+  rather than by capturing the calls a forward pass makes, so the tree is
+  complete whether or not an intermediate cache is warm.
+* ``Operator.grad_tree``, the gradient counterpart over the same keys: each
+  node's ``(grad, grad_names)`` pair, in that node's own shape, alongside the
+  same parameter slices. A node's names are namespaced from that node, so
+  joining the path to a name gives the name the composite exposes in
+  ``free_param_names``.
+* ``Matrix.get_default_dtype_device``, reporting the dtype and device that would
+  be resolved from the current parameters.
+
+Changes
+~~~~~~~
+
+* The dtype and device of a composite are resolved once for the whole
+  structure: the input parameters first, then the free-parameter defaults of
+  the ``Matrix`` operands, then Torch's defaults. Input parameters override
+  every default. Fixed tensor operands are never a resolution source — they are
+  cast to follow. The operators and the identity and dummy matrices now observe
+  the resolved dtype and device rather than fixing their own, and the identity
+  and dummy matrices return a clone so a cached result cannot be mutated by the
+  caller.
+* The intermediate cache compares parameter values elementwise rather than
+  hashing them, removing the dependency on ``torch.hash_tensor`` and the
+  limitation it imposed on MPS. A copy of the parameter tensor is stored, so a
+  later in-place edit of the caller's tensor cannot change the key of an entry
+  already cached.
+* ``Adapter`` no longer forces its ``param_specs``; ``param_map`` now receives
+  the free, untransformed parameters.
+
+Bug fixes
+~~~~~~~~~
+
+* Fixed silent dtype promotion in the operators, where ``torch.cat`` would
+  promote the results of the operands.
+* Fixed the parameter conversions between dicts and tensors, including the empty
+  case, which now yields an empty tensor rather than failing.
+* ``Matrix.auto_grad`` returns ``(None, [])`` for a matrix without free
+  parameters without building a Jacobian, and ``trans_grad`` returns an empty
+  tensor where appropriate.
+* The covariance matrices now validate ``free_params`` through ``build_params``
+  before returning early for a matrix without free parameters, so invalid input
+  raises even there.
+* ``SimpleMatrix`` validates its input before passing it on.
+* Corrected the documented shapes in ``MarginalREML``, whose score and AI matrix
+  are sized by the number of free parameters.
+
+Documentation
+~~~~~~~~~~~~~
+
+* Regenerated and extended the API reference, adding pages for ``Adapter``,
+  ``Augment``, ``Gram`` and the post-estimation functions.
+* Documented the single dtype and device contract on ``Operator``, and the cost
+  of ``call_tree`` and ``grad_tree``.
+
+Testing
+~~~~~~~
+
+* Added test modules for the adapter and for ``Augment``, and extended the
+  operator, matrix, identity, dummy and scalar matrix suites to cover the dtype
+  and device contract and the two new tree methods. Device tests follow the
+  accelerator available at run time.
+* Added a test plan document beside each test module under ``tests/covariance``,
+  recording what must be covered and the risks worth testing.
+
 0.2.0-alpha (2026-09-15)
 ------------------------
 
