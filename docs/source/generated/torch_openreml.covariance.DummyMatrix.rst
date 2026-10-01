@@ -23,6 +23,7 @@
       ~DummyMatrix.manual_grad
       ~DummyMatrix.reset_intermediates
       ~DummyMatrix.set_intermediates
+      ~DummyMatrix.set_param_specs
       ~DummyMatrix.trans_grad
    
    

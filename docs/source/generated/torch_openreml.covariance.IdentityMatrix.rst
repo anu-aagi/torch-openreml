@@ -23,6 +23,7 @@
       ~IdentityMatrix.manual_grad
       ~IdentityMatrix.reset_intermediates
       ~IdentityMatrix.set_intermediates
+      ~IdentityMatrix.set_param_specs
       ~IdentityMatrix.trans_grad
    
    

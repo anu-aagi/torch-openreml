@@ -23,6 +23,7 @@
       ~EqualEntryMatrix.manual_grad
       ~EqualEntryMatrix.reset_intermediates
       ~EqualEntryMatrix.set_intermediates
+      ~EqualEntryMatrix.set_param_specs
       ~EqualEntryMatrix.trans_grad
    
    

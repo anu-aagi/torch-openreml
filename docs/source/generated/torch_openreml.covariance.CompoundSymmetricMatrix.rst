@@ -23,6 +23,7 @@
       ~CompoundSymmetricMatrix.manual_grad
       ~CompoundSymmetricMatrix.reset_intermediates
       ~CompoundSymmetricMatrix.set_intermediates
+      ~CompoundSymmetricMatrix.set_param_specs
       ~CompoundSymmetricMatrix.trans_grad
    
    

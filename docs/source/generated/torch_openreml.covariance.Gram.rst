@@ -27,6 +27,7 @@
       ~Gram.operands_grad
       ~Gram.reset_intermediates
       ~Gram.set_intermediates
+      ~Gram.set_param_specs
       ~Gram.trans_grad
    
    

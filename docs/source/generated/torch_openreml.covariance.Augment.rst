@@ -27,6 +27,7 @@
       ~Augment.operands_grad
       ~Augment.reset_intermediates
       ~Augment.set_intermediates
+      ~Augment.set_param_specs
       ~Augment.trans_grad
    
    

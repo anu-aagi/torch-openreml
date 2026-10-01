@@ -27,6 +27,7 @@
       ~CovariancePropagation.operands_grad
       ~CovariancePropagation.reset_intermediates
       ~CovariancePropagation.set_intermediates
+      ~CovariancePropagation.set_param_specs
       ~CovariancePropagation.trans_grad
    
    

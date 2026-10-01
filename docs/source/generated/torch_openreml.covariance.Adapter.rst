@@ -23,6 +23,7 @@
       ~Adapter.manual_grad
       ~Adapter.reset_intermediates
       ~Adapter.set_intermediates
+      ~Adapter.set_param_specs
       ~Adapter.trans_grad
    
    

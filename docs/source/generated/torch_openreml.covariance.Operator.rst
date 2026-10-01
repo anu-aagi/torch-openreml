@@ -27,6 +27,7 @@
       ~Operator.operands_grad
       ~Operator.reset_intermediates
       ~Operator.set_intermediates
+      ~Operator.set_param_specs
       ~Operator.trans_grad
    
    

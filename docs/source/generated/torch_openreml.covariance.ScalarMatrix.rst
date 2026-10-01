@@ -23,6 +23,7 @@
       ~ScalarMatrix.manual_grad
       ~ScalarMatrix.reset_intermediates
       ~ScalarMatrix.set_intermediates
+      ~ScalarMatrix.set_param_specs
       ~ScalarMatrix.trans_grad
    
    

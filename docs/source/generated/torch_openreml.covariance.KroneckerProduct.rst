@@ -27,6 +27,7 @@
       ~KroneckerProduct.operands_grad
       ~KroneckerProduct.reset_intermediates
       ~KroneckerProduct.set_intermediates
+      ~KroneckerProduct.set_param_specs
       ~KroneckerProduct.trans_grad
    
    

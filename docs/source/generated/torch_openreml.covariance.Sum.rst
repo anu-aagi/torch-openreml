@@ -27,6 +27,7 @@
       ~Sum.operands_grad
       ~Sum.reset_intermediates
       ~Sum.set_intermediates
+      ~Sum.set_param_specs
       ~Sum.trans_grad
    
    

@@ -27,6 +27,7 @@
       ~HadamardProduct.operands_grad
       ~HadamardProduct.reset_intermediates
       ~HadamardProduct.set_intermediates
+      ~HadamardProduct.set_param_specs
       ~HadamardProduct.trans_grad
    
    

@@ -27,6 +27,7 @@
       ~BlockDiagonal.operands_grad
       ~BlockDiagonal.reset_intermediates
       ~BlockDiagonal.set_intermediates
+      ~BlockDiagonal.set_param_specs
       ~BlockDiagonal.trans_grad
    
    

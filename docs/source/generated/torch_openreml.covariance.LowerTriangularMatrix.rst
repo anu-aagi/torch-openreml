@@ -23,6 +23,7 @@
       ~LowerTriangularMatrix.manual_grad
       ~LowerTriangularMatrix.reset_intermediates
       ~LowerTriangularMatrix.set_intermediates
+      ~LowerTriangularMatrix.set_param_specs
       ~LowerTriangularMatrix.trans_grad
    
    
