@@ -385,6 +385,66 @@ class Matrix(ABC):
         
         return {name: tensor for name, tensor in zip(self.free_param_names, free_params.unsqueeze(-1))}
 
+    def set_param_specs(self, key, *, fixed=None, default=None, trans=None):
+        """
+        Update the fields of a parameter specification in place.
+
+        ``key`` is resolved against :attr:`param_specs`, and each field passed
+        as something other than ``None`` replaces that field of the resolved
+        specification. Fields left as ``None`` are kept unchanged, so a call
+        without fields changes nothing. Values are assigned as given, without
+        validation or copying, and take effect on the next call.
+
+        Args:
+            key (str): Key of the parameter specification, as :attr:`param_specs`
+                exposes it. Composites namespace their operands' parameters, so
+                ``"A/sigma^2"`` addresses the parameter ``"sigma^2"`` of the
+                operand ``"A"``.
+            fixed (bool, optional): New value for the ``"fixed"`` field.
+                Default: ``None``.
+            default (torch.Tensor, optional): New value for the ``"default"``
+                field. Default: ``None``.
+            trans (Transform, optional): New value for the ``"trans"`` field.
+                Default: ``None``.
+
+        Raises:
+            TypeError: If ``key`` is not a str.
+            ValueError: If ``key`` is not a parameter of this matrix.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix
+
+            mat = DiagonalMatrix(3)
+            mat.set_param_specs("sigma^2_1", fixed=True, default=torch.tensor([7.5]))
+            mat.free_param_names
+
+        .. jupyter-execute::
+
+            mat.build_params(torch.tensor([1.0, 3.0]), trans=False)
+        """
+        if not isinstance(key, str):
+            raise TypeError(f"'key' must be a str, got {type(key).__name__}!")
+
+        param_specs = self.param_specs
+
+        if key not in param_specs:
+            raise ValueError(f"Cannot resolve key '{key}'!")
+
+        spec = param_specs[key]
+
+        if fixed is not None:
+            spec["fixed"] = fixed
+
+        if default is not None:
+            spec["default"] = default
+
+        if trans is not None:
+            spec["trans"] = trans
+
     def trans_grad(self, free_params=None):
         """
         Compute the element-wise derivative of the free parameter transforms.
