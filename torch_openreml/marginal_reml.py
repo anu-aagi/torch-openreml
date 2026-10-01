@@ -288,8 +288,10 @@ class MarginalREML:
             tensor. ``beta`` and ``loglik`` are ``torch.nan`` if their
             respective ``require_*`` flag is ``False``.
         """
-        device = get_device(y, x, theta)
-        dtype = get_dtype(y, x, theta)
+        device = theta.device
+        dtype = theta.dtype
+        y = y.to(device=device, dtype=dtype)
+        x = x.to(device=device, dtype=dtype)
 
         if not 0.0 <= subspace_fraction <= 1.0:
             raise ValueError(f"subspace_fraction must be between 0 and 1, got {subspace_fraction}.")
