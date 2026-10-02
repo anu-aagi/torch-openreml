@@ -90,13 +90,13 @@ class Adapter(Matrix):
             adapter(torch.tensor([0.0]))
         """
 
+        self._adaptee = adaptee
+        self._param_map = param_map
+
         super().__init__(adaptee.shape, param_specs)
 
         if not all([isinstance(trans, TransformIdentity) for trans in self.param_trans.values()]):
             raise ValueError("Adapter preprocessing does not support parameter transformations other than TransformIdentity!")
-
-        self._adaptee = adaptee
-        self._param_map = param_map
 
     def __call__(self, free_params=None):
         """
@@ -128,28 +128,41 @@ class Adapter(Matrix):
         adaptee_free_params = self.param_map(params)
         return self.adaptee(adaptee_free_params)
 
-    def auto_grad(self, free_params=None):
+    def reset_intermediates(self):
         """
-        Compute the Jacobian of :meth:`__call__` using automatic
-        differentiation.
+        Clear the intermediate caches of this adapter and its adaptee.
 
-        Resets the adaptee's intermediate cache before calling the parent
-        :meth:`~torch_openreml.covariance.matrix.Matrix.auto_grad`, which
-        uses the configured Jacobian method.
-
-        Args:
-            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
-                parameter dictionary.
-                If omitted, default values are used. Default: ``None``.
-
-        Returns:
-            tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
-            shape ``(num_free_params, *shape)`` and
-            ``grad_names`` is a list of the corresponding parameter names.
-            Returns ``(None, [])`` when the matrix has no free parameters.
+        Extends :meth:`~torch_openreml.covariance.matrix.Matrix.reset_intermediates`,
+        which clears this adapter's own cache, by clearing the cache of the
+        wrapped adaptee, whose intermediate results the adapter's calls
+        produce.
         """
+        super().reset_intermediates()
         self.adaptee.reset_intermediates()
-        return super().auto_grad(free_params)
+
+    def enable_cache(self):
+        """
+        Enable intermediate caching on this adapter and its adaptee.
+
+        Extends :meth:`~torch_openreml.covariance.matrix.Matrix.enable_cache`,
+        which enables caching on this adapter, by enabling it on the wrapped
+        adaptee. A nested adaptee continues the propagation through this same
+        override.
+        """
+        super().enable_cache()
+        self.adaptee.enable_cache()
+
+    def disable_cache(self):
+        """
+        Disable intermediate caching on this adapter and its adaptee.
+
+        Extends :meth:`~torch_openreml.covariance.matrix.Matrix.disable_cache`,
+        which disables caching on this adapter and clears its cache, by
+        disabling caching on the wrapped adaptee and clearing its cache. A
+        nested adaptee continues the propagation through this same override.
+        """
+        super().disable_cache()
+        self.adaptee.disable_cache()
 
     def manual_grad(self, free_params=None):
         """
