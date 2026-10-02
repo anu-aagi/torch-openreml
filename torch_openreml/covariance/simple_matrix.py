@@ -31,7 +31,7 @@ class SimpleMatrix(Matrix):
     directly.
     """
 
-    def __init__(self, num_free_params, call, manual_grad=None, default=0.0):
+    def __init__(self, num_free_params, call, manual_grad=None, default=None):
         """
         Initialize a simple covariance matrix.
 
@@ -49,9 +49,10 @@ class SimpleMatrix(Matrix):
                 ``manual_grad(free_params) -> (grad, grad_names)`` for a
                 closed-form Jacobian. If ``None`` (default), automatic
                 differentiation is used.
-            default (float or torch.Tensor, optional): Default value for each
-                parameter. Passed to :func:`simple_param_specs`. Defaults to
-                ``0.0``.
+            default (torch.Tensor, optional): Default value for each
+                parameter, given as a 1D tensor of shape ``(1,)``. Passed to
+                :func:`simple_param_specs`. Defaults to
+                ``torch.tensor([0.0])``.
 
         Example:
 
@@ -63,7 +64,7 @@ class SimpleMatrix(Matrix):
             def my_v(free_params):
                 return torch.diag(free_params)
 
-            mat = SimpleMatrix(num_free_params=3, call=my_v, default=1.0)
+            mat = SimpleMatrix(num_free_params=3, call=my_v, default=torch.tensor([1.0]))
             mat(torch.tensor([1.0, 2.0, 3.0]))
 
         .. jupyter-execute::
