@@ -77,6 +77,11 @@ class Matrix(ABC):
         #: time.
         self.jacobian_chunk_size = None
 
+        #: bool: Whether intermediate computation results are cached. When ``False``,
+        #: :meth:`set_intermediates` does nothing and :meth:`get_intermediates` always
+        #: returns ``None``, both before validating their arguments.
+        self.cache = True
+
         self.reset_intermediates()
 
     def set_intermediates(self, params, intermediates):
@@ -88,14 +93,20 @@ class Matrix(ABC):
         via :meth:`get_intermediates` to avoid redundant computation across
         multiple calls with identical parameters.
 
+        When :attr:`cache` is ``False`` the request is ignored: nothing is
+        stored and ``params`` is not validated, so a malformed argument is
+        silently accepted.
+
         Args:
             params (torch.Tensor): Current parameter tensor.
             intermediates: Arbitrary object to cache (e.g. Cholesky factors,
                 eigendecompositions, or any reusable computation).
 
         Raises:
-            TypeError: If ``params`` is not a Torch tensor.
-            ValueError: If ``params`` is not a 1D tensor.
+            TypeError: If ``params`` is not a Torch tensor and :attr:`cache`
+                is ``True``.
+            ValueError: If ``params`` is not a 1D tensor and :attr:`cache`
+                is ``True``.
 
         Note:
             If ``params`` has length 0 (no free parameters), this is a no-op.
@@ -115,6 +126,9 @@ class Matrix(ABC):
             mat.set_intermediates(params, {"log(sigma^2)/2": torch.log(params) / 2})
             mat.get_intermediates(params)
         """
+        if not self.cache:
+            return None
+
         device, dtype = self._check_param_tensor(params)
 
         if params.shape[0] == 0:
@@ -140,16 +154,21 @@ class Matrix(ABC):
         each gets its own entry. Parameter vectors are a handful of floats, so
         the comparison is cheap.
 
+        When :attr:`cache` is ``False``, ``None`` is returned without
+        validating ``params``, so a malformed argument is silently ignored.
+
         Args:
             params (torch.Tensor): Current parameter tensor.
 
         Raises:
-            TypeError: If ``params`` is not a Torch tensor.
-            ValueError: If ``params`` is not a 1D tensor.
+            TypeError: If ``params`` is not a Torch tensor and :attr:`cache`
+                is ``True``.
+            ValueError: If ``params`` is not a 1D tensor and :attr:`cache`
+                is ``True``.
 
         Returns:
             The cached intermediate object if the cache is valid, or ``None`` if
-            the cache is missing, stale, or ``params`` has length 0.
+            the cache is missing, stale, disabled, or ``params`` has length 0.
 
         Example:
 
@@ -164,6 +183,9 @@ class Matrix(ABC):
             mat.set_intermediates(params, {"log(sigma^2)/2": torch.log(params) / 2})
             mat.get_intermediates(params)
         """
+        if not self.cache:
+            return None
+
         device, dtype = self._check_param_tensor(params)
 
         if params.shape[0] == 0:
