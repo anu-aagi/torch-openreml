@@ -581,7 +581,40 @@ class Operator(Matrix):
         for operand in self.operands.values():
             if isinstance(operand, Matrix):
                 operand.reset_intermediates()
-        
+
+    def enable_cache(self):
+        """
+        Enable intermediate caching on this operator and its operands.
+
+        Extends :meth:`~torch_openreml.covariance.matrix.Matrix.enable_cache`,
+        which enables caching on this operator, by recursively enabling it on
+        every :class:`~torch_openreml.covariance.matrix.Matrix` operand. Nested
+        operators continue the descent through this same override, so enabling
+        a node enables everything below it.
+        """
+        super().enable_cache()
+
+        for operand in self.operands.values():
+            if isinstance(operand, Matrix):
+                operand.enable_cache()
+
+    def disable_cache(self):
+        """
+        Disable intermediate caching on this operator and its operands.
+
+        Extends :meth:`~torch_openreml.covariance.matrix.Matrix.disable_cache`,
+        which disables caching on this operator and clears its cache, by
+        recursively disabling caching on every
+        :class:`~torch_openreml.covariance.matrix.Matrix` operand and clearing
+        their caches. Nested operators continue the descent through this same
+        override, so disabling a node disables everything below it.
+        """
+        super().disable_cache()
+
+        for operand in self.operands.values():
+            if isinstance(operand, Matrix):
+                operand.disable_cache()
+
     @property
     def operands(self):
         """dict: Mapping from operand names to operand matrices or tensors."""
