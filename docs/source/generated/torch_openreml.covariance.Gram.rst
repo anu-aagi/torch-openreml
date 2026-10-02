@@ -60,5 +60,6 @@
       ~Gram.grad_mode
       ~Gram.jacobian_method
       ~Gram.jacobian_chunk_size
+      ~Gram.cache
    
    

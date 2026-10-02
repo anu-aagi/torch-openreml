@@ -59,5 +59,6 @@
       ~KroneckerProduct.grad_mode
       ~KroneckerProduct.jacobian_method
       ~KroneckerProduct.jacobian_chunk_size
+      ~KroneckerProduct.cache
    
    

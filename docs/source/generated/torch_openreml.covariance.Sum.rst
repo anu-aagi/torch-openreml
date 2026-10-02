@@ -59,5 +59,6 @@
       ~Sum.grad_mode
       ~Sum.jacobian_method
       ~Sum.jacobian_chunk_size
+      ~Sum.cache
    
    

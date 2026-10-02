@@ -54,5 +54,6 @@
       ~AR1Matrix.grad_mode
       ~AR1Matrix.jacobian_method
       ~AR1Matrix.jacobian_chunk_size
+      ~AR1Matrix.cache
    
    

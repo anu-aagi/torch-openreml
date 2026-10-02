@@ -59,5 +59,6 @@
       ~Operator.grad_mode
       ~Operator.jacobian_method
       ~Operator.jacobian_chunk_size
+      ~Operator.cache
    
    

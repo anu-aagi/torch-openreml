@@ -59,5 +59,6 @@
       ~BlockDiagonal.grad_mode
       ~BlockDiagonal.jacobian_method
       ~BlockDiagonal.jacobian_chunk_size
+      ~BlockDiagonal.cache
    
    

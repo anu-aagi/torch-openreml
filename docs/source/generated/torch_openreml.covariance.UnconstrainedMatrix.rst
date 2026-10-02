@@ -54,5 +54,6 @@
       ~UnconstrainedMatrix.grad_mode
       ~UnconstrainedMatrix.jacobian_method
       ~UnconstrainedMatrix.jacobian_chunk_size
+      ~UnconstrainedMatrix.cache
    
    

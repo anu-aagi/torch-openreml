@@ -56,5 +56,6 @@
       ~Adapter.grad_mode
       ~Adapter.jacobian_method
       ~Adapter.jacobian_chunk_size
+      ~Adapter.cache
    
    

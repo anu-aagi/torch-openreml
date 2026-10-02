@@ -54,5 +54,6 @@
       ~LowerTriangularMatrix.grad_mode
       ~LowerTriangularMatrix.jacobian_method
       ~LowerTriangularMatrix.jacobian_chunk_size
+      ~LowerTriangularMatrix.cache
    
    

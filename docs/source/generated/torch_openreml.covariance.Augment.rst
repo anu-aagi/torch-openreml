@@ -59,5 +59,6 @@
       ~Augment.grad_mode
       ~Augment.jacobian_method
       ~Augment.jacobian_chunk_size
+      ~Augment.cache
    
    

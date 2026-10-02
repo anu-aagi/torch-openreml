@@ -54,5 +54,6 @@
       ~DiagonalMatrix.grad_mode
       ~DiagonalMatrix.jacobian_method
       ~DiagonalMatrix.jacobian_chunk_size
+      ~DiagonalMatrix.cache
    
    

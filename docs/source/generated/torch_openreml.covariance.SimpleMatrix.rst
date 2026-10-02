@@ -54,5 +54,6 @@
       ~SimpleMatrix.grad_mode
       ~SimpleMatrix.jacobian_method
       ~SimpleMatrix.jacobian_chunk_size
+      ~SimpleMatrix.cache
    
    

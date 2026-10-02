@@ -59,5 +59,6 @@
       ~CovariancePropagation.grad_mode
       ~CovariancePropagation.jacobian_method
       ~CovariancePropagation.jacobian_chunk_size
+      ~CovariancePropagation.cache
    
    

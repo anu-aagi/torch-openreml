@@ -54,5 +54,6 @@
       ~EquicorrelationMatrix.grad_mode
       ~EquicorrelationMatrix.jacobian_method
       ~EquicorrelationMatrix.jacobian_chunk_size
+      ~EquicorrelationMatrix.cache
    
    

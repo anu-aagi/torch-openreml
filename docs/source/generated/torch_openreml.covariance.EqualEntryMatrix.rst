@@ -54,5 +54,6 @@
       ~EqualEntryMatrix.grad_mode
       ~EqualEntryMatrix.jacobian_method
       ~EqualEntryMatrix.jacobian_chunk_size
+      ~EqualEntryMatrix.cache
    
    

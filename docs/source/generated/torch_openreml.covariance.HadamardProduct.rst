@@ -59,5 +59,6 @@
       ~HadamardProduct.grad_mode
       ~HadamardProduct.jacobian_method
       ~HadamardProduct.jacobian_chunk_size
+      ~HadamardProduct.cache
    
    

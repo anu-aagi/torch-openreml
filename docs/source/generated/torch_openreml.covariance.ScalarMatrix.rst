@@ -54,5 +54,6 @@
       ~ScalarMatrix.grad_mode
       ~ScalarMatrix.jacobian_method
       ~ScalarMatrix.jacobian_chunk_size
+      ~ScalarMatrix.cache
    
    

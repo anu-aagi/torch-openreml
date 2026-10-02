@@ -55,5 +55,6 @@
       ~DummyMatrix.grad_mode
       ~DummyMatrix.jacobian_method
       ~DummyMatrix.jacobian_chunk_size
+      ~DummyMatrix.cache
    
    

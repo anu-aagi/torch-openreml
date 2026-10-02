@@ -54,5 +54,6 @@
       ~Matrix.grad_mode
       ~Matrix.jacobian_method
       ~Matrix.jacobian_chunk_size
+      ~Matrix.cache
    
    

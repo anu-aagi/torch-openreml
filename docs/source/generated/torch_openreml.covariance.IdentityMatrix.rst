@@ -54,5 +54,6 @@
       ~IdentityMatrix.grad_mode
       ~IdentityMatrix.jacobian_method
       ~IdentityMatrix.jacobian_chunk_size
+      ~IdentityMatrix.cache
    
    

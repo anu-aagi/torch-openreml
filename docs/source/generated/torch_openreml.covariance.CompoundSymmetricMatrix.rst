@@ -54,5 +54,6 @@
       ~CompoundSymmetricMatrix.grad_mode
       ~CompoundSymmetricMatrix.jacobian_method
       ~CompoundSymmetricMatrix.jacobian_chunk_size
+      ~CompoundSymmetricMatrix.cache
    
    
