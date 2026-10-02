@@ -65,12 +65,12 @@ class Operator(Matrix):
                 and treated as a named operand mapping.
             **kwargs: Operands as keyword arguments, mapping operand names to
                 :class:`~torch_openreml.covariance.matrix.Matrix` or
-                :class:`torch.Tensor` instances. Operand names must not contain
-                ``"/"``.
+                :class:`torch.Tensor` instances. Operand names must be non-empty
+                and must not contain ``"/"``.
 
         Raises:
             ValueError: If both positional and keyword arguments are provided,
-                or if any operand name contains ``"/"``.
+                or if any operand name is empty or contains ``"/"``.
             TypeError: If ``operands`` is not a dict, if any operand name is not
                 a string, if any operand is not a
                 :class:`~torch_openreml.covariance.matrix.Matrix` or
@@ -125,7 +125,7 @@ class Operator(Matrix):
         """
         Validate the operand dictionary.
 
-        Ensures that all keys are strings without ``"/"``, all values are
+        Ensures that all keys are non-empty strings without ``"/"``, all values are
         :class:`~torch_openreml.covariance.matrix.Matrix` or
         :class:`torch.Tensor` instances, and that at least one value is a
         :class:`~torch_openreml.covariance.matrix.Matrix`.
@@ -139,7 +139,7 @@ class Operator(Matrix):
                 :class:`~torch_openreml.covariance.matrix.Matrix` or
                 :class:`torch.Tensor`, or if no value is a
                 :class:`~torch_openreml.covariance.matrix.Matrix`.
-            ValueError: If any key contains ``"/"``.
+            ValueError: If any key is empty or contains ``"/"``.
         """
         if not isinstance(operands, dict):
             raise TypeError(f"operands must be a dict, got {type(operands).__name__}!")
@@ -148,7 +148,10 @@ class Operator(Matrix):
     
             if not isinstance(key, str):
                 raise TypeError(f"Operand name must be a string, got {type(key).__name__}!")
-    
+
+            if key == "":
+                raise ValueError("Operand name must not be empty!")
+
             if "/" in key:
                 raise ValueError(f"Invalid operand name '{key}': '/' is not allowed!")
     
