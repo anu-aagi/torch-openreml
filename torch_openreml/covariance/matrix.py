@@ -77,7 +77,8 @@ class Matrix(ABC):
         #: time.
         self.jacobian_chunk_size = None
 
-        #: bool: Whether intermediate computation results are cached. When ``False``,
+        #: bool: Whether intermediate computation results are cached, toggled by
+        #: :meth:`enable_cache` and :meth:`disable_cache`. When ``False``,
         #: :meth:`set_intermediates` does nothing and :meth:`get_intermediates` always
         #: returns ``None``, both before validating their arguments.
         self.cache = True
@@ -234,6 +235,54 @@ class Matrix(ABC):
             print(mat.get_intermediates(free_params))
         """
         self._intermediates = {"params": None, "dtype": None, "device": None, "intermediates": None}
+
+    def enable_cache(self):
+        """
+        Enable caching of intermediate computation results.
+
+        Sets :attr:`cache` to ``True``, so :meth:`set_intermediates` stores
+        entries again and :meth:`get_intermediates` can return them. Nothing
+        is cached until the next :meth:`set_intermediates` call, so entries
+        cleared by an earlier :meth:`disable_cache` do not come back.
+
+        Example:
+
+        .. jupyter-execute::
+
+            from torch_openreml.covariance import ScalarMatrix
+
+            mat = ScalarMatrix(3)
+            mat.disable_cache()
+            mat.enable_cache()
+            mat.cache
+        """
+        self.cache = True
+
+    def disable_cache(self):
+        """
+        Disable caching of intermediate computation results.
+
+        Sets :attr:`cache` to ``False`` and clears the cache via
+        :meth:`reset_intermediates`, so an entry stored while caching was
+        enabled cannot be returned if caching is turned back on. While
+        disabled, :meth:`set_intermediates` does nothing and
+        :meth:`get_intermediates` always returns ``None``.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import ScalarMatrix
+
+            mat = ScalarMatrix(3)
+            params = mat.build_params(torch.tensor([0.5]))
+            mat.set_intermediates(params, "value")
+            mat.disable_cache()
+            print(mat.get_intermediates(params))
+        """
+        self.cache = False
+        self.reset_intermediates()
 
     def get_default_dtype_device(self):
         """
