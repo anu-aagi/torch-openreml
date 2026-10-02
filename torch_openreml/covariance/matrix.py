@@ -41,8 +41,9 @@ class Matrix(ABC):
         Args:
             shape (tuple or None): Expected output dimensions of the constructed matrix.
                 Used for validation; the actual shape may be set by subclasses.
-            param_specs (dict): Parameter specifications. Keys should be strings
-                representing parameter names. Values should be dictionaries
+            param_specs (dict): Parameter specifications. Keys should be non-empty
+                strings representing parameter names, which must not contain ``"/"``.
+                Values should be dictionaries
                 containing the specification for each parameter. Each specification
                 dictionary should contain the keys ``"fixed"``, ``"default"``, and ``"trans"``,
                 representing whether the parameter is fixed or free (bool), the
@@ -52,7 +53,8 @@ class Matrix(ABC):
         Raises:
             TypeError: If ``param_specs`` does not follow any of the requirements
                 listed in the argument description, or if ``shape`` is not a tuple or torch.Size.
-            ValueError: If ``shape`` values are non-negative.
+            ValueError: If ``shape`` values are non-negative, or if a parameter
+                name is empty or contains ``"/"``.
         """
 
         self._check_shape(shape)
@@ -458,19 +460,27 @@ class Matrix(ABC):
 
     def set_param_specs(self, key, *, fixed=None, default=None, trans=None):
         """
-        Update the fields of a parameter specification in place.
+        Update the fields of one or more parameter specifications in place.
 
         ``key`` is resolved against :attr:`param_specs`, and each field passed
-        as something other than ``None`` replaces that field of the resolved
+        as something other than ``None`` replaces that field of every resolved
         specification. Fields left as ``None`` are kept unchanged, so a call
         without fields changes nothing. Values are assigned as given, without
         validation or copying, and take effect on the next call.
 
+        A ``key`` that does not end with ``"/"`` addresses one specification
+        exactly. A ``key`` that ends with ``"/"`` addresses a subtree instead:
+        every parameter whose key has ``key`` as a leading path, including the
+        node itself. ``"A/"`` therefore addresses every parameter of the
+        operand ``"A"``, nested operands below it included, and ``"/"``
+        addresses every parameter of the matrix.
+
         Args:
             key (str): Key of the parameter specification, as :attr:`param_specs`
-                exposes it. Composites namespace their operands' parameters, so
-                ``"A/sigma^2"`` addresses the parameter ``"sigma^2"`` of the
-                operand ``"A"``.
+                exposes it, or a subtree path ending with ``"/"``. Composites
+                namespace their operands' parameters, so ``"A/sigma^2"``
+                addresses the parameter ``"sigma^2"`` of the operand ``"A"``,
+                and ``"A/"`` addresses every parameter under it.
             fixed (bool, optional): New value for the ``"fixed"`` field.
                 Default: ``None``.
             default (torch.Tensor, optional): New value for the ``"default"``
@@ -480,7 +490,8 @@ class Matrix(ABC):
 
         Raises:
             TypeError: If ``key`` is not a str.
-            ValueError: If ``key`` is not a parameter of this matrix.
+            ValueError: If ``key`` is not a parameter of this matrix, and not a
+                subtree path that resolves to at least one.
 
         Example:
 
@@ -496,25 +507,47 @@ class Matrix(ABC):
         .. jupyter-execute::
 
             mat.build_params(torch.tensor([1.0, 3.0]), trans=False)
+
+        .. jupyter-execute::
+
+            from torch_openreml.covariance import BlockDiagonal, ScalarMatrix
+
+            op = BlockDiagonal(subject=DiagonalMatrix(2), noise=ScalarMatrix(2))
+            op.set_param_specs("subject/", fixed=True)
+            op.free_param_names
+
+        .. jupyter-execute::
+
+            op.set_param_specs("/", fixed=True)
+            op.free_param_names
         """
         if not isinstance(key, str):
             raise TypeError(f"'key' must be a str, got {type(key).__name__}!")
 
         param_specs = self.param_specs
 
-        if key not in param_specs:
+        if key.endswith("/"):
+            prefix = key[:-1]
+            segments = prefix.split("/") if prefix else []
+            specs = [
+                spec for name, spec in param_specs.items()
+                if name.split("/")[:len(segments)] == segments
+            ]
+        else:
+            specs = [param_specs[key]] if key in param_specs else []
+
+        if not specs:
             raise ValueError(f"Cannot resolve key '{key}'!")
 
-        spec = param_specs[key]
+        for spec in specs:
+            if fixed is not None:
+                spec["fixed"] = fixed
 
-        if fixed is not None:
-            spec["fixed"] = fixed
+            if default is not None:
+                spec["default"] = default
 
-        if default is not None:
-            spec["default"] = default
-
-        if trans is not None:
-            spec["trans"] = trans
+            if trans is not None:
+                spec["trans"] = trans
 
     def trans_grad(self, free_params=None):
         """
@@ -763,6 +796,12 @@ class Matrix(ABC):
         for param_name, spec in param_specs.items():
             if not isinstance(param_name, str):
                 raise TypeError(f"Parameter name must be a str, got {type(param_name).__name__}!")
+
+            if param_name == "":
+                raise ValueError("Parameter name must not be empty!")
+
+            if "/" in param_name:
+                raise ValueError(f"Invalid parameter name '{param_name}': '/' is not allowed!")
 
             if not isinstance(spec, dict):
                 raise TypeError(f"Individual parameter specification must be a dict, got {type(spec).__name__}!")
