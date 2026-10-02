@@ -13,19 +13,19 @@ import torch
 from torch_openreml.covariance.transform import TransformIdentity
 
 
-def simple_param_specs(n, default=0.0, trans=None):
+def simple_param_specs(n, default=None, trans=None):
     """
     Create a parameter specification dictionary with ``n`` parameters.
 
     Each parameter is named ``"theta_0"``, ``"theta_1"``, ..., is not fixed,
-    and uses a common transform for all parameters. An optional scalar default
-    value can be provided.
+    and uses a common transform for all parameters. All parameters share the
+    same default value.
 
     Args:
         n (int): Number of parameters to create.
-        default (float or torch.Tensor, optional): Default value for each
-            parameter. If a tensor, it must be 1D with shape ``(1,)``.
-            Defaults to ``0.0``.
+        default (torch.Tensor, optional): Default value for each parameter,
+            given as a 1D tensor of shape ``(1,)``. Defaults to
+            ``torch.tensor([0.0])``.
         trans (Transform, optional): Transform to apply to all parameters.
             Defaults to :class:`TransformIdentity` (unconstrained).
 
@@ -34,8 +34,8 @@ def simple_param_specs(n, default=0.0, trans=None):
         of the form ``{"fixed": False, "default": tensor, "trans": trans}``.
 
     Raises:
-        ValueError: If ``default`` is a tensor without shape ``(1,)``.
-        TypeError: If ``default`` is not a float, int, or 1D tensor.
+        TypeError: If ``default`` is not a Torch tensor.
+        ValueError: If ``default`` does not have shape ``(1,)``.
 
     Example:
 
@@ -44,23 +44,29 @@ def simple_param_specs(n, default=0.0, trans=None):
         from torch_openreml.covariance.param import simple_param_specs
 
         simple_param_specs(3)
+
+    .. jupyter-execute::
+
+        import torch
+
+        simple_param_specs(2, default=torch.tensor([1.5]))
     """
     if trans is None:
         trans = TransformIdentity()
 
-    if torch.is_tensor(default):
-        if default.ndim != 1 or default.shape[0] != 1:
-            raise ValueError("Tensor default must be 1D with shape (1).")
-        d = default
-    elif isinstance(default, (float, int)):
-        d = torch.tensor([float(default)])
-    else:
-        raise TypeError("default must be a float/int or a 1D torch tensor of shape (1).")
+    if default is None:
+        default = torch.tensor([0.0])
+
+    if not torch.is_tensor(default):
+        raise TypeError("default must be a 1D torch tensor of shape (1).")
+
+    if default.ndim != 1 or default.shape[0] != 1:
+        raise ValueError("Default must be a 1D tensor with shape (1).")
 
     return {
         f"theta_{i}": {
             "fixed": False,
-            "default": d.detach().clone(),
+            "default": default.detach().clone(),
             "trans": trans
         }
         for i in range(n)
