@@ -17,6 +17,8 @@
       ~EqualEntryMatrix.__call__
       ~EqualEntryMatrix.auto_grad
       ~EqualEntryMatrix.build_params
+      ~EqualEntryMatrix.disable_cache
+      ~EqualEntryMatrix.enable_cache
       ~EqualEntryMatrix.get_default_dtype_device
       ~EqualEntryMatrix.get_intermediates
       ~EqualEntryMatrix.grad

@@ -19,6 +19,8 @@
       ~Sum.build_operands
       ~Sum.build_params
       ~Sum.call_tree
+      ~Sum.disable_cache
+      ~Sum.enable_cache
       ~Sum.get_default_dtype_device
       ~Sum.get_intermediates
       ~Sum.grad

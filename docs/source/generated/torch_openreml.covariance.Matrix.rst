@@ -17,6 +17,8 @@
       ~Matrix.__call__
       ~Matrix.auto_grad
       ~Matrix.build_params
+      ~Matrix.disable_cache
+      ~Matrix.enable_cache
       ~Matrix.get_default_dtype_device
       ~Matrix.get_intermediates
       ~Matrix.grad

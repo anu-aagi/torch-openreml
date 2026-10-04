@@ -19,6 +19,8 @@
       ~BlockDiagonal.build_operands
       ~BlockDiagonal.build_params
       ~BlockDiagonal.call_tree
+      ~BlockDiagonal.disable_cache
+      ~BlockDiagonal.enable_cache
       ~BlockDiagonal.get_default_dtype_device
       ~BlockDiagonal.get_intermediates
       ~BlockDiagonal.grad

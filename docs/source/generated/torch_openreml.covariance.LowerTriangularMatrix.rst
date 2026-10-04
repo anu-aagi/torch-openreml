@@ -17,6 +17,8 @@
       ~LowerTriangularMatrix.__call__
       ~LowerTriangularMatrix.auto_grad
       ~LowerTriangularMatrix.build_params
+      ~LowerTriangularMatrix.disable_cache
+      ~LowerTriangularMatrix.enable_cache
       ~LowerTriangularMatrix.get_default_dtype_device
       ~LowerTriangularMatrix.get_intermediates
       ~LowerTriangularMatrix.grad

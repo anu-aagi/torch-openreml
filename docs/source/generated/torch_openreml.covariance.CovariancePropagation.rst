@@ -19,6 +19,8 @@
       ~CovariancePropagation.build_operands
       ~CovariancePropagation.build_params
       ~CovariancePropagation.call_tree
+      ~CovariancePropagation.disable_cache
+      ~CovariancePropagation.enable_cache
       ~CovariancePropagation.get_default_dtype_device
       ~CovariancePropagation.get_intermediates
       ~CovariancePropagation.grad

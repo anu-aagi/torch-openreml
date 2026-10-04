@@ -17,6 +17,8 @@
       ~DiagonalMatrix.__call__
       ~DiagonalMatrix.auto_grad
       ~DiagonalMatrix.build_params
+      ~DiagonalMatrix.disable_cache
+      ~DiagonalMatrix.enable_cache
       ~DiagonalMatrix.get_default_dtype_device
       ~DiagonalMatrix.get_intermediates
       ~DiagonalMatrix.grad

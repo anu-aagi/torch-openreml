@@ -17,6 +17,8 @@
       ~AR1Matrix.__call__
       ~AR1Matrix.auto_grad
       ~AR1Matrix.build_params
+      ~AR1Matrix.disable_cache
+      ~AR1Matrix.enable_cache
       ~AR1Matrix.get_default_dtype_device
       ~AR1Matrix.get_intermediates
       ~AR1Matrix.grad

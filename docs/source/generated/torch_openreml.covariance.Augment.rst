@@ -19,6 +19,8 @@
       ~Augment.build_operands
       ~Augment.build_params
       ~Augment.call_tree
+      ~Augment.disable_cache
+      ~Augment.enable_cache
       ~Augment.get_default_dtype_device
       ~Augment.get_intermediates
       ~Augment.grad

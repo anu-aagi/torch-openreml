@@ -19,6 +19,8 @@
       ~Operator.build_operands
       ~Operator.build_params
       ~Operator.call_tree
+      ~Operator.disable_cache
+      ~Operator.enable_cache
       ~Operator.get_default_dtype_device
       ~Operator.get_intermediates
       ~Operator.grad

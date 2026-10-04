@@ -17,6 +17,8 @@
       ~Adapter.__call__
       ~Adapter.auto_grad
       ~Adapter.build_params
+      ~Adapter.disable_cache
+      ~Adapter.enable_cache
       ~Adapter.get_default_dtype_device
       ~Adapter.get_intermediates
       ~Adapter.grad

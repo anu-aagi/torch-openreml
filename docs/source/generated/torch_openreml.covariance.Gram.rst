@@ -19,6 +19,8 @@
       ~Gram.build_operands
       ~Gram.build_params
       ~Gram.call_tree
+      ~Gram.disable_cache
+      ~Gram.enable_cache
       ~Gram.get_default_dtype_device
       ~Gram.get_intermediates
       ~Gram.grad

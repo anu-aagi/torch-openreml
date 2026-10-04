@@ -19,6 +19,8 @@
       ~HadamardProduct.build_operands
       ~HadamardProduct.build_params
       ~HadamardProduct.call_tree
+      ~HadamardProduct.disable_cache
+      ~HadamardProduct.enable_cache
       ~HadamardProduct.get_default_dtype_device
       ~HadamardProduct.get_intermediates
       ~HadamardProduct.grad

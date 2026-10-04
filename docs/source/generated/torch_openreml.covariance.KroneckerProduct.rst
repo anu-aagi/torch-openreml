@@ -19,6 +19,8 @@
       ~KroneckerProduct.build_operands
       ~KroneckerProduct.build_params
       ~KroneckerProduct.call_tree
+      ~KroneckerProduct.disable_cache
+      ~KroneckerProduct.enable_cache
       ~KroneckerProduct.get_default_dtype_device
       ~KroneckerProduct.get_intermediates
       ~KroneckerProduct.grad

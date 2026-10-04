@@ -17,6 +17,8 @@
       ~UnconstrainedMatrix.__call__
       ~UnconstrainedMatrix.auto_grad
       ~UnconstrainedMatrix.build_params
+      ~UnconstrainedMatrix.disable_cache
+      ~UnconstrainedMatrix.enable_cache
       ~UnconstrainedMatrix.get_default_dtype_device
       ~UnconstrainedMatrix.get_intermediates
       ~UnconstrainedMatrix.grad

@@ -17,6 +17,8 @@
       ~ScalarMatrix.__call__
       ~ScalarMatrix.auto_grad
       ~ScalarMatrix.build_params
+      ~ScalarMatrix.disable_cache
+      ~ScalarMatrix.enable_cache
       ~ScalarMatrix.get_default_dtype_device
       ~ScalarMatrix.get_intermediates
       ~ScalarMatrix.grad
