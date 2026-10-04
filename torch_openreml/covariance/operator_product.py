@@ -1,0 +1,158 @@
+"""
+Matrix product covariance operator.
+
+This module provides a matrix product operator for combining two
+covariance matrices, for use in linear mixed-effects models.
+
+Classes:
+    Product:
+        A matrix product covariance operator :math:`V = A B`.
+"""
+
+from torch_openreml.covariance.operator import Operator
+import torch
+
+
+class Product(Operator):
+    r"""
+    Matrix product of two covariance matrices.
+
+    .. math::
+        \symbf{V} = \symbf{A} \symbf{B}
+
+    If :math:`\symbf{A}` is :math:`m \times n` and :math:`\symbf{B}` is
+    :math:`n \times p`, the result is an :math:`m \times p` matrix. Either
+    or both operands may be trainable
+    :class:`~torch_openreml.covariance.matrix.Matrix` instances or fixed
+    :class:`torch.Tensor` values.
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Initialize a matrix product operator from exactly two operands.
+
+        Args:
+            *args: Exactly two operands as positional arguments or a single
+                dict. The first is :math:`\\symbf{A}`, the second
+                :math:`\\symbf{B}`.
+            **kwargs: Exactly two operands as keyword arguments.
+
+        Raises:
+            ValueError: If the number of operands is not exactly two.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DummyMatrix, Product, ScalarMatrix
+
+            op = Product(a=DummyMatrix(["a", "b", "c", "a"]), b=ScalarMatrix(3))
+            free_params = torch.tensor([1.0])
+            op(free_params)
+        """
+
+        super().__init__(*args, **kwargs)
+
+        if len(self.operands) != 2:
+            raise ValueError("Two operands are required")
+
+    def _get_or_build_intermediates(self, free_params):
+        built_params = self.build_params(free_params)
+        cache = self.get_intermediates(built_params)
+
+        if cache is None:
+            v_groups = self.build_operands(free_params)
+
+            a = v_groups[0]
+            b = v_groups[1]
+            v = a @ b
+
+            cache = {"a": a, "b": b, "v": v}
+
+            self.set_intermediates(built_params, cache)
+
+        return cache
+
+    def __call__(self, free_params=None):
+        if free_params is None:
+            free_params = self.free_param_defaults
+        cache = self._get_or_build_intermediates(free_params)
+        v = cache["v"]
+        self._shape = tuple(v.shape)
+
+        return v
+
+    def manual_grad(self, free_params=None):
+        """
+        Compute the Jacobian of :meth:`__call__` with respect to trainable
+        parameters using a closed-form analytic expression.
+
+        Applies the product rule: if :math:`\\symbf{V} = \\symbf{A} \\symbf{B}`
+        then the gradient with respect to :math:`\\theta_{\\symbf{A}}` is
+        :math:`\\frac{\\partial \\symbf{A}}{\\partial \\theta_{\\symbf{A}}} \\symbf{B}`,
+        and with respect to :math:`\\theta_{\\symbf{B}}` it is
+        :math:`\\symbf{A} \\frac{\\partial \\symbf{B}}{\\partial \\theta_{\\symbf{B}}}`.
+        Per-operand Jacobians from
+        :meth:`~torch_openreml.covariance.operator.Operator.operands_grad`
+        are multiplied by the other operand's value.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary.
+                If omitted, default values are used. Default: ``None``.
+
+        Returns:
+            tuple: ``(grad, grad_names)``, where ``grad`` is a 3D tensor of
+            shape ``(num_free_params, *shape)`` and ``grad_names`` is a list
+            of the corresponding parameter names. Returns ``(None, [])`` if
+            all parameters are fixed.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the
+                wrong length, or if ``free_params`` is a dict with missing
+                or unexpected keys.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DummyMatrix, Product, ScalarMatrix
+
+            op = Product(a=DummyMatrix(["a", "b", "c", "a"]), b=ScalarMatrix(3))
+            free_params = torch.tensor([1.0])
+            grad, grad_names = op.manual_grad(free_params)
+            grad
+
+        .. jupyter-execute::
+
+            grad_names
+        """
+        if free_params is None:
+            free_params = self.free_param_defaults
+        grad_groups, grad_name_groups = self.operands_grad(free_params)
+
+        cache = self._get_or_build_intermediates(free_params)
+        a = cache["a"]
+        b = cache["b"]
+
+        grad = []
+        grad_names = []
+
+        da = grad_groups[0]
+        if da is not None:
+            grad.append(da @ b)
+            grad_names.extend(grad_name_groups[0])
+
+        db = grad_groups[1]
+        if db is not None:
+            grad.append(a @ db)
+            grad_names.extend(grad_name_groups[1])
+
+        if len(grad) > 0:
+            grad = torch.cat(grad)
+            return grad, grad_names
+        else:
+            return None, []
