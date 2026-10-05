@@ -85,8 +85,6 @@ class LowerTriangularMatrix(Matrix):
         super().__init__((n, m), param_specs)
 
     def __call__(self, free_params=None):
-        if free_params is None:
-            free_params = self.free_param_defaults
         tril_entries = self.build_params(free_params)
 
         mat = torch.zeros(self.shape[0], self.shape[1], device=tril_entries.device, dtype=tril_entries.dtype)
@@ -114,8 +112,6 @@ class LowerTriangularMatrix(Matrix):
             after ``free_params`` is validated via
             :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
 
         free_params = self.build_params(free_params, include_fixed=False, trans=False)
         if len(free_params) == 0:

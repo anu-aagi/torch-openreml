@@ -69,8 +69,6 @@ class DiagonalMatrix(Matrix):
         super().__init__((n, n), param_specs)
 
     def __call__(self, free_params=None):
-        if free_params is None:
-            free_params = self.free_param_defaults
         sigma2 = self.build_params(free_params)
         
         return torch.diag(sigma2)
@@ -93,8 +91,6 @@ class DiagonalMatrix(Matrix):
             after ``free_params`` is validated via
             :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
 
         free_params = self.build_params(free_params, include_fixed=False, trans=False)
         if len(free_params) == 0:

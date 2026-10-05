@@ -122,8 +122,6 @@ class Adapter(Matrix):
             ValueError: If ``free_params`` is not a 1D tensor or has the wrong
                 length, or if it is a dict with missing or unexpected keys.
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
         params = self.build_params(free_params, include_fixed=False, trans=False)
         adaptee_free_params = self.param_map(params)
         return self.adaptee(adaptee_free_params)
@@ -197,8 +195,6 @@ class Adapter(Matrix):
             after ``free_params`` is validated via
             :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
 
         params = self.build_params(free_params, include_fixed=False, trans=False)
         if self.num_free_params == 0:

@@ -104,8 +104,6 @@ class CompoundSymmetricMatrix(Matrix):
 
 
     def __call__(self, free_params=None):
-        if free_params is None:
-            free_params = self.free_param_defaults
         cache = self._get_or_build_intermediates(free_params)
         v = cache["sigma2"] * cache["rho_mat"]
 
@@ -129,8 +127,6 @@ class CompoundSymmetricMatrix(Matrix):
             after ``free_params`` is validated via
             :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
 
         free_params = self.build_params(free_params, include_fixed=False, trans=False)
         if len(free_params) == 0:

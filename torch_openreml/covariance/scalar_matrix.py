@@ -70,8 +70,6 @@ class ScalarMatrix(Matrix):
         super().__init__((n, n), param_specs)
         
     def __call__(self, free_params=None):
-        if free_params is None:
-            free_params = self.free_param_defaults
         sigma2 = self.build_params(free_params)
         device = sigma2.device
         dtype = sigma2.dtype
@@ -99,8 +97,6 @@ class ScalarMatrix(Matrix):
             after ``free_params`` is validated via
             :meth:`~torch_openreml.covariance.matrix.Matrix.build_params`.
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
 
         free_params = self.build_params(free_params, include_fixed=False, trans=False, out_format="tensor")
         if len(free_params) == 0:
