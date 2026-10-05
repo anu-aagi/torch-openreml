@@ -62,8 +62,6 @@ class Sum(Operator):
             raise ValueError("At least two operands are required")
     
     def __call__(self, free_params=None):
-        if free_params is None:
-            free_params = self.free_param_defaults
         v_groups = self.build_operands(free_params)
         v = sum(v_groups)
         self._shape = tuple(v.shape)
@@ -115,8 +113,6 @@ class Sum(Operator):
 
             grad_names
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
         grad_groups, grad_name_groups = self.operands_grad(free_params)
 
         grad_groups = [grad for grad in grad_groups if grad is not None]

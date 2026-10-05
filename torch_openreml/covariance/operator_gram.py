@@ -86,8 +86,6 @@ class Gram(Operator):
             raise ValueError("One operand is required")
 
     def __call__(self, free_params=None):
-        if free_params is None:
-            free_params = self.free_param_defaults
         v_groups = self.build_operands(free_params)
         x = v_groups[0]
 
@@ -156,8 +154,6 @@ class Gram(Operator):
             grad_xxt, grad_names_xxt  = op_xxt.manual_grad(free_params)
             grad_xxt
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
 
         v_groups = self.build_operands(free_params)
         x = v_groups[0]

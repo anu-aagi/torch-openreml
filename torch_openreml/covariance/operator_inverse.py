@@ -70,8 +70,6 @@ class Inverse(Operator):
         return cache
 
     def __call__(self, free_params=None):
-        if free_params is None:
-            free_params = self.free_param_defaults
         cache = self._get_or_build_intermediates(free_params)
         v = cache["v"]
         self._shape = tuple(v.shape)
@@ -128,8 +126,6 @@ class Inverse(Operator):
 
             grad_names
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
         grad_groups, grad_name_groups = self.operands_grad(free_params)
 
         v = self._get_or_build_intermediates(free_params)["v"]
