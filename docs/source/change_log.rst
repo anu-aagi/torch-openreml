@@ -1,6 +1,61 @@
 Changelog
 =========
 
+0.4.0-alpha (2026-10-05)
+------------------------
+
+Breaking changes
+~~~~~~~~~~~~~~~~
+
+* ``simple_param_specs`` and ``SimpleMatrix`` now take their default as a 1D
+  tensor of shape ``(1,)``. A default passed as a float raises a ``TypeError``,
+  and a tensor of another shape a ``ValueError``.
+* Parameter names must be non-empty and must not contain ``"/"``, which the
+  path syntax of ``set_param_specs`` reserves as its separator. Operand names
+  in an operator follow the same rule.
+
+New features
+~~~~~~~~~~~~
+
+* New operators: ``Product``, the matrix product :math:`V = A B` of exactly
+  two operands; ``Transpose``, :math:`V = A^\top`; ``Stack``, binding two or
+  more operands row-wise; and ``Inverse``, :math:`V = A^{-1}`, whose gradient
+  reuses the inverse computed in the forward pass. As with the other
+  operators, each operand may be a trainable matrix or a fixed tensor.
+* ``Matrix.set_param_specs``, updating one or more parameter specifications in
+  place. A key without a trailing ``"/"`` addresses one parameter exactly,
+  while a key ending with ``"/"`` addresses a subtree: ``"A/"`` every parameter
+  of the operand ``"A"``, nested operands below it included, and ``"/"`` every
+  parameter of the matrix. Each field passed replaces that field of every
+  resolved specification and fields left as ``None`` are kept, so a call
+  without fields changes nothing. Values are assigned as given, without
+  validation or copying, and take effect on the next call.
+* ``Matrix.cache`` and the cache controls ``enable_cache``, ``disable_cache``
+  and ``reset_intermediates``. Disabling the cache also clears it, so an entry
+  stored while caching was on cannot come back when it is turned on again.
+  ``Operator`` overrides all three to recurse into its matrix operands and
+  ``Adapter`` into its adaptee, so one call covers a whole composite.
+
+Changes
+~~~~~~~
+
+* ``MarginalREML.ai_step`` now resolves the dtype and device from ``theta``
+  alone and converts ``x`` and ``y`` to them, rather than resolving a common
+  dtype and device from the three.
+
+Documentation
+~~~~~~~~~~~~~
+
+* Added API reference pages for ``Product``, ``Transpose``, ``Stack`` and
+  ``Inverse``, listed them on the operators page, and regenerated the
+  per-class pages.
+
+Testing
+~~~~~~~
+
+* Added test modules and planning documents for ``Product``, ``Transpose``,
+  ``Stack`` and ``Inverse``.
+
 0.3.0-alpha (2026-09-20)
 ------------------------
 
