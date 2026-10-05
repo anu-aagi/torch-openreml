@@ -20,6 +20,7 @@ from torch_openreml.covariance.operator_transpose import Transpose
 from torch_openreml.covariance.operator_gram import Gram
 from torch_openreml.covariance.operator_augment import Augment
 from torch_openreml.covariance.operator_stack import Stack
+from torch_openreml.covariance.operator_inverse import Inverse
 
 from torch_openreml.covariance.dummy_matrix import DummyMatrix
 
