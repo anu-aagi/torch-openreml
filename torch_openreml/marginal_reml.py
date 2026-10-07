@@ -47,7 +47,7 @@ class MarginalREML:
     ``v``. Gradients are handled internally by the matrix.
     """
     
-    def __init__(self, v):
+    def __init__(self, v, nn_optimizers=None):
         """
         Initialize a MarginalREML estimator.
 
@@ -55,10 +55,17 @@ class MarginalREML:
             v (Matrix): A :class:`~torch_openreml.covariance.matrix.Matrix`
                 instance that constructs :math:`\\symbf{V}(\\boldsymbol{\\theta})`
                 and its Jacobian.
+            nn_optimizers (torch.optim.Optimizer or list, optional): Optimizer
+                or list of optimizers governing the neural-network parameters
+                that enter :math:`\\symbf{V}`. Used by :meth:`nn_step`, which
+                steps each of them on the REML log-likelihood. Defaults to
+                ``None``.
 
         Raises:
             TypeError: If ``v`` is not a
-                :class:`~torch_openreml.covariance.matrix.Matrix` instance.
+                :class:`~torch_openreml.covariance.matrix.Matrix` instance, or
+                if ``nn_optimizers`` is not a
+                :class:`torch.optim.Optimizer` instance or a list of them.
 
         Example:
 
@@ -82,7 +89,19 @@ class MarginalREML:
         if not isinstance(v, Matrix):
             raise TypeError("'v' must be a Matrix instance!")
 
+        if nn_optimizers is None:
+            nn_optimizers = []
+        elif isinstance(nn_optimizers, torch.optim.Optimizer):
+            nn_optimizers = [nn_optimizers]
+        else:
+            nn_optimizers = list(nn_optimizers)
+
+        for nn_optimizer in nn_optimizers:
+            if not isinstance(nn_optimizer, torch.optim.Optimizer):
+                raise TypeError(f"Each element of 'nn_optimizers' must be a torch.optim.Optimizer instance, got {type(nn_optimizer).__name__}!")
+
         self.v = v
+        self.nn_optimizers = nn_optimizers
 
     def blue(self, y, x, theta):
         r"""
@@ -180,6 +199,63 @@ class MarginalREML:
         v = self.v(theta)
         dv, _ = self.v.grad(theta)
         return v, dv
+
+    def nn_step(self, y, x, theta):
+        r"""
+        Take one gradient step on the neural-network parameters inside the
+        covariance model.
+
+        Builds :math:`\symbf{V}(\boldsymbol{\theta})` with the network in the
+        autograd graph and differentiates the REML log-likelihood
+
+        .. math::
+            \ell_R(\boldsymbol{\theta}) = -\frac{1}{2} \left(
+                \log |\symbf{V}(\boldsymbol{\theta})| +
+                \log |\symbf{X}^\top \symbf{V}(\boldsymbol{\theta})^{-1} \symbf{X}| +
+                \symbf{y}^\top \symbf{P} \symbf{y}
+            \right)
+
+        with respect to the network parameters, so that the objective the AI
+        algorithm maximises over :math:`\boldsymbol{\theta}` is maximised over
+        the network parameters as well. The intermediates cached by :attr:`v`
+        are cleared before the forward pass, so that the construction is
+        recomputed inside the graph, and cleared again afterwards, so that
+        nothing computed before the update survives it.
+
+        Every optimizer in :attr:`nn_optimizers` is zeroed, the graph is
+        differentiated once, and each optimizer then takes its own step.
+
+        Args:
+            y (torch.Tensor): Response vector of shape ``(n,)``.
+            x (torch.Tensor): Design matrix of shape ``(n, p)``.
+            theta (torch.Tensor): Flat covariance parameter tensor.
+
+        Returns:
+            torch.Tensor: Scalar REML log-likelihood evaluated at the
+            parameters used for the step.
+        """
+        device = theta.device
+        dtype = theta.dtype
+        y = y.to(device=device, dtype=dtype)
+        x = x.to(device=device, dtype=dtype)
+
+        self.v.reset_intermediates()
+
+        with torch.enable_grad():
+            loglik_value = loglik(y, x, self.v(theta))
+
+            if loglik_value.requires_grad:
+                for nn_optimizer in self.nn_optimizers:
+                    nn_optimizer.zero_grad()
+
+                (-loglik_value).backward()
+
+                for nn_optimizer in self.nn_optimizers:
+                    nn_optimizer.step()
+
+        self.v.reset_intermediates()
+
+        return loglik_value
 
     def ai_step(self, y, x, theta, require_loglik=True, require_beta=True, trace_approx=False, subspace_fraction=0.01):
         r"""
