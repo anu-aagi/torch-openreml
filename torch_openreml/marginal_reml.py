@@ -710,6 +710,11 @@ class MarginalREML:
         if theta is None:
             theta = self.v.build_params(include_fixed=False, trans=False)
 
+        device = theta.device
+        dtype = theta.dtype
+        y = y.to(device=device, dtype=dtype)
+        x = x.to(device=device, dtype=dtype)
+
         self.history = {"theta": [],
                         "beta": [], 
                         "loglik": [], 
