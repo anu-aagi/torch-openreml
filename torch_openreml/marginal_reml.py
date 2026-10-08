@@ -83,6 +83,8 @@ class MarginalREML:
             raise TypeError("'v' must be a Matrix instance!")
 
         self.v = v
+        self.history = None
+        self.nn_optimizers = None
 
     def blue(self, y, x, theta):
         r"""
