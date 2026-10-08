@@ -255,7 +255,7 @@ class MarginalREML:
 
         self.v.reset_intermediates()
 
-        return loglik_value
+        return loglik_value.detach()
 
     def ai_step(self, y, x, theta, require_loglik=True, require_beta=True, trace_approx=False, subspace_fraction=0.01):
         r"""
