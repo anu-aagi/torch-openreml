@@ -183,7 +183,7 @@ class MarginalREML:
         dv, _ = self.v.grad(theta)
         return v, dv
 
-    def nn_step(self, y, x, theta):
+    def nn_step(self, y, x, theta, optimizers):
         r"""
         Take one gradient step on the neural-network parameters inside the
         covariance model.
@@ -212,6 +212,9 @@ class MarginalREML:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Design matrix of shape ``(n, p)``.
             theta (torch.Tensor): Flat covariance parameter tensor.
+            optimizers (torch.optim.Optimizer or list, optional): Optimizer
+                or list of optimizers governing the neural-network parameters
+                that enter :math:`\\symbf{V}`.
 
         Returns:
             torch.Tensor: Scalar REML log-likelihood evaluated at the
@@ -222,19 +225,27 @@ class MarginalREML:
         y = y.to(device=device, dtype=dtype)
         x = x.to(device=device, dtype=dtype)
 
+        if isinstance(optimizers, torch.optim.Optimizer):
+            optimizers = [optimizers]
+        else:
+            optimizers = list(optimizers)
+            for optim in optimizers:
+                if not isinstance(optim, torch.optim.Optimizer):
+                    raise TypeError(f"Each element of 'optimizers' must be a torch.optim.Optimizer instance, got {type(optim).__name__}!")
+
         self.v.reset_intermediates()
 
         with torch.enable_grad():
             loglik_value = loglik(y, x, self.v(theta))
 
             if loglik_value.requires_grad:
-                for nn_optimizer in self.nn_optimizers:
-                    nn_optimizer.zero_grad()
+                for optim in optimizers:
+                    optim.zero_grad()
 
                 (-loglik_value).backward()
 
-                for nn_optimizer in self.nn_optimizers:
-                    nn_optimizer.step()
+                for optim in optimizers:
+                    optim.step()
 
         self.v.reset_intermediates()
 
