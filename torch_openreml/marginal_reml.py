@@ -532,34 +532,13 @@ class MarginalREML:
             else:
                 return self.history["beta"][-1]
 
-    def is_converged(self,
-                     check_score=True,
-                     check_delta=True,
-                     check_loglik=True,
-                     tol_score=1e-4,
-                     tol_delta=1e-4,
-                     tol_loglik=1e-4):
+    def is_converged(self):
         """
         Check whether the optimisation has converged.
 
         Convergence is declared when all enabled criteria fall below their
         respective tolerances. At least two iterations must have completed
         before any criterion can be satisfied.
-
-        Args:
-            check_score (bool, optional): Check the norm of the score vector.
-                Defaults to ``True``.
-            check_delta (bool, optional): Check the norm of the covariance
-                parameter update :math:`\\Delta`. Defaults to ``True``.
-            check_loglik (bool, optional): Check the absolute change in
-                log-likelihood between successive iterates. Defaults to
-                ``True``.
-            tol_score (float, optional): Score norm tolerance. Defaults to
-                ``1e-4``.
-            tol_delta (float, optional): Covariance parameter update norm
-                tolerance. Defaults to ``1e-4``.
-            tol_loglik (float, optional): Log-likelihood change tolerance.
-                Defaults to ``1e-4``.
 
         Returns:
             bool: ``True`` if all enabled criteria are satisfied, ``False``
@@ -569,19 +548,19 @@ class MarginalREML:
         if len(self.history["score"]) < 2:
             return False
           
-        if check_score:
+        if self.check_score:
             score_norm = torch.norm(self.history["score"][-1]).item()
-            if score_norm >= tol_score:
+            if score_norm >= self.tol_score:
                 return False
         
-        if check_delta:
+        if self.check_delta:
             delta_norm = torch.norm(self.history["delta"][-1]).item()
-            if delta_norm >= tol_delta:
+            if delta_norm >= self.tol_delta:
                 return False
               
-        if check_loglik and torch.is_tensor(self.history["loglik"][-1]):
+        if self.check_loglik and torch.is_tensor(self.history["loglik"][-1]):
             loglik_diff = torch.abs(self.history["loglik"][-1] - self.history["loglik"][-2]).item()
-            if loglik_diff >= tol_loglik:
+            if loglik_diff >= self.tol_loglik:
                 return False
         
         return True
@@ -717,6 +696,13 @@ class MarginalREML:
                         "ai": [], 
                         "delta": [],
                         "update": []}
+
+        self.check_score = check_score
+        self.check_delta = check_delta
+        self.check_loglik = check_loglik
+        self.tol_score = tol_score
+        self.tol_delta = tol_delta
+        self.tol_loglik = tol_loglik
         
         pb = tqdm(disable=not verbose, bar_format="{desc} \u23F1 {elapsed} | \u26A1 {rate_fmt}")
         
@@ -759,7 +745,7 @@ class MarginalREML:
                             tqdm.write("")
                         tqdm.write(write_str)
                 
-                if self.is_converged(check_score, check_delta, check_loglik, tol_score, tol_delta, tol_loglik):
+                if self.is_converged():
                     if verbose > 0:
                         if verbose > 1:
                             tqdm.write(f"\n[\u2207: score, \u0394: \U0001D409\u207B\u00B9\u2207, \u03B7: learning rate, \u0394\u1D9C: clip(\U0001D6C9 + \u03B7\u0394, lb, ub) - \U0001D6C9, \U0001D4DB: restricted likelihood]")
