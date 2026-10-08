@@ -47,7 +47,7 @@ class MarginalREML:
     ``v``. Gradients are handled internally by the matrix.
     """
     
-    def __init__(self, v, nn_optimizers=None):
+    def __init__(self, v):
         """
         Initialize a MarginalREML estimator.
 
@@ -55,17 +55,10 @@ class MarginalREML:
             v (Matrix): A :class:`~torch_openreml.covariance.matrix.Matrix`
                 instance that constructs :math:`\\symbf{V}(\\boldsymbol{\\theta})`
                 and its Jacobian.
-            nn_optimizers (torch.optim.Optimizer or list, optional): Optimizer
-                or list of optimizers governing the neural-network parameters
-                that enter :math:`\\symbf{V}`. Used by :meth:`nn_step`, which
-                steps each of them on the REML log-likelihood. Defaults to
-                ``None``.
 
         Raises:
             TypeError: If ``v`` is not a
-                :class:`~torch_openreml.covariance.matrix.Matrix` instance, or
-                if ``nn_optimizers`` is not a
-                :class:`torch.optim.Optimizer` instance or a list of them.
+                :class:`~torch_openreml.covariance.matrix.Matrix` instance.
 
         Example:
 
@@ -89,19 +82,7 @@ class MarginalREML:
         if not isinstance(v, Matrix):
             raise TypeError("'v' must be a Matrix instance!")
 
-        if nn_optimizers is None:
-            nn_optimizers = []
-        elif isinstance(nn_optimizers, torch.optim.Optimizer):
-            nn_optimizers = [nn_optimizers]
-        else:
-            nn_optimizers = list(nn_optimizers)
-
-        for nn_optimizer in nn_optimizers:
-            if not isinstance(nn_optimizer, torch.optim.Optimizer):
-                raise TypeError(f"Each element of 'nn_optimizers' must be a torch.optim.Optimizer instance, got {type(nn_optimizer).__name__}!")
-
         self.v = v
-        self.nn_optimizers = nn_optimizers
 
     def blue(self, y, x, theta):
         r"""
