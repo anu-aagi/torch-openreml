@@ -24,6 +24,7 @@
       ~CompoundSymmetricMatrix.grad
       ~CompoundSymmetricMatrix.manual_grad
       ~CompoundSymmetricMatrix.reset_intermediates
+      ~CompoundSymmetricMatrix.resolve_dim
       ~CompoundSymmetricMatrix.set_intermediates
       ~CompoundSymmetricMatrix.set_param_specs
       ~CompoundSymmetricMatrix.trans_grad

@@ -18,7 +18,6 @@
       ~BlockDiagonal.auto_grad
       ~BlockDiagonal.build_operands
       ~BlockDiagonal.build_params
-      ~BlockDiagonal.call_tree
       ~BlockDiagonal.disable_cache
       ~BlockDiagonal.enable_cache
       ~BlockDiagonal.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~BlockDiagonal.manual_grad
       ~BlockDiagonal.operands_grad
       ~BlockDiagonal.reset_intermediates
+      ~BlockDiagonal.resolve_dim
       ~BlockDiagonal.set_intermediates
       ~BlockDiagonal.set_param_specs
       ~BlockDiagonal.trans_grad
+      ~BlockDiagonal.tree
    
    
 

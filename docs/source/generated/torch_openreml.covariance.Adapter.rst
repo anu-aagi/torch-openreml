@@ -24,6 +24,7 @@
       ~Adapter.grad
       ~Adapter.manual_grad
       ~Adapter.reset_intermediates
+      ~Adapter.resolve_dim
       ~Adapter.set_intermediates
       ~Adapter.set_param_specs
       ~Adapter.trans_grad

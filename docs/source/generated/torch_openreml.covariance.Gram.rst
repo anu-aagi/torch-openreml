@@ -18,7 +18,6 @@
       ~Gram.auto_grad
       ~Gram.build_operands
       ~Gram.build_params
-      ~Gram.call_tree
       ~Gram.disable_cache
       ~Gram.enable_cache
       ~Gram.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~Gram.manual_grad
       ~Gram.operands_grad
       ~Gram.reset_intermediates
+      ~Gram.resolve_dim
       ~Gram.set_intermediates
       ~Gram.set_param_specs
       ~Gram.trans_grad
+      ~Gram.tree
    
    
 

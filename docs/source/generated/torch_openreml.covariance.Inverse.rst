@@ -18,7 +18,6 @@
       ~Inverse.auto_grad
       ~Inverse.build_operands
       ~Inverse.build_params
-      ~Inverse.call_tree
       ~Inverse.disable_cache
       ~Inverse.enable_cache
       ~Inverse.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~Inverse.manual_grad
       ~Inverse.operands_grad
       ~Inverse.reset_intermediates
+      ~Inverse.resolve_dim
       ~Inverse.set_intermediates
       ~Inverse.set_param_specs
       ~Inverse.trans_grad
+      ~Inverse.tree
    
    
 

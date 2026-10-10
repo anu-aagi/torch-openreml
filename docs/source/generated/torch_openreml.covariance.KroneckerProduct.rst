@@ -18,7 +18,6 @@
       ~KroneckerProduct.auto_grad
       ~KroneckerProduct.build_operands
       ~KroneckerProduct.build_params
-      ~KroneckerProduct.call_tree
       ~KroneckerProduct.disable_cache
       ~KroneckerProduct.enable_cache
       ~KroneckerProduct.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~KroneckerProduct.manual_grad
       ~KroneckerProduct.operands_grad
       ~KroneckerProduct.reset_intermediates
+      ~KroneckerProduct.resolve_dim
       ~KroneckerProduct.set_intermediates
       ~KroneckerProduct.set_param_specs
       ~KroneckerProduct.trans_grad
+      ~KroneckerProduct.tree
    
    
 

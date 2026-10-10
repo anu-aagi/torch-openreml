@@ -24,6 +24,7 @@
       ~SimpleMatrix.grad
       ~SimpleMatrix.manual_grad
       ~SimpleMatrix.reset_intermediates
+      ~SimpleMatrix.resolve_dim
       ~SimpleMatrix.set_intermediates
       ~SimpleMatrix.set_param_specs
       ~SimpleMatrix.trans_grad

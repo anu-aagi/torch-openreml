@@ -24,6 +24,7 @@
       ~Matrix.grad
       ~Matrix.manual_grad
       ~Matrix.reset_intermediates
+      ~Matrix.resolve_dim
       ~Matrix.set_intermediates
       ~Matrix.set_param_specs
       ~Matrix.trans_grad

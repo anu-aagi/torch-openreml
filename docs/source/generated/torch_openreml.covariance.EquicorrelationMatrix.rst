@@ -24,6 +24,7 @@
       ~EquicorrelationMatrix.grad
       ~EquicorrelationMatrix.manual_grad
       ~EquicorrelationMatrix.reset_intermediates
+      ~EquicorrelationMatrix.resolve_dim
       ~EquicorrelationMatrix.set_intermediates
       ~EquicorrelationMatrix.set_param_specs
       ~EquicorrelationMatrix.trans_grad

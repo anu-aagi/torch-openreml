@@ -24,6 +24,7 @@
       ~DiagonalMatrix.grad
       ~DiagonalMatrix.manual_grad
       ~DiagonalMatrix.reset_intermediates
+      ~DiagonalMatrix.resolve_dim
       ~DiagonalMatrix.set_intermediates
       ~DiagonalMatrix.set_param_specs
       ~DiagonalMatrix.trans_grad

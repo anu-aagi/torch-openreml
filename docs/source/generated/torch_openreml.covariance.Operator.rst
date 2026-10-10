@@ -18,7 +18,6 @@
       ~Operator.auto_grad
       ~Operator.build_operands
       ~Operator.build_params
-      ~Operator.call_tree
       ~Operator.disable_cache
       ~Operator.enable_cache
       ~Operator.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~Operator.manual_grad
       ~Operator.operands_grad
       ~Operator.reset_intermediates
+      ~Operator.resolve_dim
       ~Operator.set_intermediates
       ~Operator.set_param_specs
       ~Operator.trans_grad
+      ~Operator.tree
    
    
 

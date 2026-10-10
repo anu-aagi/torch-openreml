@@ -24,6 +24,7 @@
       ~LowerTriangularMatrix.grad
       ~LowerTriangularMatrix.manual_grad
       ~LowerTriangularMatrix.reset_intermediates
+      ~LowerTriangularMatrix.resolve_dim
       ~LowerTriangularMatrix.set_intermediates
       ~LowerTriangularMatrix.set_param_specs
       ~LowerTriangularMatrix.trans_grad

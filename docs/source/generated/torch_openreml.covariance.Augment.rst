@@ -18,7 +18,6 @@
       ~Augment.auto_grad
       ~Augment.build_operands
       ~Augment.build_params
-      ~Augment.call_tree
       ~Augment.disable_cache
       ~Augment.enable_cache
       ~Augment.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~Augment.manual_grad
       ~Augment.operands_grad
       ~Augment.reset_intermediates
+      ~Augment.resolve_dim
       ~Augment.set_intermediates
       ~Augment.set_param_specs
       ~Augment.trans_grad
+      ~Augment.tree
    
    
 

@@ -24,6 +24,7 @@
       ~DummyMatrix.grad
       ~DummyMatrix.manual_grad
       ~DummyMatrix.reset_intermediates
+      ~DummyMatrix.resolve_dim
       ~DummyMatrix.set_intermediates
       ~DummyMatrix.set_param_specs
       ~DummyMatrix.trans_grad

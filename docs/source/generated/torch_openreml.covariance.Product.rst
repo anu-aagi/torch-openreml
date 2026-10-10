@@ -18,7 +18,6 @@
       ~Product.auto_grad
       ~Product.build_operands
       ~Product.build_params
-      ~Product.call_tree
       ~Product.disable_cache
       ~Product.enable_cache
       ~Product.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~Product.manual_grad
       ~Product.operands_grad
       ~Product.reset_intermediates
+      ~Product.resolve_dim
       ~Product.set_intermediates
       ~Product.set_param_specs
       ~Product.trans_grad
+      ~Product.tree
    
    
 

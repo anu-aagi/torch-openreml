@@ -24,6 +24,7 @@
       ~UnconstrainedMatrix.grad
       ~UnconstrainedMatrix.manual_grad
       ~UnconstrainedMatrix.reset_intermediates
+      ~UnconstrainedMatrix.resolve_dim
       ~UnconstrainedMatrix.set_intermediates
       ~UnconstrainedMatrix.set_param_specs
       ~UnconstrainedMatrix.trans_grad

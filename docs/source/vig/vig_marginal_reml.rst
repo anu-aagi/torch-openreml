@@ -660,9 +660,10 @@ The following example demonstrates a mixed model with:
     import torch
 
     from torch_openreml import MarginalREML
-    from torch_openreml.utils import augment, n_distinct
 
     from torch_openreml.covariance import (
+        Augment,
+        BlockDiagonal,
         DummyMatrix,
         IdentityMatrix,
         ScalarMatrix,
@@ -677,30 +678,33 @@ The following example demonstrates a mixed model with:
     y = torch.tensor(john_alpha["yield"].values)
 
     # --- fixed effects ---
-    X = augment(
+    X = Augment(
         torch.ones(len(john_alpha), 1),
-        DummyMatrix(john_alpha["rep"], drop_first=True)()
-    )
+        DummyMatrix(john_alpha["rep"], drop_first=True)
+    )()
 
-    # --- random effect design matrices ---
-    Z_gen = DummyMatrix(john_alpha["gen"])
-    Z_rep_block = DummyMatrix(john_alpha["rep"], john_alpha["block"])
-
-    # --- covariance components ---
-    G_gen = ScalarMatrix(n_distinct(john_alpha["gen"]))
-    G_rep = IdentityMatrix(n_distinct(john_alpha["rep"]))
-    G_block = ScalarMatrix(n_distinct(john_alpha["block"]))
-
-    R = ScalarMatrix(len(john_alpha))
+    # --- random effects ---
+    gen = john_alpha["gen"]
+    rep = john_alpha["rep"]
+    block = john_alpha["block"]
+    n = len(john_alpha)
 
     # --- marginal covariance ---
     V = Sum(
-        CovariancePropagation(Z_gen, G_gen),
         CovariancePropagation(
-            Z_rep_block,
-            KroneckerProduct(G_rep, G_block)
+            Augment(
+                DummyMatrix(gen),
+                DummyMatrix(rep, block),
+            ),
+            BlockDiagonal(
+                ScalarMatrix(gen),
+                KroneckerProduct(
+                    IdentityMatrix(rep),
+                    ScalarMatrix(block),
+                ),
+            ),
         ),
-        R
+        ScalarMatrix(n),
     )
 
     # --- REML fit ---

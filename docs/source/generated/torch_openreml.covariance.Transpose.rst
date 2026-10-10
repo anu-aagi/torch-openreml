@@ -18,7 +18,6 @@
       ~Transpose.auto_grad
       ~Transpose.build_operands
       ~Transpose.build_params
-      ~Transpose.call_tree
       ~Transpose.disable_cache
       ~Transpose.enable_cache
       ~Transpose.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~Transpose.manual_grad
       ~Transpose.operands_grad
       ~Transpose.reset_intermediates
+      ~Transpose.resolve_dim
       ~Transpose.set_intermediates
       ~Transpose.set_param_specs
       ~Transpose.trans_grad
+      ~Transpose.tree
    
    
 

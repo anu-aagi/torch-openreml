@@ -18,7 +18,6 @@
       ~Stack.auto_grad
       ~Stack.build_operands
       ~Stack.build_params
-      ~Stack.call_tree
       ~Stack.disable_cache
       ~Stack.enable_cache
       ~Stack.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~Stack.manual_grad
       ~Stack.operands_grad
       ~Stack.reset_intermediates
+      ~Stack.resolve_dim
       ~Stack.set_intermediates
       ~Stack.set_param_specs
       ~Stack.trans_grad
+      ~Stack.tree
    
    
 

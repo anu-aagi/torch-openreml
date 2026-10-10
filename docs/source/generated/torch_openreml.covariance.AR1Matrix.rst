@@ -24,6 +24,7 @@
       ~AR1Matrix.grad
       ~AR1Matrix.manual_grad
       ~AR1Matrix.reset_intermediates
+      ~AR1Matrix.resolve_dim
       ~AR1Matrix.set_intermediates
       ~AR1Matrix.set_param_specs
       ~AR1Matrix.trans_grad

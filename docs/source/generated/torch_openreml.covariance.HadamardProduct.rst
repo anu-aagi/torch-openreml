@@ -18,7 +18,6 @@
       ~HadamardProduct.auto_grad
       ~HadamardProduct.build_operands
       ~HadamardProduct.build_params
-      ~HadamardProduct.call_tree
       ~HadamardProduct.disable_cache
       ~HadamardProduct.enable_cache
       ~HadamardProduct.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~HadamardProduct.manual_grad
       ~HadamardProduct.operands_grad
       ~HadamardProduct.reset_intermediates
+      ~HadamardProduct.resolve_dim
       ~HadamardProduct.set_intermediates
       ~HadamardProduct.set_param_specs
       ~HadamardProduct.trans_grad
+      ~HadamardProduct.tree
    
    
 

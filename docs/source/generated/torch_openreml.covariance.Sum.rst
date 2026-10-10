@@ -18,7 +18,6 @@
       ~Sum.auto_grad
       ~Sum.build_operands
       ~Sum.build_params
-      ~Sum.call_tree
       ~Sum.disable_cache
       ~Sum.enable_cache
       ~Sum.get_default_dtype_device
@@ -28,9 +27,11 @@
       ~Sum.manual_grad
       ~Sum.operands_grad
       ~Sum.reset_intermediates
+      ~Sum.resolve_dim
       ~Sum.set_intermediates
       ~Sum.set_param_specs
       ~Sum.trans_grad
+      ~Sum.tree
    
    
 
