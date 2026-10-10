@@ -35,7 +35,8 @@ class IdentityMatrix(Matrix):
         Initialize a fixed identity matrix of size ``n x n``.
 
         Args:
-            n (int): Matrix dimension.
+            n (int, list, tuple or pandas.Series): Matrix dimension, or a
+                vector of levels whose distinct elements define it.
 
         Example:
 
@@ -47,6 +48,8 @@ class IdentityMatrix(Matrix):
             mat = IdentityMatrix(3)
             mat()
         """
+        n = self.resolve_dim(n)
+
         self._matrix = torch.eye(n)
         super().__init__((n, n), {})
 
