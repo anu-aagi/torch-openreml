@@ -54,7 +54,8 @@ class UnconstrainedMatrix(Matrix):
         :class:`~torch_openreml.covariance.transform.TransformIdentity`).
 
         Args:
-            n (int): Matrix dimension.
+            n (int, list, tuple or pandas.Series): Matrix dimension, or a
+                vector of levels whose distinct elements define it.
             param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
@@ -83,6 +84,8 @@ class UnconstrainedMatrix(Matrix):
             mat.grad(free_params)
 
         """
+        n = self.resolve_dim(n)
+
         param_specs = param_specs or {
             f"sigma^2_{i}_{j}": {
                 "fixed": False,

@@ -45,8 +45,10 @@ class LowerTriangularMatrix(Matrix):
         (unconstrained).
 
         Args:
-            n (int): Number of rows.
-            m (int): Number of columns.
+            n (int, list, tuple or pandas.Series): Number of rows, or a vector
+                of levels whose distinct elements define it.
+            m (int, list, tuple or pandas.Series): Number of columns, or a
+                vector of levels whose distinct elements define it.
             param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
@@ -75,6 +77,9 @@ class LowerTriangularMatrix(Matrix):
             mat.grad(free_params)
 
         """
+        n = self.resolve_dim(n)
+        m = self.resolve_dim(m)
+
         param_specs = param_specs or {
             f"L_{i}_{j}": {
                 "fixed": False,

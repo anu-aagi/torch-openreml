@@ -31,7 +31,8 @@ class ScalarMatrix(Matrix):
         Initialize a scaled identity covariance matrix of size ``n x n``.
 
         Args:
-            n (int): Matrix dimension.
+            n (int, list, tuple or pandas.Series): Matrix dimension, or a
+                vector of levels whose distinct elements define it.
             param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
@@ -59,6 +60,7 @@ class ScalarMatrix(Matrix):
 
             mat.grad(free_params)
         """
+        n = self.resolve_dim(n)
 
         param_specs = param_specs or {
             "sigma^2": {
