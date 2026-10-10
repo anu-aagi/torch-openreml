@@ -72,29 +72,27 @@ interaction.
 ```python
 import torch
 from torch_openreml import MarginalREML
-from torch_openreml.utils import augment, n_distinct
 from torch_openreml.covariance import (
-    DummyMatrix, IdentityMatrix, ScalarMatrix, Sum,
-    CovariancePropagation, KroneckerProduct,
+    Augment, BlockDiagonal, DummyMatrix, IdentityMatrix,
+    KroneckerProduct, ScalarMatrix, Sum, CovariancePropagation,
 )
 from torch_openreml.example_data import john_alpha
 
 y = torch.tensor(john_alpha["yield"].values)
-X = augment(torch.ones(len(john_alpha), 1),
-            DummyMatrix(john_alpha["rep"], drop_first=True)())
-
-Z_gen = DummyMatrix(john_alpha["gen"])
-Z_rep_block = DummyMatrix(john_alpha["rep"], john_alpha["block"])
-
-G_gen = ScalarMatrix(n_distinct(john_alpha["gen"]))
-G_rep = IdentityMatrix(n_distinct(john_alpha["rep"]))
-G_block = ScalarMatrix(n_distinct(john_alpha["block"]))
-R = ScalarMatrix(len(john_alpha))
+X = Augment(torch.ones(len(john_alpha), 1),
+            DummyMatrix(john_alpha["rep"], drop_first=True))()
 
 V = Sum(
-    CovariancePropagation(Z_gen, G_gen),
-    CovariancePropagation(Z_rep_block, KroneckerProduct(G_rep, G_block)),
-    R,
+    CovariancePropagation(
+        Augment(DummyMatrix(john_alpha["gen"]),
+                DummyMatrix(john_alpha["rep"], john_alpha["block"])),
+        BlockDiagonal(
+            ScalarMatrix(john_alpha["gen"]),
+            KroneckerProduct(IdentityMatrix(john_alpha["rep"]),
+                             ScalarMatrix(john_alpha["block"])),
+        ),
+    ),
+    ScalarMatrix(len(john_alpha)),
 )
 
 reml = MarginalREML(V)
