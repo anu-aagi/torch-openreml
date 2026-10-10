@@ -779,6 +779,36 @@ class Matrix(ABC):
             raise RuntimeError(f"Unknown grad mode '{self.grad_mode}'")
       
           
+    def resolve_dim(self, n):
+        """
+        Resolve a matrix dimension from an integer or a vector of levels.
+
+        The resolved dimension is the number of distinct elements of ``n``
+        (see :func:`~torch_openreml.utils.n_distinct`) when ``n`` is a
+        ``list``, a ``tuple`` or a ``pandas.Series``, and ``n`` itself
+        otherwise.
+
+        Args:
+            n (int, list, tuple or pandas.Series): Matrix dimension, or a
+                vector of levels whose distinct elements define it.
+
+        Returns:
+            int: The resolved matrix dimension.
+
+        Example:
+
+        .. jupyter-execute::
+
+            from torch_openreml.covariance import ScalarMatrix
+
+            mat = ScalarMatrix(3)
+            mat.resolve_dim(["a", "b", "a", "c"])
+        """
+        if isinstance(n, (list, tuple, pd.Series)):
+            return n_distinct(n)
+
+        return n
+
     def _check_shape(self, shape):
         if shape is None:
             return
