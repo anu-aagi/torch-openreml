@@ -13,8 +13,10 @@ Classes:
 """
 
 import torch
+import pandas as pd
 from abc import ABC, abstractmethod
 from torch_openreml.covariance.transform import Transform
+from torch_openreml.utils import n_distinct
 
 class Matrix(ABC):
     r"""
