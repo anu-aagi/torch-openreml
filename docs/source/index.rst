@@ -96,7 +96,6 @@ Installation
 
 .. code-block:: bash
 
-   # TODO: replace with actual install command when packaging is set up
    pip install torch-openreml
 
 **Dependencies:** ``torch``, ``pandas``, ``tqdm`` (Python 3.12).
@@ -143,7 +142,7 @@ and distributional assumptions:
 
 .. math::
 
-    \mathbf{u} \sim \mathcal{N}(\mathbf{0}, \mathbf{G}), \quad
+    \mathbf{b} \sim \mathcal{N}(\mathbf{0}, \mathbf{G}), \quad
     \boldsymbol{\varepsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{R})
 
 For the present model, which includes two random intercept components and their interaction, the covariance contribution from the random effects is expressed as:
@@ -166,9 +165,9 @@ We begin by importing the required modules.
 .. jupyter-execute::
 
     import torch
-    from torch_openreml import MarginalREML
-    from torch_openreml.utils import augment, n_distinct
-    from torch_openreml.covariance import DummyMatrix, IdentityMatrix, ScalarMatrix, Sum, CovariancePropagation, KroneckerProduct
+    import pandas as pd
+    from torch_openreml import MarginalREML, blup
+    from torch_openreml.covariance import DummyMatrix, IdentityMatrix, ScalarMatrix, Sum, CovariancePropagation, KroneckerProduct, Augment, BlockDiagonal
     from torch_openreml.example_data import john_alpha
 
 Covariance Builder
@@ -176,24 +175,31 @@ Covariance Builder
 
 Next, we construct :math:`\mathbf{y}`, :math:`\mathbf{X}`, and the components required to define :math:`\mathbf{V}`. Both :math:`\mathbf{y}` and :math:`\mathbf{X}` are represented as torch tensors. The :py:class:`DummyMatrix <torch_openreml.covariance.DummyMatrix>` class serves as a matrix builder: it constructs the dummy matrix upon evaluation and accepts either `pandas.Series` or lists of strings as input. The argument ``drop_first=True`` removes the first column of the dummy matrix to avoid redundancy, as an intercept term is already included.
 
-The classes :py:class:`ScalarMatrix <torch_openreml.covariance.ScalarMatrix>` and :py:class:`IdentityMatrix <torch_openreml.covariance.IdentityMatrix>` are also matrix builders, parameterized by the required matrix dimension.
+The classes :py:class:`ScalarMatrix <torch_openreml.covariance.ScalarMatrix>` and :py:class:`IdentityMatrix <torch_openreml.covariance.IdentityMatrix>` are also matrix builders, parameterized by the required matrix dimension. The dimension may be given as an integer, or directly as the grouping factor itself, in which case the number of distinct values defines the dimension.
 
-We then assemble the covariance structure using composable operators. The :py:class:`CovariancePropagation <torch_openreml.covariance.CovariancePropagation>` operator represents the transformation :math:`\mathbf{Z}\mathbf{G}\mathbf{Z}^\top`. The :py:class:`KroneckerProduct <torch_openreml.covariance.KroneckerProduct>` operator computes the direct (Kronecker) product of two matrices, and :py:class:`Sum <torch_openreml.covariance.Sum>` aggregates multiple matrix components.
+We then assemble the covariance structure using composable operators. The :py:class:`Augment <torch_openreml.covariance.Augment>` operator binds its operands side by side, forming the joint design matrix :math:`\mathbf{Z} = [\mathbf{Z}_{gen}\ \mathbf{Z}_{rep:block}]`, and :py:class:`BlockDiagonal <torch_openreml.covariance.BlockDiagonal>` places :math:`\mathbf{G}_{gen}` and the Kronecker product :math:`\mathbf{G}_{rep} \otimes \mathbf{G}_{block}` on the diagonal of the joint :math:`\mathbf{G}`. The :py:class:`CovariancePropagation <torch_openreml.covariance.CovariancePropagation>` operator then represents the transformation :math:`\mathbf{Z}\mathbf{G}\mathbf{Z}^\top`. The :py:class:`KroneckerProduct <torch_openreml.covariance.KroneckerProduct>` operator computes the direct (Kronecker) product of two matrices, and :py:class:`Sum <torch_openreml.covariance.Sum>` adds the residual covariance :math:`\mathbf{R}`.
 
 Altogether, the covariance structure can be written as:
 
 .. math::
 
-    \mathbf{V} =
-    \mathbf{Z}_{gen}\mathbf{G}_{gen}\mathbf{Z}_{gen}^\top +
-    \mathbf{Z}_{rep:block}
-    \left(\mathbf{G}_{rep} \otimes \mathbf{G}_{block}\right)
-    \mathbf{Z}_{rep:block}^\top +
-    \sigma^2_{\varepsilon}\mathbf{I}
+    \mathbf{V} = \mathbf{Z}\mathbf{G}\mathbf{Z}^\top + \mathbf{R},
+    \qquad
+    \mathbf{Z} =
+    \begin{bmatrix}
+    \mathbf{Z}_{gen} & \mathbf{Z}_{rep:block}
+    \end{bmatrix},
+    \qquad
+    \mathbf{G} =
+    \begin{bmatrix}
+    \mathbf{G}_{gen} & \mathbf{0} \\
+    \mathbf{0} & \mathbf{G}_{rep} \otimes \mathbf{G}_{block}
+    \end{bmatrix}
 
-where :math:`\mathbf{G}_{rep} = \mathbf{I}`,
+with :math:`\mathbf{G}_{rep} = \mathbf{I}`,
 :math:`\mathbf{G}_{gen} = \sigma^2_{gen}\mathbf{I}`,
-and :math:`\mathbf{G}_{block} = \sigma^2_{block}\mathbf{I}`.
+:math:`\mathbf{G}_{block} = \sigma^2_{block}\mathbf{I}`,
+and :math:`\mathbf{R} = \sigma^2_{\varepsilon}\mathbf{I}`.
 
 The model parameters are defined as:
 
@@ -210,26 +216,29 @@ The logarithmic parameterization ensures that the variance components remain pos
 
 .. jupyter-execute::
 
+    rep = john_alpha["rep"]
+    block = john_alpha["block"]
+    gen = john_alpha["gen"]
+    n = len(john_alpha)
+
     y = torch.tensor(john_alpha["yield"].values)
-    X = augment(torch.ones(len(john_alpha), 1),
-                DummyMatrix(john_alpha["rep"], drop_first=True)())
-
-    Z_gen = DummyMatrix(john_alpha["gen"])
-    Z_rep_block = DummyMatrix(john_alpha["rep"], john_alpha["block"])
-
-    G_gen = ScalarMatrix(n_distinct(john_alpha["gen"]))
-    G_rep = IdentityMatrix(n_distinct(john_alpha["rep"]))
-    G_block = ScalarMatrix(n_distinct(john_alpha["block"]))
-
-    R = ScalarMatrix(len(john_alpha))
+    X = Augment(torch.ones(n, 1), DummyMatrix(rep, drop_first=True))()
 
     V = Sum(
-        CovariancePropagation(Z_gen, G_gen),
-        CovariancePropagation(
-            Z_rep_block,
-            KroneckerProduct(G_rep, G_block)
+        random = CovariancePropagation(
+            Z = Augment(
+                Z_gen = DummyMatrix(gen),
+                Z_rep_block = DummyMatrix(rep, block),
+            ),
+            G = BlockDiagonal(
+                G_gen = ScalarMatrix(gen),
+                G_rep_block = KroneckerProduct(
+                    G_rep = IdentityMatrix(rep),
+                    G_block = ScalarMatrix(block),
+                ),
+            ),
         ),
-        R
+        residual = ScalarMatrix(n),
     )
 
     print(V)
@@ -249,7 +258,36 @@ Because the optimization is performed on the transformed parameter scale, the es
     print(V.free_param_names)
     print(beta_hat)
 
+BLUP
+~~~~
 
+Once the variance components have been estimated, the random effects can be predicted using the best linear unbiased predictor (BLUP):
+
+.. math::
+
+    \hat{\mathbf{b}} = \mathbf{G}\mathbf{Z}^\top\mathbf{V}^{-1}\hat{\mathbf{e}},
+    \qquad
+    \hat{\mathbf{e}} = \mathbf{y} - \mathbf{X}\hat{\boldsymbol{\beta}}
+
+Here, :math:`\mathbf{Z}` and :math:`\mathbf{G}` are the joint design and covariance matrices defined above, represented by the :py:class:`Augment <torch_openreml.covariance.Augment>` and :py:class:`BlockDiagonal <torch_openreml.covariance.BlockDiagonal>` operands nested within the :py:class:`CovariancePropagation <torch_openreml.covariance.CovariancePropagation>` operator. These matrices can be retrieved directly from the covariance structure rather than reconstructed manually. Calling :py:meth:`V.tree <torch_openreml.covariance.Operator.tree>` at ``theta_hat`` evaluates the structure and returns the evaluated nodes, including the root ``"/"`` for :math:`\mathbf{V}` and ``"random/Z"`` and ``"random/G"`` for the random-effects design and covariance matrices.
+
+.. jupyter-execute::
+
+    tree, _ = V.tree(theta_hat)
+
+The :py:func:`blup <torch_openreml.blup>` function takes :math:`\mathbf{y}`, :math:`\mathbf{X}`, :math:`\mathbf{Z}`, :math:`\mathbf{G}`, and :math:`\mathbf{V}` as inputs and returns a prediction for each random-effect level. In this example, the predictions correspond to the 24 genotypes followed by the 18 replicate-by-block combinations:
+
+.. jupyter-execute::
+
+    b_hat = blup(y, X, tree["random/Z"], tree["random/G"], tree["/"])
+    b_hat
+
+BLUPs for an individual random-effect component can be obtained in the same way by extracting its corresponding design and covariance matrices. For example, the random intercepts for ``gen`` are defined by ``"random/Z/Z_gen"`` and ``"random/G/G_gen"``:
+
+.. jupyter-execute::
+
+    gen_blup = blup(y, X, tree["random/Z/Z_gen"], tree["random/G/G_gen"], tree["/"])
+    pd.Series(gen_blup, index=sorted(set(gen)))
 
 Documentation
 -------------
