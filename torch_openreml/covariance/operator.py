@@ -292,12 +292,12 @@ class Operator(Matrix):
         
         return v_groups
 
-    def call_tree(self, free_params=None):
+    def tree(self, free_params=None):
         """
         Evaluate this operator and every nested operand, returning each result
         keyed by its path.
 
-        Descends the operand structure, calling :meth:`call_tree` on nested
+        Descends the operand structure, calling :meth:`tree` on nested
         :class:`~torch_openreml.covariance.operator.Operator` operands.
         Paths join the operand names leading to a node with ``"/"``, and ``"/"``
         is the root. Both dictionaries returned share one key set:
@@ -350,7 +350,7 @@ class Operator(Matrix):
 
                 op = Sum(inner=BlockDiagonal(DiagonalMatrix(2), ScalarMatrix(2)),
                          extra=ScalarMatrix(4))
-                results, free_params_by_path = op.call_tree(torch.tensor([0.0, 0.5, 1.0, 0.5]))
+                results, free_params_by_path = op.tree(torch.tensor([0.0, 0.5, 1.0, 0.5]))
 
             .. jupyter-execute::
 
@@ -378,7 +378,7 @@ class Operator(Matrix):
                 free_params = free_params[operand.num_free_params:]
 
                 if isinstance(operand, Operator):
-                    child_results, child_params = operand.call_tree(operand_params)
+                    child_results, child_params = operand.tree(operand_params)
                 else:
                     child_results = {"/": operand(operand_params)}
                     child_params = {"/": operand_params}
@@ -401,7 +401,7 @@ class Operator(Matrix):
         Descends the operand structure, calling :meth:`grad_tree` on nested
         :class:`~torch_openreml.covariance.operator.Operator` operands. Paths
         join the operand names leading to a node with ``"/"``, and ``"/"`` is
-        the root — the same keys :meth:`call_tree` produces, in the same order.
+        the root — the same keys :meth:`tree` produces, in the same order.
         Both dictionaries returned share one key set:
 
         - ``grads`` maps each path to the ``(grad, grad_names)`` pair
