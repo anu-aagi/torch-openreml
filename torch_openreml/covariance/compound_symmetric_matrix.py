@@ -37,7 +37,8 @@ class CompoundSymmetricMatrix(Matrix):
         Initialize a compound symmetric covariance matrix of size ``n x n``.
 
         Args:
-            n (int): Matrix dimension.
+            n (int, list, tuple or pandas.Series): Matrix dimension, or a
+                vector of levels whose distinct elements define it.
             param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
@@ -65,6 +66,8 @@ class CompoundSymmetricMatrix(Matrix):
 
             mat.grad(free_params)
         """
+        n = self.resolve_dim(n)
+
         if n <= 1:
             raise ValueError("'n' must be greater than 1!")
         self.rho_min = -1/(n - 1)
