@@ -34,7 +34,8 @@ class AR1Matrix(Matrix):
         Initialize an AR(1) covariance matrix of size ``n x n``.
 
         Args:
-            n (int): Matrix dimension.
+            n (int, list, tuple or pandas.Series): Matrix dimension, or a
+                vector of levels whose distinct elements define it.
             param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
@@ -58,6 +59,8 @@ class AR1Matrix(Matrix):
             free_params = torch.tensor([0.5, 1.0])
             mat(free_params)
         """
+        n = self.resolve_dim(n)
+
         param_specs = param_specs or {
             "sigma^2": {
                 "fixed": False,
