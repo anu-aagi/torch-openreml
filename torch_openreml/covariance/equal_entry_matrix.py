@@ -43,9 +43,12 @@ class EqualEntryMatrix(Matrix):
         Initialize an equal-entry matrix of size ``n x m``.
 
         Args:
-            n (int): Number of rows. Matrix dimension when ``m`` is omitted.
-            m (int, optional): Number of columns. Defaults to ``n`` when
-                omitted or ``None``. Default: ``None``.
+            n (int, list, tuple or pandas.Series): Number of rows, or a vector
+                of levels whose distinct elements define it. Matrix dimension
+                when ``m`` is omitted.
+            m (int, list, tuple or pandas.Series, optional): Number of columns,
+                or a vector of levels whose distinct elements define it.
+                Defaults to ``n`` when omitted or ``None``. Default: ``None``.
             param_specs (dict): Parameter specifications. Keys should be strings
                 representing parameter names. Values should be dictionaries
                 containing the specification for each parameter. Each specification
@@ -78,8 +81,10 @@ class EqualEntryMatrix(Matrix):
 
             mat.grad(free_params)
         """
+        n = self.resolve_dim(n)
 
         m = n if m is None else m
+        m = self.resolve_dim(m)
 
         param_specs = param_specs or {
             "sigma^2": {
