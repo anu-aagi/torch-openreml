@@ -190,8 +190,10 @@ class Operator(Matrix):
                 ``"dict"``. Default: ``"tensor"``.
 
         Returns:
-            torch.Tensor or dict: Concatenated parameter tensor or dictionary
-                mapping namespaced parameter names to value tensors.
+            torch.Tensor or dict: Concatenated parameter tensor of length
+            :attr:`num_params` (or :attr:`num_free_params` when
+            ``include_fixed=False``), or a dictionary mapping namespaced
+            parameter names to value tensors.
 
         Raises:
             TypeError: If ``free_params`` is not a Torch tensor.
@@ -241,7 +243,11 @@ class Operator(Matrix):
         if out_format == "tensor":
             return result
         elif out_format == "dict":
-            return dict(zip(self.free_param_names, result))
+            if include_fixed:
+                param_names = self.param_names
+            else:
+                param_names = self.free_param_names
+            return dict(zip(param_names, result.unsqueeze(-1)))
         else:
             raise ValueError(f"Unexpected 'out_format': {out_format}!")
     
