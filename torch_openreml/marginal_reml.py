@@ -554,7 +554,9 @@ class MarginalREML:
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Design matrix of shape ``(n, p)``.
-            theta (torch.Tensor): Initial covariance parameter tensor.
+            theta (torch.Tensor or dict): Initial covariance parameter tensor,
+                or a dictionary mapping free parameter names to value tensors.
+                If omitted, default values are used. Defaults to ``None``.
             max_iter (int, optional): Maximum number of iterations. Defaults
                 to ``200``.
             eta (float, optional): Step size applied to each AI update.
@@ -612,9 +614,7 @@ class MarginalREML:
             covariance parameter estimate, ``beta`` is the corresponding coefficient
             estimate, and ``n_iter`` is the number of iterations completed.
         """
-        if theta is None:
-            theta = self.v.build_params(include_fixed=False, trans=False)
-
+        theta = self.v.build_params(theta, include_fixed=False, trans=False)
         theta = theta.detach()
         device = theta.device
         dtype = theta.dtype
