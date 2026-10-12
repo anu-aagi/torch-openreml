@@ -94,7 +94,7 @@ class EquicorrelationMatrix(Matrix):
             j_n = torch.ones((self.shape[0], self.shape[0]), device=device, dtype=dtype)
             v = ((1 - rho) * i_n + rho * j_n)
 
-            cache = {"i_n": i_n, "j_n": j_n, "v": v}
+            cache = {"rho": rho, "i_n": i_n, "j_n": j_n, "v": v}
             self.set_intermediates(built_params, cache)
 
         return cache
@@ -104,6 +104,33 @@ class EquicorrelationMatrix(Matrix):
         v = cache["v"]
 
         return v
+
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the matrix from its closed form.
+
+        The matrix is
+        :math:`\\symbf{V} = (1 - \\rho)\\symbf{I}_n + \\rho\\symbf{J}_n`,
+        a rank-one update of a scaled identity, so its inverse follows from
+        the Sherman-Morrison formula:
+
+        .. math::
+            \\symbf{V}^{-1} = \\frac{\\symbf{I}_n}{1 - \\rho}
+            - \\frac{\\rho\\,\\symbf{J}_n}{(1 - \\rho)(1 + (n - 1)\\rho)}
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the constructed matrix.
+        """
+        cache = self._get_or_build_intermediates(free_params)
+        rho = cache["rho"]
+        n = self.shape[0]
+
+        return cache["i_n"] / (1 - rho) - rho / ((1 - rho) * (1 + (n - 1) * rho)) * cache["j_n"]
 
     def manual_grad(self, free_params=None):
         """
