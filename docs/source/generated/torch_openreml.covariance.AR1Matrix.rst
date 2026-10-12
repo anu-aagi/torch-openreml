@@ -22,6 +22,7 @@
       ~AR1Matrix.get_default_dtype_device
       ~AR1Matrix.get_intermediates
       ~AR1Matrix.grad
+      ~AR1Matrix.inverse
       ~AR1Matrix.manual_grad
       ~AR1Matrix.reset_intermediates
       ~AR1Matrix.resolve_dim

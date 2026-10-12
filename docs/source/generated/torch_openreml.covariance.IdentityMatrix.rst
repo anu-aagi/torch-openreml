@@ -22,6 +22,7 @@
       ~IdentityMatrix.get_default_dtype_device
       ~IdentityMatrix.get_intermediates
       ~IdentityMatrix.grad
+      ~IdentityMatrix.inverse
       ~IdentityMatrix.manual_grad
       ~IdentityMatrix.reset_intermediates
       ~IdentityMatrix.resolve_dim

@@ -24,8 +24,10 @@
       ~Inverse.get_intermediates
       ~Inverse.grad
       ~Inverse.grad_tree
+      ~Inverse.inverse
       ~Inverse.manual_grad
       ~Inverse.operands_grad
+      ~Inverse.operands_inverse
       ~Inverse.reset_intermediates
       ~Inverse.resolve_dim
       ~Inverse.set_intermediates

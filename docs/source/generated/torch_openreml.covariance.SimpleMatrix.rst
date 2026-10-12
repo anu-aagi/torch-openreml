@@ -22,6 +22,7 @@
       ~SimpleMatrix.get_default_dtype_device
       ~SimpleMatrix.get_intermediates
       ~SimpleMatrix.grad
+      ~SimpleMatrix.inverse
       ~SimpleMatrix.manual_grad
       ~SimpleMatrix.reset_intermediates
       ~SimpleMatrix.resolve_dim

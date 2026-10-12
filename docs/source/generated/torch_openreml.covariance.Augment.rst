@@ -24,8 +24,10 @@
       ~Augment.get_intermediates
       ~Augment.grad
       ~Augment.grad_tree
+      ~Augment.inverse
       ~Augment.manual_grad
       ~Augment.operands_grad
+      ~Augment.operands_inverse
       ~Augment.reset_intermediates
       ~Augment.resolve_dim
       ~Augment.set_intermediates

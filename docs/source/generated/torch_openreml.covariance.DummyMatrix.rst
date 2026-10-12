@@ -22,6 +22,7 @@
       ~DummyMatrix.get_default_dtype_device
       ~DummyMatrix.get_intermediates
       ~DummyMatrix.grad
+      ~DummyMatrix.inverse
       ~DummyMatrix.manual_grad
       ~DummyMatrix.reset_intermediates
       ~DummyMatrix.resolve_dim

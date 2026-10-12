@@ -24,8 +24,10 @@
       ~BlockDiagonal.get_intermediates
       ~BlockDiagonal.grad
       ~BlockDiagonal.grad_tree
+      ~BlockDiagonal.inverse
       ~BlockDiagonal.manual_grad
       ~BlockDiagonal.operands_grad
+      ~BlockDiagonal.operands_inverse
       ~BlockDiagonal.reset_intermediates
       ~BlockDiagonal.resolve_dim
       ~BlockDiagonal.set_intermediates

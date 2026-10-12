@@ -24,8 +24,10 @@
       ~Stack.get_intermediates
       ~Stack.grad
       ~Stack.grad_tree
+      ~Stack.inverse
       ~Stack.manual_grad
       ~Stack.operands_grad
+      ~Stack.operands_inverse
       ~Stack.reset_intermediates
       ~Stack.resolve_dim
       ~Stack.set_intermediates

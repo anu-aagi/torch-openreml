@@ -24,8 +24,10 @@
       ~KroneckerProduct.get_intermediates
       ~KroneckerProduct.grad
       ~KroneckerProduct.grad_tree
+      ~KroneckerProduct.inverse
       ~KroneckerProduct.manual_grad
       ~KroneckerProduct.operands_grad
+      ~KroneckerProduct.operands_inverse
       ~KroneckerProduct.reset_intermediates
       ~KroneckerProduct.resolve_dim
       ~KroneckerProduct.set_intermediates

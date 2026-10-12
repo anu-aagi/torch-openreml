@@ -24,8 +24,10 @@
       ~Product.get_intermediates
       ~Product.grad
       ~Product.grad_tree
+      ~Product.inverse
       ~Product.manual_grad
       ~Product.operands_grad
+      ~Product.operands_inverse
       ~Product.reset_intermediates
       ~Product.resolve_dim
       ~Product.set_intermediates

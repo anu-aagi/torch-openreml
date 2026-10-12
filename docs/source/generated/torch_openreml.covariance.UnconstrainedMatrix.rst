@@ -22,6 +22,7 @@
       ~UnconstrainedMatrix.get_default_dtype_device
       ~UnconstrainedMatrix.get_intermediates
       ~UnconstrainedMatrix.grad
+      ~UnconstrainedMatrix.inverse
       ~UnconstrainedMatrix.manual_grad
       ~UnconstrainedMatrix.reset_intermediates
       ~UnconstrainedMatrix.resolve_dim
