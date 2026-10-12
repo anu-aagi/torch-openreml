@@ -99,6 +99,50 @@ class BlockDiagonal(Operator):
 
         return v
 
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the composite matrix from its closed form.
+
+        The composite is
+        :math:`\\symbf{V} = \\mathrm{blockdiag}(\\symbf{V}_0, \\symbf{V}_1, \\ldots)`,
+        so its inverse is
+        :math:`\\symbf{V}^{-1} = \\mathrm{blockdiag}(\\symbf{V}_0^{-1}, \\symbf{V}_1^{-1}, \\ldots)`:
+        each operand is inverted through its own
+        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse` and the
+        results are placed back on the diagonal, so the composite is never
+        inverted densely.
+
+        .. warning::
+
+            Every operand must be square, otherwise the composite has no
+            inverse and raises.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the composite matrix.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import ScalarMatrix, DiagonalMatrix, BlockDiagonal
+
+            op = BlockDiagonal(
+                residual=ScalarMatrix(3),
+                random=DiagonalMatrix(2)
+            )
+            free_params = torch.tensor([0.5, 0.0, 1.0])
+            op.inverse(free_params)
+        """
+        inverses = self.operands_inverse(free_params)
+
+        return torch.block_diag(*inverses)
+
     def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
