@@ -78,8 +78,31 @@ class ScalarMatrix(Matrix):
 
         i_n = torch.eye(self.shape[0], device=device, dtype=dtype)
         v = sigma2 * i_n
-        
+
         return v
+
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the matrix from its closed form.
+
+        The matrix is :math:`\\symbf{V} = \\sigma^2 \\symbf{I}_n`, so its
+        inverse is :math:`\\symbf{V}^{-1} = (1 / \\sigma^2) \\symbf{I}_n`.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the constructed matrix.
+        """
+        sigma2 = self.build_params(free_params)
+        device = sigma2.device
+        dtype = sigma2.dtype
+
+        i_n = torch.eye(self.shape[0], device=device, dtype=dtype)
+
+        return i_n / sigma2
 
     def manual_grad(self, free_params=None):
         """
