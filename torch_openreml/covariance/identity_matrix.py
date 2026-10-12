@@ -112,5 +112,19 @@ class IdentityMatrix(Matrix):
             TypeError: If ``free_params`` is not a Torch tensor or a dict.
             ValueError: If ``free_params`` is not empty, since the matrix has
                 no parameters to receive.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import IdentityMatrix
+
+            mat = IdentityMatrix(3)
+            mat.inverse()
+
+        .. jupyter-execute::
+
+            mat.inverse(torch.tensor([], dtype=torch.float64))
         """
         return self(free_params)
