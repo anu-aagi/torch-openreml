@@ -91,3 +91,26 @@ class IdentityMatrix(Matrix):
         """
         params = self.build_params(free_params, include_fixed=False, trans=False)
         return self._matrix.to(device=params.device, dtype=params.dtype).clone()
+
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the identity matrix, which is the identity.
+
+        :math:`\\symbf{I}_n^{-1} = \\symbf{I}_n`, so the matrix is returned
+        unchanged.
+
+        Args:
+            free_params (torch.Tensor or dict, optional): Empty 1D parameter
+                tensor whose dtype and device are followed, or an empty
+                parameter dict. If omitted, the PyTorch default dtype and
+                device are used. Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` identity matrix.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor or a dict.
+            ValueError: If ``free_params`` is not empty, since the matrix has
+                no parameters to receive.
+        """
+        return self(free_params)
