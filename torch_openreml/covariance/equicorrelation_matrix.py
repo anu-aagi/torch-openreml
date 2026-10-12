@@ -125,6 +125,17 @@ class EquicorrelationMatrix(Matrix):
 
         Returns:
             torch.Tensor: The ``n x n`` inverse of the constructed matrix.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import EquicorrelationMatrix
+
+            mat = EquicorrelationMatrix(3)
+            free_params = torch.tensor([0.5])
+            mat.inverse(free_params)
         """
         cache = self._get_or_build_intermediates(free_params)
         rho = cache["rho"]
