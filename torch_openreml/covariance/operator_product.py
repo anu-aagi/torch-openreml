@@ -81,6 +81,46 @@ class Product(Operator):
 
         return v
 
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the composite matrix from its closed form.
+
+        The composite is :math:`\\symbf{V} = \\symbf{A} \\symbf{B}`, so its
+        inverse is
+        :math:`\\symbf{V}^{-1} = \\symbf{B}^{-1} \\symbf{A}^{-1}`, with the
+        operands inverted in reverse order through their own
+        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse`, so the
+        composite is never inverted densely.
+
+        .. warning::
+
+            Both operands must be square, otherwise the composite has no
+            inverse and raises, including when two rectangular operands
+            multiply to a square product.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the composite matrix.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import AR1Matrix, DiagonalMatrix, Product
+
+            op = Product(a=DiagonalMatrix(2), b=AR1Matrix(2))
+            free_params = torch.tensor([0.0, 0.5, 0.0, 0.5])
+            op.inverse(free_params)
+        """
+        inverses = self.operands_inverse(free_params)
+
+        return inverses[1] @ inverses[0]
+
     def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
