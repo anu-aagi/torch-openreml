@@ -575,6 +575,63 @@ class Operator(Matrix):
 
         return grad_groups, grad_name_groups
 
+    def operands_inverse(self, free_params=None):
+        """
+        Compute the inverse of each operand at the current free parameters.
+
+        Splits ``free_params`` into per-operand slices, calls
+        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse` on each
+        :class:`~torch_openreml.covariance.matrix.Matrix` operand, and casts
+        and inverts each fixed tensor operand. A
+        :class:`~torch_openreml.covariance.matrix.Matrix` operand is never
+        built here, so an analytic inverse — or a nested operator's own
+        structured inverse — is used instead of inverting the operand
+        densely.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary.
+                If omitted, default values are used. Default: ``None``.
+
+        Returns:
+            list of torch.Tensor: Each operand's inverse, in the order of
+            :attr:`operands`.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the
+                wrong length, or if ``free_params`` is a dict with missing
+                or unexpected keys.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml.covariance import ScalarMatrix, Sum
+
+                x = Sum(ScalarMatrix(2), ScalarMatrix(2))
+                inverses = x.operands_inverse(torch.tensor([1.0, 2.0]))
+                print(inverses[0])
+                print(inverses[1])
+        """
+        if free_params is None:
+            free_params = self.free_param_defaults
+        free_params = self._from_free_param_dict(free_params)
+        device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
+
+        inverses = []
+
+        for operand in self.operands.values():
+            if isinstance(operand, Matrix):
+                operand_params = free_params[0:operand.num_free_params]
+                free_params = free_params[operand.num_free_params:]
+
+                inverses.append(operand.inverse(operand_params))
+            else:
+                inverses.append(torch.linalg.inv(operand.to(device=device, dtype=dtype)))
+
+        return inverses
+
     def reset_intermediates(self):
         """
         Clear the intermediate caches of this operator and its operands.
