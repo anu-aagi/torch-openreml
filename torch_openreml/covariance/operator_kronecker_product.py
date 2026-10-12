@@ -81,6 +81,46 @@ class KroneckerProduct(Operator):
 
         return v
 
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the composite matrix from its closed form.
+
+        The composite is :math:`\\symbf{V} = \\symbf{A} \\otimes \\symbf{B}`,
+        so its inverse is
+        :math:`\\symbf{V}^{-1} = \\symbf{A}^{-1} \\otimes \\symbf{B}^{-1}`:
+        each operand is inverted through its own
+        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse`, so the
+        composite is never inverted densely and its
+        :math:`(mp) \\times (mp)` inverse is never formed in full.
+
+        .. warning::
+
+            Both operands must be square, otherwise the composite has no
+            inverse and raises.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the composite matrix.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import AR1Matrix, KroneckerProduct, ScalarMatrix
+
+            op = KroneckerProduct(time=AR1Matrix(2), subject=ScalarMatrix(2))
+            free_params = torch.tensor([1.0, 1.0, 1.0])
+            op.inverse(free_params)
+        """
+        inverses = self.operands_inverse(free_params)
+
+        return torch.kron(inverses[0], inverses[1])
+
     def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
