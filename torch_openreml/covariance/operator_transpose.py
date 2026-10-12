@@ -77,6 +77,45 @@ class Transpose(Operator):
 
         return v
 
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the composite matrix from its closed form.
+
+        The composite is :math:`\\symbf{V} = \\symbf{A}^\\top`, so its inverse
+        is
+        :math:`\\symbf{V}^{-1} = (\\symbf{A}^{-1})^\\top`: the operand is
+        inverted through its own
+        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse` and the
+        result is transposed, so the composite is never inverted densely.
+
+        .. warning::
+
+            The operand must be square, otherwise the composite has no
+            inverse and raises.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the composite matrix.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import AR1Matrix, Transpose
+
+            op = Transpose(a=AR1Matrix(3))
+            free_params = torch.tensor([0.0, 0.5])
+            op.inverse(free_params)
+        """
+        inverses = self.operands_inverse(free_params)
+
+        return inverses[0].T
+
     def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
