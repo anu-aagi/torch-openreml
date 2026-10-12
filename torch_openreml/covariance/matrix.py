@@ -777,8 +777,31 @@ class Matrix(ABC):
             return self.auto_grad(free_params)
         else:
             raise RuntimeError(f"Unknown grad mode '{self.grad_mode}'")
-      
-          
+
+    def inverse(self, free_params=None):
+        """
+        Construct the matrix and return its inverse.
+
+        This is the default implementation: it builds :math:`\\symbf{V}` via
+        :meth:`__call__` and inverts the result directly. Subclasses should
+        override it with a cheaper analytic inverse where one is available.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the wrong length,
+                or if ``free_params`` is a dict with missing or unexpected keys.
+
+        Returns:
+            torch.Tensor: Inverse of the constructed matrix, of shape
+            :attr:`shape`.
+        """
+        return self(free_params).inverse()
+
     def resolve_dim(self, n):
         """
         Resolve a matrix dimension from an integer or a vector of levels.
