@@ -76,6 +76,41 @@ class Inverse(Operator):
 
         return v
 
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the composite matrix from its closed form.
+
+        The composite is :math:`\\symbf{V} = \\symbf{A}^{-1}`, so its inverse
+        is :math:`\\symbf{V}^{-1} = \\symbf{A}`: the operand is built and
+        returned as it is, so no matrix inversion is performed.
+
+        .. warning::
+
+            The operand must be square. The operand is returned without its
+            shape being checked, so a non-square operand produces a
+            meaningless result instead of an error.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the composite matrix.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import Inverse, ScalarMatrix
+
+            op = Inverse(a=ScalarMatrix(3))
+            free_params = torch.tensor([0.5])
+            op.inverse(free_params)
+        """
+        return self.build_operands(free_params)[0]
+
     def manual_grad(self, free_params=None):
         """
         Compute the Jacobian of :meth:`__call__` with respect to trainable
