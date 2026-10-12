@@ -133,6 +133,17 @@ class CompoundSymmetricMatrix(Matrix):
 
         Returns:
             torch.Tensor: The ``n x n`` inverse of the constructed matrix.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import CompoundSymmetricMatrix
+
+            mat = CompoundSymmetricMatrix(3)
+            free_params = torch.tensor([0.5, 1.0])
+            mat.inverse(free_params)
         """
         cache = self._get_or_build_intermediates(free_params)
         sigma2 = cache["sigma2"]
