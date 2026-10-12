@@ -96,8 +96,44 @@ class AR1Matrix(Matrix):
     def __call__(self, free_params=None):
         cache = self._get_or_build_intermediates(free_params)
         v = cache["sigma2"] * cache["rho_power"]
-            
+
         return v
+
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the matrix from its closed form.
+
+        The inverse of an AR(1) covariance matrix is tridiagonal: the two
+        corner entries of the diagonal are :math:`1`, the interior diagonal
+        entries are :math:`1 + \\rho^2`, the off-diagonal entries are
+        :math:`-\\rho`, and the whole matrix is scaled by
+        :math:`1 / (\\sigma^2 (1 - \\rho^2))`.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the constructed matrix.
+        """
+        cache = self._get_or_build_intermediates(free_params)
+        sigma2 = cache["sigma2"]
+        rho = cache["rho"]
+        n = self.shape[0]
+        device = sigma2.device
+        dtype = sigma2.dtype
+
+        if n == 1:
+            return torch.eye(n, device=device, dtype=dtype) / sigma2
+
+        ones = torch.ones(n, device=device, dtype=dtype)
+        idx = torch.arange(n, device=device)
+        diag = torch.where((idx > 0) & (idx < n - 1), ones + rho ** 2, ones)
+        off_diag = torch.diag(ones[:-1], 1) + torch.diag(ones[:-1], -1)
+        v = torch.diag(diag) - rho * off_diag
+
+        return v / (sigma2 * (1 - rho ** 2))
 
     def manual_grad(self, free_params=None):
         """
