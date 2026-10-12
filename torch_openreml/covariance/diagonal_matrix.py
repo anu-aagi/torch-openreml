@@ -73,8 +73,29 @@ class DiagonalMatrix(Matrix):
 
     def __call__(self, free_params=None):
         sigma2 = self.build_params(free_params)
-        
+
         return torch.diag(sigma2)
+
+    def inverse(self, free_params=None):
+        """
+        Return the inverse of the matrix from its closed form.
+
+        The matrix is
+        :math:`\\symbf{V} = \\mathrm{diag}(\\sigma^2_0, \\ldots, \\sigma^2_{n-1})`,
+        so its inverse is
+        :math:`\\symbf{V}^{-1} = \\mathrm{diag}(1 / \\sigma^2_0, \\ldots, 1 / \\sigma^2_{n-1})`.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the constructed matrix.
+        """
+        sigma2 = self.build_params(free_params)
+
+        return torch.diag(1 / sigma2)
 
     def manual_grad(self, free_params=None):
         """
