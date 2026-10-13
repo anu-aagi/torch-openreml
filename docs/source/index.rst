@@ -253,7 +253,7 @@ Because the optimization is performed on the transformed parameter scale, the es
 .. jupyter-execute::
 
     reml = MarginalREML(V)
-    theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=2)
+    theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=1)
     print(theta_hat, V.build_params(theta_hat))
     print(V.free_param_names)
     print(beta_hat)

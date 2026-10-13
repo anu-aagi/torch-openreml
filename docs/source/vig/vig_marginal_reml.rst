@@ -312,7 +312,7 @@ Once the REML object is constructed, optimisation is performed using
         y,
         X,
         theta_start,
-        verbose=2,
+        verbose=1,
     )
 
 Inputs
@@ -374,10 +374,10 @@ The optimisation routine supports several keyword arguments.
     Controls optimisation output.
 
     - ``0``: silent
-    - ``1``: progress bar
-    - ``2``: detailed iteration diagnostics
+    - ``1``: per-iteration diagnostics, a convergence notice, and the total
+      optimisation time
 
-Detailed diagnostics include:
+Diagnostics include:
 
 - score norm,
 - update norm,
@@ -716,7 +716,7 @@ The following example demonstrates a mixed model with:
         y,
         X,
         theta_start,
-        verbose=2,
+        verbose=1,
     )
 
     # --- results ---
