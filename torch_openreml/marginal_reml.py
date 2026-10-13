@@ -11,11 +11,10 @@ Classes:
         coefficient estimation via BLUE and prediction.
 """
 
+import time
 import torch
-from torch_openreml.utils import get_device, get_dtype
 from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.post import blue, loglik, marginal_predict, marginal_residual
-from tqdm import tqdm
 
 class MarginalREML:
     r"""
@@ -75,7 +74,7 @@ class MarginalREML:
 
             mat = ScalarMatrix(n)
             reml = MarginalREML(mat)
-            theta_hat, beta_hat, n_iter = reml.optimize(y, x, theta, verbose=2)
+            theta_hat, beta_hat, n_iter = reml.optimize(y, x, theta, verbose=1)
             theta_hat, beta_hat
         """
 
@@ -568,8 +567,9 @@ class MarginalREML:
             ub (float, optional): Upper bound for covariance parameter clipping. Defaults
                 to ``inf``.
             verbose (int, optional): Verbosity level. ``0`` suppresses all
-                output, ``1`` shows a progress bar, ``2`` additionally prints
-                per-iteration diagnostics. Defaults to ``0``.
+                output; ``1`` prints per-iteration diagnostics, whether the
+                optimisation converged or hit ``max_iter``, and the total
+                optimisation time. Defaults to ``0``.
             check_score (bool, optional): Include score norm in convergence
                 check. Defaults to ``True``.
             check_delta (bool, optional): Include covariance parameter update
@@ -636,8 +636,8 @@ class MarginalREML:
         self.tol_delta = tol_delta
         self.tol_loglik = tol_loglik
         
-        pb = tqdm(disable=not verbose, bar_format="{desc} \u23F1 {elapsed} | \u26A1 {rate_fmt}")
-        
+        start_time = time.perf_counter()
+
         with torch.no_grad():
             for i in range(max_iter):
                 beta, score, ai, loglik = self.ai_step(y, x, theta,
@@ -650,7 +650,7 @@ class MarginalREML:
 
                 delta = torch.linalg.lstsq(ai, score.unsqueeze(-1)).solution.squeeze()
                 theta, update = self.update(theta, delta, eta, lb, ub)
-                
+
                 self.history["theta"].append(theta)
                 self.history["beta"].append(beta)
                 self.history["loglik"].append(loglik)
@@ -658,32 +658,26 @@ class MarginalREML:
                 self.history["ai"].append(ai)
                 self.history["delta"].append(delta)
                 self.history["update"].append(update)
-                
+
                 if verbose > 0:
-                    pb.set_description(f"Iter {i + 1}")
-                    pb.update(1)
-                    
-                    if verbose > 1:
-                        write_str = f"\u2225\u2207\u2225: {torch.norm(score):12.4f}, \u2225\u0394\u2225: {torch.norm(delta):6.4f}, \u03B7: {eta:.2f}, \u2225\u0394\u1D9C\u2225: {torch.norm(update):6.4f}"
-                      
-                        if require_loglik:
-                            if len(self.history["loglik"]) > 1:
-                                delta_loglik = self.history["loglik"][-1].item() - self.history["loglik"][-2].item()
-                                write_str += f", log \U0001D4DB: {loglik:8.4f} ({delta_loglik:+.4f})"
-                            else:
-                                write_str += f", log \U0001D4DB: {loglik:8.4f}"
-                        
-                        if i == 0:
-                            tqdm.write("")
-                        tqdm.write(write_str)
-                
+                    write_str = f"[{i + 1:3d}] \u2225\u2207\u2225: {torch.norm(score):12.4f}, \u2225\u0394\u2225: {torch.norm(delta):6.4f}, \u03B7: {eta:.2f}, \u2225\u0394\u1D9C\u2225: {torch.norm(update):6.4f}"
+
+                    if require_loglik:
+                        if len(self.history["loglik"]) > 1:
+                            delta_loglik = self.history["loglik"][-1].item() - self.history["loglik"][-2].item()
+                            write_str += f", log \U0001D4DB: {loglik:8.4f} ({delta_loglik:+.4f})"
+                        else:
+                            write_str += f", log \U0001D4DB: {loglik:8.4f}"
+
+                    print(write_str)
+
                 if self.is_converged():
                     if verbose > 0:
-                        if verbose > 1:
-                            tqdm.write(f"\n[\u2207: score, \u0394: \U0001D409\u207B\u00B9\u2207, \u03B7: learning rate, \u0394\u1D9C: clip(\U0001D6C9 + \u03B7\u0394, lb, ub) - \U0001D6C9, \U0001D4DB: restricted likelihood]")
-                        tqdm.write(f"\n\u2713 Converged at iteration {i + 1}")
+                        print(f"\n[\u2207: score, \u0394: \U0001D409\u207B\u00B9\u2207, \u03B7: learning rate, \u0394\u1D9C: clip(\U0001D6C9 + \u03B7\u0394, lb, ub) - \U0001D6C9, \U0001D4DB: restricted likelihood]")
+                        print(f"\n\u2713 Converged at iteration {i + 1}, total time: {time.perf_counter() - start_time:.2f}s\n")
                     break
-        
-        pb.close()
-        
+            else:
+                if verbose > 0:
+                    print(f"\n\u2717 Reached maximum iterations ({max_iter}), total time: {time.perf_counter() - start_time:.2f}s\n")
+
         return theta, beta, i + 1
