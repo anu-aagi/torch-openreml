@@ -79,9 +79,14 @@ from torch_openreml.covariance import (
 from torch_openreml.example_data import john_alpha
 
 y = torch.tensor(john_alpha["yield"].values)
+
+# Fixed effects X = [1 | rep], with the first replicate absorbed by the intercept.
 X = Augment(torch.ones(len(john_alpha), 1),
             DummyMatrix(john_alpha["rep"], drop_first=True))()
 
+# Marginal covariance V = Z G Z^T + R, where Z = [gen | rep:block] is the
+# random-effect design, G = diag(gen, rep:block) has independent gen effects and
+# independent blocks within each replicate, and R = sigma2_e I is the residual.
 V = Sum(
     CovariancePropagation(
         Augment(DummyMatrix(john_alpha["gen"]),
@@ -96,7 +101,8 @@ V = Sum(
 )
 
 reml = MarginalREML(V)
-theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=2)
+# Starting values for the three variance components: gen, rep:block and residual.
+theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=1)
 print(V.build_params(theta_hat), beta_hat)
 ```
 
