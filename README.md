@@ -71,7 +71,8 @@ interaction.
 
 ```python
 import torch
-from torch_openreml import MarginalREML
+import pandas as pd
+from torch_openreml import MarginalREML, blup
 from torch_openreml.covariance import (
     Augment, BlockDiagonal, DummyMatrix, IdentityMatrix,
     KroneckerProduct, ScalarMatrix, Sum, CovariancePropagation,
@@ -88,26 +89,39 @@ X = Augment(torch.ones(len(john_alpha), 1),
 # random-effect design, G = diag(gen, rep:block) has independent gen effects and
 # independent blocks within each replicate, and R = sigma2_e I is the residual.
 V = Sum(
-    CovariancePropagation(
-        Augment(DummyMatrix(john_alpha["gen"]),
-                DummyMatrix(john_alpha["rep"], john_alpha["block"])),
-        BlockDiagonal(
-            ScalarMatrix(john_alpha["gen"]),
-            KroneckerProduct(IdentityMatrix(john_alpha["rep"]),
-                             ScalarMatrix(john_alpha["block"])),
+    random=CovariancePropagation(
+        Z=Augment(
+            Z_gen=DummyMatrix(john_alpha["gen"]),
+            Z_rep_block=DummyMatrix(john_alpha["rep"], john_alpha["block"]),
+        ),
+        G=BlockDiagonal(
+            G_gen=ScalarMatrix(john_alpha["gen"]),
+            G_rep_block=KroneckerProduct(
+                IdentityMatrix(john_alpha["rep"]),
+                ScalarMatrix(john_alpha["block"]),
+            ),
         ),
     ),
-    ScalarMatrix(len(john_alpha)),
+    residual=ScalarMatrix(len(john_alpha)),
 )
 
 reml = MarginalREML(V)
 # Starting values for the three variance components: gen, rep:block and residual.
 theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=1)
 print(V.build_params(theta_hat), beta_hat)
+
+# BLUP of the random effects, jointly across all levels or for one component.
+tree, _ = V.tree(theta_hat)
+b_hat = blup(y, X, tree["random/Z"], tree["random/G"], tree["/"])
+gen_blup = pd.Series(blup(y, X, tree["random/Z/Z_gen"], tree["random/G/G_gen"], tree["/"]),
+                     index=sorted(set(john_alpha["gen"])))
 ```
 
 Fitting happens on the transformed parameter scale; `V.build_params` maps the estimates back to
-variance components, named by `V.free_param_names`.
+variance components, named by `V.free_param_names`. `V.tree(theta_hat)` evaluates every node of the
+covariance structure and keys the results by operand path, which is how the BLUP reaches the design
+and covariance matrices: `b_hat` holds one prediction per genotype followed by one per
+replicate-by-block combination, and `gen_blup` the genotype predictions alone.
 
 ## Documentation
 
