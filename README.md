@@ -114,13 +114,15 @@ print(V.build_params(theta_hat), beta_hat)
 tree, _ = V.tree(theta_hat)
 b_hat = blup(y, X, tree["random/Z"], tree["random/G"], tree["/"])
 gen_blup = blup(y, X, tree["random/Z/Z_gen"], tree["random/G/G_gen"], tree["/"])
+rep_block_blup = blup(y, X, tree["random/Z/Z_rep_block"], tree["random/G/G_rep_block"], tree["/"])
 ```
 
 Fitting happens on the transformed parameter scale; `V.build_params` maps the estimates back to
 variance components, named by `V.free_param_names`. `V.tree(theta_hat)` evaluates every node of the
 covariance structure and keys the results by operand path, which is how the BLUP reaches the design
 and covariance matrices: `b_hat` holds one prediction per genotype followed by one per
-replicate-by-block combination, `gen_blup` the genotype predictions alone.
+replicate-by-block combination, `gen_blup` and `rep_block_blup` the level predictions of each
+component alone.
 
 ## Documentation
 
