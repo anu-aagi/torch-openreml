@@ -104,8 +104,8 @@ V = Sum(
     residual=ScalarMatrix(len(john_alpha)),
 )
 
-# Fit from zero starting values for the three variance components (gen, rep:block,
-# residual), then print the fitted variances and the fixed effects.
+# Zero starting values on the transformed scale: a unit variance for each component
+# (gen, rep:block, residual). Prints the fitted variances and the fixed effects.
 reml = MarginalREML(V)
 theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=1)
 print(V.build_params(theta_hat), beta_hat)
