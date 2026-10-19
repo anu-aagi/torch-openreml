@@ -373,11 +373,11 @@ class MarginalREML:
 
             matrix["AI"] = 0.5 * (tensor3d["Y^T P dV"].squeeze() @ tensor3d["P dV P Y"].squeeze().T)
         else:
-            tensor3d["V^{-1} dV"] = torch.cholesky_solve(tensor3d["dV"], matrix["L"])
+            matrix["V^{-1}"] = torch.cholesky_inverse(matrix["L"])
 
-            tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV"] = matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"] @ tensor3d["dV"]
+            matrix["P"] = matrix["V^{-1}"] - matrix["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1}"]
 
-            tensor3d["P dV"] = tensor3d["V^{-1} dV"] - tensor3d["V^{-1} X (X^T V^{-1} X)^{-1} X^T V{-1} dV"]
+            tensor3d["P dV"] = matrix["P"] @ tensor3d["dV"]
 
             tensor3d["P dV P Y"] = tensor3d["P dV"] @ matrix["P Y"]
 
