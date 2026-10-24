@@ -441,55 +441,75 @@ class Operator(Matrix):
             else operand.to(device=device, dtype=dtype)
             for path, operand, operand_params in nodes
         }
+
+    def free_param_tree(self, free_params=None):
+        """
+        Report the free parameters each node of the operand tree receives.
+
+        Splits ``free_params`` exactly as :meth:`walk` splits it for
+        :meth:`tree` and :meth:`grad_tree`, without evaluating anything, and
+        returns one entry per path those methods produce — the same keys in the
+        same order, the root ``"/"`` first.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D joint parameter tensor or
+                parameter dictionary of length :attr:`num_free_params`.
+                If omitted, default values are used. Default: ``None``.
+
+        Returns:
+            dict: Maps each path to the 1D free parameter slice the node
+            received, or to ``None`` for fixed tensor operands. The root entry
+            is the validated ``free_params`` tensor and the remaining entries
+            are views of it.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the wrong
+                length, or if ``free_params`` is a dict with missing or
+                unexpected keys.
+
+        Note:
+            Only nested :class:`~torch_openreml.covariance.operator.Operator`
+            operands are descended into. Every other
+            :class:`~torch_openreml.covariance.matrix.Matrix` appears as a leaf,
+            including :class:`~torch_openreml.covariance.adapter.Adapter` with
+            its adaptee.
+
+        Note:
+            Because nothing is evaluated, this is the cheap way to inspect how a
+            composite distributes its parameters, and the slices are the very
+            views each node is handed at evaluation time.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml.covariance import BlockDiagonal, DiagonalMatrix, ScalarMatrix, Sum
+
+                op = Sum(inner=BlockDiagonal(DiagonalMatrix(2), ScalarMatrix(2)),
+                         extra=ScalarMatrix(4))
+                free_params_by_path = op.free_param_tree(torch.tensor([0.0, 0.5, 1.0, 0.5]))
+
             .. jupyter-execute::
 
                 free_params_by_path["inner"]
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
-        free_params = self._from_free_param_dict(free_params)
-        device, dtype = self._check_param_tensor(free_params, length=self.num_free_params)
+        nodes = self.walk(free_params)
 
-        results = {"/": self(free_params)}
-        free_params_by_path = {"/": free_params}
-
-        for name, operand in self.operands.items():
-            if isinstance(operand, Matrix):
-                operand_params = free_params[0:operand.num_free_params]
-                free_params = free_params[operand.num_free_params:]
-
-                if isinstance(operand, Operator):
-                    child_results, child_params = operand.tree(operand_params)
-                else:
-                    child_results = {"/": operand(operand_params)}
-                    child_params = {"/": operand_params}
-            else:
-                child_results = {"/": operand.to(device=device, dtype=dtype)}
-                child_params = {"/": None}
-
-            for child_path in child_results:
-                path = name if child_path == "/" else f"{name}/{child_path}"
-                results[path] = child_results[child_path]
-                free_params_by_path[path] = child_params[child_path]
-
-        return results, free_params_by_path
+        return {path: operand_params for path, _, operand_params in nodes}
 
     def grad_tree(self, free_params=None):
         """
         Compute the gradient of this operator and of every nested operand,
         returning each keyed by its path.
 
-        Descends the operand structure, calling :meth:`grad_tree` on nested
-        :class:`~torch_openreml.covariance.operator.Operator` operands. Paths
-        join the operand names leading to a node with ``"/"``, and ``"/"`` is
-        the root — the same keys :meth:`tree` produces, in the same order.
-        Both dictionaries returned share one key set:
-
-        - ``grads`` maps each path to the ``(grad, grad_names)`` pair
-          :meth:`~torch_openreml.covariance.matrix.Matrix.grad` returns for that
-          node, or to ``(None, [])`` when the node has no free parameters;
-        - ``free_params_by_path`` maps each path to the free parameter slice
-          the node received, or to ``None`` for fixed tensor operands.
+        Descends the operand structure, computing the Jacobian of the root and
+        of every nested :class:`~torch_openreml.covariance.operator.Operator`
+        operand. Paths join the operand names leading to a node with ``"/"``,
+        and ``"/"`` is the root — the same keys :meth:`tree` produces, in the
+        same order. ``grads`` maps each path to the ``(grad, grad_names)`` pair
+        :meth:`~torch_openreml.covariance.matrix.Matrix.grad` returns for that
+        node, or to ``(None, [])`` when the node has no free parameters.
 
         Each node's ``grad`` has shape ``(num_free_params, *shape)`` for that
         node's own free parameters and its own matrix shape, so a nested node's
@@ -509,10 +529,7 @@ class Operator(Matrix):
                 If omitted, default values are used. Default: ``None``.
 
         Returns:
-            tuple: ``(grads, free_params_by_path)``, where ``grads`` maps paths
-            to ``(grad, grad_names)`` pairs and ``free_params_by_path`` maps the
-            same paths to the free parameter slices the corresponding operands
-            received.
+            dict: Maps each path to the node's ``(grad, grad_names)`` pair.
 
         Raises:
             TypeError: If ``free_params`` is not a Torch tensor.
@@ -550,7 +567,7 @@ class Operator(Matrix):
 
                 op = Sum(inner=BlockDiagonal(DiagonalMatrix(2), ScalarMatrix(2)),
                          extra=ScalarMatrix(4))
-                grads, free_params_by_path = op.grad_tree(torch.tensor([0.0, 0.5, 1.0, 0.5]))
+                grads = op.grad_tree(torch.tensor([0.0, 0.5, 1.0, 0.5]))
 
             .. jupyter-execute::
 
@@ -560,34 +577,14 @@ class Operator(Matrix):
 
                 grads["inner"][1]
         """
-        if free_params is None:
-            free_params = self.free_param_defaults
-        free_params = self._from_free_param_dict(free_params)
-        self._check_param_tensor(free_params, length=self.num_free_params)
+        nodes = self.walk(free_params)
 
-        grads = {"/": self.grad(free_params)}
-        free_params_by_path = {"/": free_params}
-
-        for name, operand in self.operands.items():
-            if isinstance(operand, Matrix):
-                operand_params = free_params[0:operand.num_free_params]
-                free_params = free_params[operand.num_free_params:]
-
-                if isinstance(operand, Operator):
-                    child_grads, child_params = operand.grad_tree(operand_params)
-                else:
-                    child_grads = {"/": operand.grad(operand_params)}
-                    child_params = {"/": operand_params}
-            else:
-                child_grads = {"/": (None, [])}
-                child_params = {"/": None}
-
-            for child_path in child_grads:
-                path = name if child_path == "/" else f"{name}/{child_path}"
-                grads[path] = child_grads[child_path]
-                free_params_by_path[path] = child_params[child_path]
-
-        return grads, free_params_by_path
+        return {
+            path: operand.grad(operand_params)
+            if isinstance(operand, Matrix)
+            else (None, [])
+            for path, operand, operand_params in nodes
+        }
 
     def operands_grad(self, free_params=None):
         """
