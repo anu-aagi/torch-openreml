@@ -298,6 +298,73 @@ class Operator(Matrix):
         
         return v_groups
 
+    def walk(self, free_params=None):
+        """
+        Validate ``free_params`` and list every node of the operand tree.
+
+        Walks the structure once, in the order :meth:`tree`,
+        :meth:`free_param_tree` and :meth:`grad_tree` report it: the root
+        first, then depth first in operand order. Nothing is evaluated: the walk
+        only validates the parameters, splits them, and reads the operand
+        structure, so it costs no evaluation however deep the tree is.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D joint parameter tensor or
+                parameter dictionary of length :attr:`num_free_params`.
+                If omitted, default values are used. Default: ``None``.
+
+        Returns:
+            list: ``(path, operand, free_params)`` triples — ``free_params``
+            being the 1D slice the node received, or ``None`` for a fixed tensor
+            operand. The first entry is always ``("/", self, free_params)``:
+            the operator itself and the validated input tensor, whose dtype and
+            device are the resolved ones.
+
+        Raises:
+            TypeError: If ``free_params`` is not a Torch tensor.
+            ValueError: If ``free_params`` is not a 1D tensor or has the wrong
+                length, or if ``free_params`` is a dict with missing or
+                unexpected keys.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml.covariance import BlockDiagonal, DiagonalMatrix, ScalarMatrix, Sum
+
+                op = Sum(inner=BlockDiagonal(DiagonalMatrix(2), ScalarMatrix(2)),
+                         extra=ScalarMatrix(4))
+                nodes = op.walk(torch.tensor([0.0, 0.5, 1.0, 0.5]))
+
+            .. jupyter-execute::
+
+                [(path, operand, free_params) for path, operand, free_params in nodes]
+        """
+        if free_params is None:
+            free_params = self.free_param_defaults
+        free_params = self._from_free_param_dict(free_params)
+        self._check_param_tensor(free_params, length=self.num_free_params)
+
+        nodes = [("/", self, free_params)]
+
+        def visit(operator, params, prefix):
+            for name, operand in operator.operands.items():
+                if isinstance(operand, Matrix):
+                    operand_params = params[0:operand.num_free_params]
+                    params = params[operand.num_free_params:]
+                else:
+                    operand_params = None
+
+                path = f"{prefix}{name}"
+                nodes.append((path, operand, operand_params))
+
+                if isinstance(operand, Operator):
+                    visit(operand, operand_params, f"{path}/")
+
+        visit(self, free_params, "")
+
+        return nodes
+
     def tree(self, free_params=None):
         """
         Evaluate this operator and every nested operand, returning each result
