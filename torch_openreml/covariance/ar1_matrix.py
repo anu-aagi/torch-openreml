@@ -182,9 +182,8 @@ class AR1Matrix(Matrix):
             i = i + 1
 
         if 1 in free_param_index:
-            scaled_rho = torch.sign(cache["rho"]) * torch.clamp(cache["rho"].abs(), min=1e-6)
-            d_rho = free_param_trans_grad[i] * cache["sigma2"] * cache["diff"] * cache["rho_power"] / scaled_rho
-            d_rho.fill_diagonal_(0.0)
+            lag = cache["diff"]
+            d_rho = free_param_trans_grad[i] * cache["sigma2"] * lag * cache["rho"].pow((lag - 1).clamp_min(0))
             grad.append(d_rho)
 
         grad = torch.stack(grad)
