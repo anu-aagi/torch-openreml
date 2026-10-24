@@ -31,6 +31,7 @@ Ensure correct construction, forward evaluation, and gradient computation of the
 - `grad_mode` defaults to `"default"`; `jacobian_method` to `"jacfwd"`; `jacobian_chunk_size` to `None`
 - `get_default_dtype_device` returns the parameter default's dtype and device, and tracks a change to the Torch default dtype
 - `n` validation: `0`, a negative, a float, a string, `None` and a 0-dimensional tensor all raise `ValueError` from the shape check; `True` is accepted because `bool` is an `int` subclass, and only fails later inside `torch.eye`
+- `n` also accepts a list, a tuple or a `pandas.Series` of levels: the dimension is the number of distinct elements (`n_distinct`), so `ScalarMatrix(["a", "b", "a"])` is `ScalarMatrix(2)`. An empty sequence resolves to `0` and is rejected by the shape check. The resolved matrix matches the integer form in shape, parameter names and `__call__` values
 - `param_specs` validation: a non-dict, a non-str name, a non-dict spec, wrong or extra spec fields, a non-bool `fixed`, a non-tensor or non-1D `default`, and a non-`Transform` `trans` each raise `TypeError` with a specific message
 
 #### B. `__call__(free_params=None)` Behavior
@@ -108,6 +109,17 @@ Ensure correct construction, forward evaluation, and gradient computation of the
 
 - Contains the class name, the shape, the parameter name and the transform, is a single line, and exposes `repr_dict` with the shape and the live `param_specs` object
 
+#### K. `inverse`
+
+`ScalarMatrix` overrides the base default with the closed form `V⁻¹ = (1 / σ²) I`: `σ²` is a scalar, so the reciprocal is exact and the generic build-then-invert path is pure overhead. The override must be indistinguishable from the default it replaces.
+
+- Agrees with `torch.linalg.inv(mat(theta))` and with the explicit closed form `eye(n) / build_params(theta)`, over several `theta` including negative ones and over `n`
+- `mat(theta) @ mat.inverse(theta)` is the identity, and the result is `n x n`
+- The argument contract is the one `__call__` already promises, and it is not bypassed by the override: `None` means the defaults, a dict of free parameters means the same as the flat tensor, and a non-tensor, a wrong-length vector and a bad dict each raise from `build_params`
+- A fixed `sigma^2` inverts from its default, with an empty `free_params`
+- dtype follows the input, as through `__call__`
+- The output stays attached to `free_params`, and its gradient equals the gradient of `torch.linalg.inv(mat(theta))` — the closed form must be the derivative of the same function, not merely equal to it in value
+
 ---
 
 ## 3. How to Test
@@ -158,6 +170,7 @@ class TestScalarMatrixMultiParamSpecs:
 - **MPS rejects float64**: the accelerator dtype test uses `float16`, and the float64 rejection is pinned by a separate MPS-only test, since `torch.eye(..., dtype=torch.float64)` on MPS raises `TypeError`.
 - **Removed REML interface**: `map_theta_to_v` and `map_theta_to_dv` no longer exist on `Matrix`, so this module no longer tests a REML-specific mapping; `__call__` and `grad` are the interface. The two stale tests that referenced them were dropped, which is why this file no longer appears in the `map_theta_to_*` failure list that the rest of the covariance suite still carries.
 - **Cache tests exercise base-class code**: `set_intermediates` / `get_intermediates` live in `matrix.py`; they are covered here through `ScalarMatrix` as the concrete vehicle. One base-class mutation (`set_intermediates` storing instead of returning early on empty parameters) survives, because `get_intermediates` short-circuits on empty parameters identically — the difference is unobservable through the public API.
+- **`inverse` here is the override, not the base default**: the tests in section 2.1.K exercise `ScalarMatrix.inverse`, so a regression in `Matrix.inverse` is not caught from this file — the base default is pinned by `test_plan_matrix.md` §T through a subclass that does not override it. The gradient test is the one that would still bite: it compares the closed form's derivative against `torch.linalg.inv` of the same matrix, so a closed form that is only accidentally correct at the tested `theta` fails.
 
 ---
 
@@ -165,7 +178,7 @@ class TestScalarMatrixMultiParamSpecs:
 
 | Category | Tests |
 |---|---|
-| Constructor, shape, default specs, `n` and `param_specs` validation | 35 |
+| Constructor, shape, default specs, `n` and `param_specs` validation | 38 |
 | `__call__` values and argument forms | 28 |
 | Free-parameter validation across entry points | 28 |
 | `grad` / `manual_grad` / `auto_grad` / `trans_grad` | 27 |
@@ -176,4 +189,5 @@ class TestScalarMatrixMultiParamSpecs:
 | `build_params` | 17 |
 | Multi-parameter specifications (pinned limitation) | 7 |
 | `repr` | 6 |
-| **Total** | **228** |
+| `inverse` | 17 |
+| **Total** | **248** |

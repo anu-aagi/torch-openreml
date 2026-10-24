@@ -27,6 +27,7 @@ Ensure correct construction (unit diagonal, uniform off-diagonal), correlation r
 - Instance is a subclass of `Matrix`
 - Shape is `(n, n)`
 - `num_params` = 1, `num_free_params` = 1 (default)
+- `n` also accepts a list, a tuple or a `pandas.Series` of levels: the dimension is the number of distinct elements (`n_distinct`), so `EquicorrelationMatrix(["a", "b", "a"])` is `EquicorrelationMatrix(2)`. `rho_min` follows the resolved dimension, and the result matches the integer form in shape, parameter names and `__call__` values. An empty sequence resolves to `0` and is rejected by the `n <= 1` check
 
 #### B. `__call__(free_params)` Behavior
 
@@ -75,6 +76,21 @@ Ensure correct construction (unit diagonal, uniform off-diagonal), correlation r
 #### H. REML Interface
 
 - `map_theta_to_v` and `map_theta_to_dv` work correctly
+
+#### I. `inverse(free_params)`
+
+`EquicorrelationMatrix` overrides the base default with the Sherman-Morrison closed form `I / (1 - ρ) - ρ J / ((1 - ρ)(1 + (n - 1)ρ))`. The matrix is a rank-one update of a scaled identity, so the inverse is one too, and inverting the built `V` numerically would be pure overhead. The override must be indistinguishable from the default it replaces, and it takes the only branch-free path through the cache.
+
+- Agrees with `torch.linalg.inv(mat(free_params))` at a mid-range ρ, and its diagonal and off-diagonal entries each match the closed form (uniform within the block, as in `V`)
+- `mat(free_params) @ mat.inverse(free_params)` is the identity
+- ρ = 0 gives the identity, matching the `__call__` test that uses the same `logit` value
+- `n = 2`, where `1 + (n - 1)ρ` reduces to `1 + ρ` and the diagonal collapses to `1 / (1 - ρ²)`: both entries match that limit rather than the general formula
+- Near `rho_min` (ρ → -1/(n-1), where `V` is singular and the denominator tends to 0), the closed form still matches `torch.linalg.inv` — the cancellation this risks is what the boundary test is for
+- The argument contract is the one `__call__` already promises, and it is not bypassed by the override: `None` means the defaults, a dict of free parameters means the same as the flat tensor, and a non-tensor, a wrong-length vector and a bad dict each raise from `build_params`
+- A fixed ρ inverts from its transformed default, with an empty `free_params`
+- dtype follows the input, and interleaving dtypes across calls does not let a stale cache entry leak through — the cache is keyed on dtype, so a cached float64 `i_n`/`j_n` must not reach a float32 inverse
+- The cache path is exercised in both directions: `inverse` after `__call__` reuses the entry without replacing it, and `inverse` alone populates it
+- The output stays attached to `free_params`, and its gradient equals the gradient of `torch.linalg.inv(mat(free_params))` — the closed form must be the derivative of the same function, not merely equal to it in value
 
 ---
 
@@ -290,6 +306,45 @@ class TestEquicorrelationMatrix:
         free_params = torch.tensor([1.0], dtype=torch.float64)
         assert mat(free_params).dtype == torch.float64
 
+    def test_inverse_matches_inverse_of_call(self):
+        mat = EquicorrelationMatrix(3)
+        free_params = torch.tensor([0.6931])
+        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
+
+    def test_inverse_closed_form_structure(self):
+        mat = EquicorrelationMatrix(3)
+        free_params = torch.tensor([0.6931])
+        rho = mat.build_params(free_params)
+        expected_diag = 1 / (1 - rho) - rho / ((1 - rho) * (1 + 2 * rho))
+        expected_off = -rho / ((1 - rho) * (1 + 2 * rho))
+        result = mat.inverse(free_params)
+        n = 3
+        off_diag = result[~torch.eye(n, dtype=torch.bool)]
+        assert torch.allclose(result.diag(), expected_diag.expand(n))
+        assert torch.allclose(off_diag, expected_off.expand_as(off_diag))
+
+    def test_inverse_near_rho_min(self):
+        mat = EquicorrelationMatrix(3)
+        free_params = torch.tensor([-6.0])
+        rho = mat.build_params(free_params)
+        assert rho > mat.rho_min
+        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)), atol=1e-3)
+
+    def test_inverse_follows_dtype_across_interleaved_calls(self):
+        mat = EquicorrelationMatrix(3)
+        mat(torch.tensor([0.5], dtype=torch.float64))
+        assert mat.inverse(torch.tensor([0.5], dtype=torch.float32)).dtype == torch.float32
+
+    def test_inverse_gradient_matches_autograd_of_inverse_of_call(self):
+        mat = EquicorrelationMatrix(3)
+        free_params = torch.tensor([0.5], requires_grad=True)
+        mat.inverse(free_params).sum().backward()
+        closed_form_grad = free_params.grad.clone()
+        free_params.grad = None
+        mat.reset_intermediates()
+        torch.linalg.inv(mat(free_params)).sum().backward()
+        assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
+
     def test_map_theta_to_v(self):
         mat = EquicorrelationMatrix(3)
         free_params = torch.tensor([1.0])
@@ -319,6 +374,8 @@ Do not need to execute.
 - **Rho bounds**: Same transform chain as `CompoundSymmetricMatrix.rho` — Sigmoid → ScaleShift(1-rho_min, rho_min). The ρ=0 (identity) test requires computing the correct `logit` value.
 - **Gradient simplicity**: `dV/dρ = (J - I) * trans_grad`, which is constant-1 on off-diagonal and 0 on diagonal (before trans_grad scaling). This is the simplest possible gradient structure for a correlation parameter.
 - **V in cache**: Unlike `CompoundSymmetricMatrix` which caches intermediate building blocks and assembles V in `__call__`, `EquicorrelationMatrix` caches the full V directly. This means `__call__` is just a cache lookup if the params haven't changed.
+- **`inverse` reads `i_n` and `j_n` from the cache**: the closed form is assembled from cached tensors, so it inherits the cache's dtype and device guards. A cache keyed on values alone would return a float64 `i_n` inside a float32 inverse; `test_inverse_follows_dtype_across_interleaved_calls` is the test that would catch that, and it is the reason the interleave is pinned rather than only the single-dtype path.
+- **The closed form loses precision as `ρ → rho_min`**: `1 + (n - 1)ρ` is a difference of nearly equal terms there, and `V` becomes singular exactly at `rho_min`. The transform maps an unconstrained θ into the open interval, so `rho_min` is approached but never reached; the boundary test pins a tolerance (`atol=1e-3` at θ = -6) rather than exactness, since the float32 error there is genuinely larger than elsewhere.
 
 ---
 
@@ -326,7 +383,7 @@ Do not need to execute.
 
 | Category | Tests |
 |---|---|
-| Constructor & class attributes | 5 |
+| Constructor & class attributes | 8 |
 | Param names | 1 |
 | `__call__` correctness & structure | 7 |
 | `manual_grad` & `grad` | 5 |
@@ -335,4 +392,5 @@ Do not need to execute.
 | dtype | 1 |
 | REML interface | 2 |
 | repr | 1 |
-| **Total** | **27** |
+| `inverse` | 16 |
+| **Total** | **46** |

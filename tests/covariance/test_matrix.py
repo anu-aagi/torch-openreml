@@ -1,5 +1,6 @@
 import torch
 import pytest
+import pandas as pd
 from torch_openreml.covariance import (
     Adapter,
     AR1Matrix,
@@ -53,6 +54,25 @@ class MinimalMatrix(Matrix):
         grad = torch.zeros(self.num_free_params, n, n, dtype=params.dtype, device=params.device)
         grad[0] = eye * self.trans_grad(params)[0]
         return grad, self.free_param_names
+
+
+class ThreeParamMatrix(Matrix):
+    """A concrete Matrix that leaves ``inverse`` to the base class.
+
+    ``__call__`` returns ``diag(params)``, so every free parameter moves the
+    result and the base-class ``inverse`` has something invertible to work on.
+    Unlike the library's own matrices, this one defines no ``inverse``, which
+    makes it the vehicle that pins the default implementation.
+    """
+
+    def __init__(self, n):
+        super().__init__((n, n), {
+            f"p{i}": {"fixed": False, "default": torch.tensor([0.0]), "trans": TransformExp()}
+            for i in range(n)
+        })
+
+    def __call__(self, free_params=None):
+        return torch.diag(self.build_params(free_params))
 
 
 class NoManualGradMatrix(Matrix):
@@ -185,6 +205,30 @@ class TestMatrixConstructor:
             MinimalMatrix(42, "not_a_dict")
 
 
+class TestResolveDim:
+    """``resolve_dim`` passes non-sequences through and counts the distinct elements of a sequence."""
+
+    @pytest.mark.parametrize("n", [3, None, 2.5, "ab"])
+    def test_non_sequences_pass_through(self, n):
+        assert ScalarMatrix(3).resolve_dim(n) == n
+
+    @pytest.mark.parametrize("levels,expected", [
+        (["a", "b", "a", "c"], 3),
+        (("a", "b", "a", "c"), 3),
+        (["a", "a"], 1),
+        ([], 0),
+    ])
+    def test_sequences_count_distinct_elements(self, levels, expected):
+        assert ScalarMatrix(3).resolve_dim(levels) == expected
+
+    def test_series_counts_distinct_elements(self):
+        assert ScalarMatrix(3).resolve_dim(pd.Series(["a", "b", "a", "c"])) == 3
+
+    def test_unhashable_elements_raise(self):
+        with pytest.raises(TypeError):
+            ScalarMatrix(3).resolve_dim([[1], [2]])
+
+
 # --------------------------------------------------------------------------- #
 # B. _check_shape
 # --------------------------------------------------------------------------- #
@@ -252,10 +296,19 @@ class TestCheckParamSpecs:
         mat = MinimalMatrix((2, 2), {"p": _spec(trans=chain)})
         assert mat.param_trans["p"] is chain
 
-    def test_accepts_slash_in_parameter_name(self):
-        """Namespacing is the operators' concern; the base class allows any str key."""
-        mat = MinimalMatrix((2, 2), {"a/b": _spec()})
-        assert mat.param_names == ["a/b"]
+    def test_rejects_slash_in_parameter_name(self):
+        """/ is reserved for the composite namespace, so a leaf name cannot contain it."""
+        with pytest.raises(ValueError, match="Invalid parameter name 'a/b': '/' is not allowed!"):
+            MinimalMatrix((2, 2), {"a/b": _spec()})
+
+    def test_accepts_dot_in_parameter_name(self):
+        mat = MinimalMatrix((2, 2), {"theta.1": _spec()})
+        assert mat.param_names == ["theta.1"]
+
+    def test_rejects_empty_parameter_name(self):
+        """An empty name would make a composite key like 'A/' indistinguishable from a subtree prefix."""
+        with pytest.raises(ValueError, match="Parameter name must not be empty!"):
+            MinimalMatrix((2, 2), {"": _spec()})
 
     def test_rejects_non_dict(self):
         with pytest.raises(TypeError, match="param_sepc"):
@@ -873,6 +926,360 @@ class TestDictFreeParams:
 
 
 # --------------------------------------------------------------------------- #
+# H-bis. set_param_specs
+# --------------------------------------------------------------------------- #
+
+class TestSetParamSpecs:
+    """Tests for Matrix.set_param_specs."""
+
+    def test_sets_fixed(self):
+        mat = ScalarMatrix(3)
+
+        mat.set_param_specs("sigma^2", fixed=True)
+
+        assert mat.param_specs["sigma^2"]["fixed"] is True
+        assert mat.free_param_names == []
+        assert mat.num_free_params == 0
+
+    def test_sets_fixed_back_to_false(self):
+        mat = _mixed_matrix()
+
+        mat.set_param_specs("sigma^2_1", fixed=False)
+
+        assert mat.param_specs["sigma^2_1"]["fixed"] is False
+        assert mat.free_param_names == ["sigma^2_0", "sigma^2_1", "sigma^2_2"]
+
+    def test_sets_default(self):
+        mat = ScalarMatrix(3)
+
+        mat.set_param_specs("sigma^2", default=torch.tensor([2.0]))
+
+        assert torch.equal(mat.param_defaults["sigma^2"], torch.tensor([2.0]))
+        assert torch.equal(mat.build_params(trans=False), torch.tensor([2.0]))
+
+    def test_sets_trans(self):
+        mat = ScalarMatrix(3)
+        trans = TransformIdentity()
+
+        mat.set_param_specs("sigma^2", trans=trans)
+
+        assert mat.param_trans["sigma^2"] is trans
+
+    def test_sets_several_fields_at_once(self):
+        mat = DiagonalMatrix(3)
+        trans = TransformIdentity()
+
+        mat.set_param_specs("sigma^2_1", fixed=True, default=torch.tensor([7.5]), trans=trans)
+
+        spec = mat.param_specs["sigma^2_1"]
+        assert spec["fixed"] is True
+        assert torch.equal(spec["default"], torch.tensor([7.5]))
+        assert spec["trans"] is trans
+
+    def test_untouched_fields_are_kept(self):
+        mat = ScalarMatrix(3)
+        trans = mat.param_trans["sigma^2"]
+
+        mat.set_param_specs("sigma^2", default=torch.tensor([2.0]))
+
+        assert mat.param_trans["sigma^2"] is trans
+        assert mat.param_specs["sigma^2"]["fixed"] is False
+
+    def test_no_fields_is_a_no_op(self):
+        mat = _mixed_matrix()
+
+        mat.set_param_specs("sigma^2_1")
+
+        assert mat.free_param_names == ["sigma^2_0", "sigma^2_2"]
+        assert torch.equal(mat.param_defaults["sigma^2_1"], torch.tensor([7.5]))
+
+    def test_change_takes_effect_on_the_next_call(self):
+        mat = DiagonalMatrix(3)
+
+        mat.set_param_specs("sigma^2_1", fixed=True, default=torch.tensor([7.5]))
+
+        assert torch.equal(mat.build_params(torch.tensor([1.0, 3.0]), trans=False), torch.tensor([1.0, 7.5, 3.0]))
+
+    def test_values_are_assigned_as_given(self):
+        mat = ScalarMatrix(3)
+        default = torch.tensor([2.0])
+
+        mat.set_param_specs("sigma^2", default=default)
+
+        assert mat.param_specs["sigma^2"]["default"] is default
+
+    def test_default_broadcasts_over_a_subtree(self):
+        op = Sum(A=DiagonalMatrix(2), B=ScalarMatrix(2))
+        default = torch.tensor([7.5])
+
+        op.set_param_specs("/", default=default)
+
+        assert all(spec["default"] is default for spec in op.param_specs.values())
+        assert torch.equal(op.build_params(trans=False), torch.tensor([7.5, 7.5, 7.5]))
+
+    def test_default_vector_splits_over_a_subtree(self):
+        mat = DiagonalMatrix(3)
+
+        mat.set_param_specs("/", default=torch.tensor([1.0, 2.0, 3.0]))
+
+        assert torch.equal(mat.build_params(trans=False), torch.tensor([1.0, 2.0, 3.0]))
+        assert [spec["default"].shape for spec in mat.param_specs.values()] == [(1,), (1,), (1,)]
+
+    def test_default_vector_splits_on_an_operator_subtree(self):
+        op = Sum(A=DiagonalMatrix(2), B=ScalarMatrix(2))
+
+        op.set_param_specs("A/", default=torch.tensor([1.0, 2.0]))
+
+        assert {name: default.tolist() for name, default in op.param_defaults.items()} == {
+            "A/sigma^2_0": [1.0],
+            "A/sigma^2_1": [2.0],
+            "B/sigma^2": [0.0],
+        }
+
+    def test_default_vector_of_the_wrong_length(self):
+        mat = DiagonalMatrix(3)
+
+        with pytest.raises(ValueError, match="'default' has 2 values, but '/' resolves to 3 parameters"):
+            mat.set_param_specs("/", default=torch.tensor([1.0, 2.0]))
+
+    def test_default_vector_on_a_single_parameter_must_have_one_value(self):
+        mat = ScalarMatrix(3)
+
+        with pytest.raises(ValueError, match="'default' has 2 values, but 'sigma\\^2' resolves to 1 parameter!"):
+            mat.set_param_specs("sigma^2", default=torch.tensor([1.0, 2.0]))
+
+    def test_rejected_default_leaves_specs_untouched(self):
+        mat = DiagonalMatrix(3)
+
+        with pytest.raises(ValueError):
+            mat.set_param_specs("/", fixed=True, default=torch.tensor([1.0, 2.0]))
+
+        assert mat.free_param_names == ["sigma^2_0", "sigma^2_1", "sigma^2_2"]
+        assert all(torch.equal(spec["default"], torch.tensor([0.0])) for spec in mat.param_specs.values())
+
+    def test_default_must_be_a_tensor(self):
+        mat = ScalarMatrix(3)
+
+        with pytest.raises(TypeError, match="'default' must be a torch.Tensor"):
+            mat.set_param_specs("sigma^2", default=2.0)
+
+    def test_default_must_be_1d(self):
+        mat = ScalarMatrix(3)
+
+        with pytest.raises(ValueError, match="'default' must be a 1D tensor"):
+            mat.set_param_specs("sigma^2", default=torch.tensor(2.0))
+
+        with pytest.raises(ValueError, match="'default' must be a 1D tensor"):
+            mat.set_param_specs("sigma^2", default=torch.tensor([[2.0]]))
+
+    def test_fixed_vector_splits_over_a_subtree(self):
+        mat = DiagonalMatrix(3)
+
+        mat.set_param_specs("/", fixed=[True, False, True])
+
+        assert mat.free_param_names == ["sigma^2_1"]
+        assert [spec["fixed"] for spec in mat.param_specs.values()] == [True, False, True]
+
+    def test_fixed_accepts_a_tuple_of_bools(self):
+        mat = DiagonalMatrix(3)
+
+        mat.set_param_specs("/", fixed=(True, False, True))
+
+        assert mat.free_param_names == ["sigma^2_1"]
+
+    def test_fixed_single_element_sequence_broadcasts(self):
+        mat = DiagonalMatrix(3)
+        single = [True]
+
+        mat.set_param_specs("/", fixed=single)
+
+        assert mat.free_param_names == []
+        assert all(spec["fixed"] is True for spec in mat.param_specs.values())
+
+    def test_fixed_vector_of_the_wrong_length(self):
+        mat = DiagonalMatrix(3)
+
+        with pytest.raises(ValueError, match="'fixed' has 2 values, but '/' resolves to 3 parameters"):
+            mat.set_param_specs("/", fixed=[True, False])
+
+    def test_fixed_must_contain_only_bools(self):
+        mat = DiagonalMatrix(3)
+
+        with pytest.raises(TypeError, match="'fixed' must contain only bools, got int at index 1"):
+            mat.set_param_specs("/", fixed=[True, 1, False])
+
+    def test_fixed_must_be_a_bool_or_a_sequence(self):
+        mat = DiagonalMatrix(3)
+
+        with pytest.raises(TypeError, match="'fixed' must be a bool or a list or a tuple of bools, got int"):
+            mat.set_param_specs("/", fixed=1)
+
+    def test_trans_vector_splits_over_a_subtree(self):
+        mat = DiagonalMatrix(3)
+        first, second, third = TransformIdentity(), TransformSigmoid(), TransformExp()
+
+        mat.set_param_specs("/", trans=[first, second, third])
+
+        assert mat.param_specs["sigma^2_0"]["trans"] is first
+        assert mat.param_specs["sigma^2_1"]["trans"] is second
+        assert mat.param_specs["sigma^2_2"]["trans"] is third
+
+    def test_trans_accepts_a_tuple_of_transforms(self):
+        mat = DiagonalMatrix(3)
+        first, second, third = TransformIdentity(), TransformSigmoid(), TransformExp()
+
+        mat.set_param_specs("/", trans=(first, second, third))
+
+        assert [spec["trans"] for spec in mat.param_specs.values()] == [first, second, third]
+
+    def test_trans_single_element_sequence_broadcasts(self):
+        mat = DiagonalMatrix(3)
+        trans = TransformIdentity()
+
+        mat.set_param_specs("/", trans=[trans])
+
+        assert all(spec["trans"] is trans for spec in mat.param_specs.values())
+
+    def test_trans_vector_of_the_wrong_length(self):
+        mat = DiagonalMatrix(3)
+
+        with pytest.raises(ValueError, match="'trans' has 2 values, but '/' resolves to 3 parameters"):
+            mat.set_param_specs("/", trans=[TransformIdentity(), TransformIdentity()])
+
+    def test_trans_must_contain_only_transforms(self):
+        mat = DiagonalMatrix(3)
+
+        with pytest.raises(TypeError, match="'trans' must contain only Transforms, got int at index 0"):
+            mat.set_param_specs("/", trans=[1, TransformIdentity(), TransformIdentity()])
+
+    def test_trans_must_be_a_transform_or_a_sequence(self):
+        mat = DiagonalMatrix(3)
+
+        with pytest.raises(TypeError, match="'trans' must be a Transform or a list or a tuple of Transforms, got int"):
+            mat.set_param_specs("/", trans=1)
+
+    def test_rejected_field_leaves_every_spec_untouched(self):
+        mat = DiagonalMatrix(3)
+        trans = [mat.param_specs[name]["trans"] for name in mat.param_specs]
+
+        with pytest.raises(ValueError):
+            mat.set_param_specs("/", fixed=[True, False], trans=[TransformIdentity()] * 3)
+        with pytest.raises(TypeError):
+            mat.set_param_specs("/", fixed=True, trans=[1, 2, 3])
+
+        assert mat.free_param_names == ["sigma^2_0", "sigma^2_1", "sigma^2_2"]
+        assert [spec["trans"] for spec in mat.param_specs.values()] == trans
+        assert all(torch.equal(spec["default"], torch.tensor([0.0])) for spec in mat.param_specs.values())
+
+    def test_operator_key(self):
+        op = Sum(A=ScalarMatrix(2), B=DiagonalMatrix(2))
+
+        op.set_param_specs("A/sigma^2", fixed=True)
+
+        assert op.free_param_names == ["B/sigma^2_0", "B/sigma^2_1"]
+        assert op.operands["A"].param_specs["sigma^2"]["fixed"] is True
+
+    def test_operator_change_takes_effect_on_the_next_call(self):
+        op = Sum(A=ScalarMatrix(2), B=DiagonalMatrix(2))
+
+        op.set_param_specs("B/sigma^2_1", fixed=True, default=torch.tensor([7.5]))
+
+        assert torch.equal(op.build_params(torch.tensor([0.0, 1.0]), trans=False), torch.tensor([0.0, 1.0, 7.5]))
+
+    def test_nested_operator_key(self):
+        op = Sum(inner=BlockDiagonal(DiagonalMatrix(2), ScalarMatrix(2)), extra=ScalarMatrix(4))
+
+        op.set_param_specs("inner/op_0/sigma^2_1", fixed=True)
+
+        assert "inner/op_0/sigma^2_1" not in op.free_param_names
+        assert op.operands["inner"].operands["op_0"].param_specs["sigma^2_1"]["fixed"] is True
+
+    def test_subtree_key(self):
+        op = Sum(A=ScalarMatrix(2), B=DiagonalMatrix(2))
+        trans = op.operands["B"].param_trans["sigma^2_0"]
+
+        op.set_param_specs("A/", fixed=True)
+
+        assert op.free_param_names == ["B/sigma^2_0", "B/sigma^2_1"]
+        assert op.operands["A"].param_specs["sigma^2"]["fixed"] is True
+        assert op.operands["B"].param_trans["sigma^2_0"] is trans
+
+    def test_root_key_sets_every_parameter(self):
+        op = Sum(A=ScalarMatrix(2), B=DiagonalMatrix(2))
+
+        op.set_param_specs("/", fixed=True)
+
+        assert op.free_param_names == []
+        assert op.num_free_params == 0
+
+    def test_subtree_key_is_segment_bounded(self):
+        """'A/' addresses the operand A, not every name beginning with 'A'."""
+        op = Sum(A=ScalarMatrix(2), AB=ScalarMatrix(2))
+
+        op.set_param_specs("A/", fixed=True)
+
+        assert op.free_param_names == ["AB/sigma^2"]
+
+    def test_subtree_key_on_a_leaf_matrix(self):
+        """The subtree of a node includes the node itself."""
+        mat = ScalarMatrix(3)
+
+        mat.set_param_specs("sigma^2/", fixed=True)
+
+        assert mat.free_param_names == []
+
+    def test_nested_subtree_key(self):
+        op = Sum(inner=BlockDiagonal(DiagonalMatrix(2), ScalarMatrix(2)), extra=ScalarMatrix(4))
+
+        op.set_param_specs("inner/", fixed=True)
+
+        assert op.free_param_names == ["extra/sigma^2"]
+        assert op.operands["inner"].operands["op_0"].param_specs["sigma^2_1"]["fixed"] is True
+
+    def test_subtree_key_changes_take_effect_on_the_next_call(self):
+        op = Sum(A=ScalarMatrix(2), B=DiagonalMatrix(2))
+
+        op.set_param_specs("A/", fixed=True, default=torch.tensor([7.5]))
+
+        assert torch.equal(op.build_params(torch.tensor([1.0, 2.0]), trans=False), torch.tensor([7.5, 1.0, 2.0]))
+
+    def test_subtree_key_with_no_matches(self):
+        op = Sum(A=torch.eye(2), B=ScalarMatrix(2))
+        with pytest.raises(ValueError, match="Cannot resolve key"):
+            op.set_param_specs("A/", fixed=True)
+
+    def test_subtree_key_with_empty_segment_does_not_resolve(self):
+        op = Sum(A=ScalarMatrix(2), B=ScalarMatrix(2))
+        with pytest.raises(ValueError, match="Cannot resolve key"):
+            op.set_param_specs("A//", fixed=True)
+
+    def test_unknown_key(self):
+        mat = ScalarMatrix(3)
+        with pytest.raises(ValueError, match="Cannot resolve key"):
+            mat.set_param_specs("sigma^3", fixed=True)
+
+    def test_unknown_operator_key(self):
+        op = Sum(A=ScalarMatrix(2), B=DiagonalMatrix(2))
+        with pytest.raises(ValueError, match="Cannot resolve key"):
+            op.set_param_specs("A/sigma^3", fixed=True)
+
+    def test_bare_operand_name_does_not_resolve(self):
+        op = Sum(A=ScalarMatrix(2), B=DiagonalMatrix(2))
+        with pytest.raises(ValueError, match="Cannot resolve key"):
+            op.set_param_specs("A", fixed=True)
+
+    def test_non_string_key(self):
+        mat = ScalarMatrix(3)
+        with pytest.raises(TypeError, match="must be a str"):
+            mat.set_param_specs(1, fixed=True)
+
+    def test_fields_are_keyword_only(self):
+        mat = ScalarMatrix(3)
+        with pytest.raises(TypeError):
+            mat.set_param_specs("sigma^2", True)
+
+
+# --------------------------------------------------------------------------- #
 # I. trans_grad
 # --------------------------------------------------------------------------- #
 
@@ -1463,6 +1870,81 @@ class TestGradDispatch:
 
 
 # --------------------------------------------------------------------------- #
+# M-bis. inverse
+# --------------------------------------------------------------------------- #
+
+class TestInverse:
+    """Tests for the default ``Matrix.inverse``."""
+
+    def test_equals_inverse_of_call(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat.inverse(free_params), mat(free_params).inverse())
+
+    def test_product_with_matrix_is_identity(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat(free_params) @ mat.inverse(free_params), torch.eye(3), atol=1e-6)
+
+    def test_uses_default_free_params(self):
+        mat = DiagonalMatrix(3)
+        assert torch.allclose(mat.inverse(), mat(mat.free_param_defaults).inverse())
+
+    def test_accepts_dict_of_free_params(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat.inverse(mat._to_free_param_dict(free_params)), mat.inverse(free_params))
+
+    def test_param_less_matrix(self):
+        assert torch.allclose(IdentityMatrix(3).inverse(), torch.eye(3))
+
+    def test_validation_is_not_bypassed(self):
+        mat = DiagonalMatrix(3)
+        with pytest.raises(TypeError, match="Torch tensor"):
+            mat.inverse([0.0, 0.5, 1.0])
+        with pytest.raises(ValueError, match="length 3"):
+            mat.inverse(torch.tensor([0.0, 0.5]))
+        with pytest.raises(ValueError, match="Missing free parameters"):
+            mat.inverse({})
+
+    def test_gradients_flow_to_free_params(self):
+        mat = DiagonalMatrix(2)
+        free_params = torch.tensor([0.5, 1.0], requires_grad=True)
+        inverse = mat.inverse(free_params)
+        assert inverse.requires_grad
+        inverse.sum().backward()
+        assert free_params.grad is not None
+        assert torch.all(free_params.grad != 0)
+
+    def test_subclass_override_wins(self):
+        class OverridingMatrix(MinimalMatrix):
+            def inverse(self, free_params=None):
+                return "analytic"
+
+        assert OverridingMatrix((2, 2), {}).inverse() == "analytic"
+
+    def test_inherited_by_operators(self):
+        op = Sum(ScalarMatrix(3), IdentityMatrix(3))
+        free_params = torch.tensor([0.5])
+        assert torch.allclose(op.inverse(free_params), op(free_params).inverse())
+
+    def test_default_is_pinned_by_a_non_overriding_subclass(self):
+        mat = ThreeParamMatrix(3)
+        free_params = torch.tensor([0.5, 1.0, 1.5])
+        assert torch.allclose(mat.inverse(free_params), mat(free_params).inverse())
+        assert torch.allclose(mat(free_params) @ mat.inverse(free_params), torch.eye(3), atol=1e-6)
+
+    def test_default_gradients_flow_to_every_free_param(self):
+        mat = ThreeParamMatrix(3)
+        free_params = torch.tensor([0.5, 1.0, 1.5], requires_grad=True)
+        inverse = mat.inverse(free_params)
+        assert inverse.requires_grad
+        inverse.sum().backward()
+        assert free_params.grad is not None
+        assert torch.all(free_params.grad != 0.0)
+
+
+# --------------------------------------------------------------------------- #
 # N, O, P. Intermediate caching
 # --------------------------------------------------------------------------- #
 
@@ -1658,6 +2140,81 @@ class TestIntermediateCaching:
         assert mat._intermediates == {
             "params": None, "dtype": None, "device": None, "intermediates": None
         }
+
+    def test_cache_defaults_to_enabled(self):
+        assert ScalarMatrix(3).cache is True
+
+    def test_disabled_cache_set_is_a_no_op(self):
+        mat = ScalarMatrix(3)
+        params = mat.build_params(torch.tensor([0.5]))
+
+        mat.cache = False
+
+        assert mat.set_intermediates(params, "value") is None
+        assert mat.get_intermediates(params) is None
+
+    def test_disabled_cache_ignores_existing_entry(self):
+        """An entry stored while caching was on is unreachable once the cache is off."""
+        mat = ScalarMatrix(3)
+        params = mat.build_params(torch.tensor([0.5]))
+        mat.set_intermediates(params, "value")
+
+        mat.cache = False
+
+        assert mat.get_intermediates(params) is None
+
+    def test_reenabling_the_cache_repopulates(self):
+        mat = ScalarMatrix(3)
+        params = mat.build_params(torch.tensor([0.5]))
+
+        mat.cache = False
+        mat.set_intermediates(params, "value")
+
+        mat.cache = True
+        assert mat.get_intermediates(params) is None
+
+        mat.set_intermediates(params, "value")
+        assert mat.get_intermediates(params) == "value"
+
+    def test_disabled_cache_skips_validation(self):
+        """With the cache off both methods return before validating, ignoring the request."""
+        mat = ScalarMatrix(3)
+        mat.cache = False
+
+        assert mat.set_intermediates([1.0, 2.0], "value") is None
+        assert mat.get_intermediates([1.0, 2.0]) is None
+
+    def test_disable_cache_clears_existing_entries(self):
+        mat = ScalarMatrix(3)
+        params = mat.build_params(torch.tensor([0.5]))
+        mat.set_intermediates(params, "value")
+
+        mat.disable_cache()
+
+        assert mat.cache is False
+        assert mat._intermediates == {
+            "params": None, "dtype": None, "device": None, "intermediates": None
+        }
+
+    def test_enable_cache_restores_caching(self):
+        mat = ScalarMatrix(3)
+        params = mat.build_params(torch.tensor([0.5]))
+
+        mat.disable_cache()
+        mat.set_intermediates(params, "value")
+
+        mat.enable_cache()
+        assert mat.cache is True
+        assert mat.get_intermediates(params) is None
+
+        mat.set_intermediates(params, "value")
+        assert mat.get_intermediates(params) == "value"
+
+    def test_disable_cache_is_idempotent(self):
+        mat = ScalarMatrix(3)
+        mat.disable_cache()
+        mat.disable_cache()
+        assert mat.cache is False
 
 
 # --------------------------------------------------------------------------- #

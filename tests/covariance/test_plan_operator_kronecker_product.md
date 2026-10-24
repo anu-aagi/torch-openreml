@@ -62,6 +62,22 @@ Ensure correct Kronecker product construction, correct gradient computation via 
 - `map_theta_to_v` returns Kronecker product
 - `map_theta_to_dv` returns concatenated gradient
 
+#### H. `inverse(free_params)`
+
+`KroneckerProduct` overrides the base default with the closed form `V⁻¹ = A⁻¹ ⊗ B⁻¹`: each operand is
+inverted through its own path and the two results are combined with `torch.kron`, instead of inverting the
+`(mp) × (mp)` composite densely.
+
+- Agrees with `torch.linalg.inv(op(free_params))`
+- Is exactly `torch.kron(A.inverse(...), B.inverse(...))`, in operand order
+- `op.inverse(free_params) @ op(free_params)` is the identity
+- The composite is never inverted densely: `torch.linalg.inv` is not called
+- A rectangular operand raises (the composite is singular)
+- The argument contract is not bypassed: `None` means the defaults, a dict means the same as the flat
+  tensor, and a non-tensor, a wrong-length vector and a bad dict each raise
+- dtype follows the input, the result stays attached to `free_params`, and its gradient equals the gradient
+  of `torch.linalg.inv(op(free_params))`
+
 ---
 
 ## 3. How to Test
@@ -203,6 +219,80 @@ class TestKroneckerProduct:
         expected, _ = op.grad(free_params)
         assert torch.allclose(op.map_theta_to_dv(free_params), expected)
 
+    def test_inverse_matches_inverse_of_call(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        assert torch.allclose(op.inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
+
+    def test_inverse_is_kron_of_operand_inverses(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        expected = torch.kron(ScalarMatrix(2).inverse(free_params[:1]), DiagonalMatrix(2).inverse(free_params[1:]))
+        assert torch.allclose(op.inverse(free_params), expected)
+
+    def test_inverse_product_with_call_is_identity(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        assert torch.allclose(op.inverse(free_params) @ op(free_params), torch.eye(4), atol=1e-6)
+
+    def test_inverse_does_not_invert_densely(self, monkeypatch):
+        calls = []
+        real_inv = torch.linalg.inv
+
+        def counting_inv(a):
+            calls.append(a)
+            return real_inv(a)
+
+        monkeypatch.setattr(torch.linalg, "inv", counting_inv)
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        op.inverse(torch.tensor([0.5, 0.0, 1.0]))
+        assert calls == []
+
+    def test_inverse_rectangular_operand_raises(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=torch.ones(2, 3))
+        with pytest.raises(RuntimeError):
+            op.inverse(torch.tensor([0.5]))
+
+    def test_inverse_uses_default_free_params(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        assert torch.allclose(op.inverse(), op.inverse(op.free_param_defaults))
+
+    def test_inverse_accepts_dict_of_free_params(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        assert torch.allclose(op.inverse(op._to_free_param_dict(free_params)), op.inverse(free_params))
+
+    def test_inverse_dtype_follows_input(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        assert op.inverse(free_params).dtype == torch.float32
+        assert op.inverse(free_params.double()).dtype == torch.float64
+
+    def test_inverse_gradients_flow_to_free_params(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0], requires_grad=True)
+        op.inverse(free_params).sum().backward()
+        assert free_params.grad is not None
+        assert torch.all(free_params.grad != 0.0)
+
+    def test_inverse_gradient_matches_autograd_of_inverse_of_call(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0], requires_grad=True)
+        op.inverse(free_params).sum().backward()
+        closed_form_grad = free_params.grad.clone()
+        free_params.grad = None
+        torch.linalg.inv(op(free_params)).sum().backward()
+        assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
+
+    def test_inverse_validation_is_not_bypassed(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        with pytest.raises(TypeError, match="Torch tensor"):
+            op.inverse([0.5, 0.0, 1.0])
+        with pytest.raises(ValueError, match="length 3"):
+            op.inverse(torch.tensor([0.5]))
+        with pytest.raises(ValueError, match="Missing free parameters"):
+            op.inverse({})
+
     def test_repr(self):
         op = KroneckerProduct(a=ScalarMatrix(2), b=ScalarMatrix(3))
         r = repr(op)
@@ -220,6 +310,9 @@ Do not need to execute.
 - **Batched Kronecker product**: `torch.kron(da, b)` where `da` is 3D `(k, m, m)` and `b` is 2D `(n, n)`. PyTorch's `kron` handles this by treating the first dimension as batch, producing `(k, mn, mn)`. This is the key mechanism for the manual gradient.
 - **Gradient simplicity**: Unlike `CovariancePropagation` (where Z appears twice requiring product rule), the Kronecker product gradient is a simple product rule: `d(A⊗B) = dA⊗B + A⊗dB`. Each term involves only one gradient.
 - **Kronecker order**: `A ⊗ B` means each element of A is multiplied by the full B matrix. The order matters — `A ⊗ B ≠ B ⊗ A` in general. The first operand is the "outer" matrix.
+- **`inverse` keeps the same operand order as the forward pass**: `(A ⊗ B)⁻¹ = A⁻¹ ⊗ B⁻¹` does *not* reverse the operands, unlike `Product`, whose inverse does. A copy-pasted reversed implementation would still produce a square matrix of the right shape, so the operand-inverse test compares against `torch.kron(A.inverse(...), B.inverse(...))` built explicitly from the operands rather than from the implementation.
+- **The saving is structural, not incidental**: the `(mp) × (mp)` inverse is never formed. The monkeypatched-`torch.linalg.inv` test asserts the dense inverse is not called at all, which a fallback through `__call__` would fail.
+- **A rectangular operand makes the composite singular, not just malformed**: `rank(A ⊗ B) = rank(A)·rank(B) ≤ m·q < m·p` when B is `(q, p)` with `q < p`, so there is no square-composite corner case here (unlike `Product`). The override does no shape check of its own, so the failure comes from the operand's own inverse as `RuntimeError: linalg.inv: A must be batches of square matrices...`; the test matches `RuntimeError` only, not the wording.
 
 ---
 
@@ -236,4 +329,5 @@ Do not need to execute.
 | Intermediate caching | 1 |
 | REML interface | 2 |
 | repr | 1 |
-| **Total** | **17** |
+| `inverse` override | 11 |
+| **Total** | **28** |

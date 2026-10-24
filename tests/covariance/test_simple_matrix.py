@@ -26,13 +26,13 @@ class TestSimpleMatrix:
 
     def test_call_with_defaults(self):
         """With no input, defaults are built into a tensor before the call."""
-        mat = SimpleMatrix(3, call=diagonal_call, default=1.0)
+        mat = SimpleMatrix(3, call=diagonal_call, default=torch.tensor([1.0]))
         result = mat()
         assert torch.equal(result, torch.eye(3))
 
     def test_call_with_dict(self):
         """A parameter dict is resolved to a tensor before the call."""
-        mat = SimpleMatrix(3, call=diagonal_call, default=1.0)
+        mat = SimpleMatrix(3, call=diagonal_call, default=torch.tensor([1.0]))
         result = mat({
             "theta_0": torch.tensor([1.0]),
             "theta_1": torch.tensor([2.0]),
@@ -52,7 +52,7 @@ class TestSimpleMatrix:
 
     def test_call_follows_input_dtype(self):
         """Rule 1: dtype and device of the input win over the defaults."""
-        mat = SimpleMatrix(3, call=diagonal_call, default=1.0)
+        mat = SimpleMatrix(3, call=diagonal_call, default=torch.tensor([1.0]))
         result = mat(torch.tensor([1.0, 2.0, 3.0], dtype=torch.float64))
         assert result.dtype == torch.float64
 
@@ -74,13 +74,13 @@ class TestSimpleMatrix:
         assert grad_names == ["theta_0", "theta_1", "theta_2"]
 
     def test_grad_auto_with_defaults(self):
-        mat = SimpleMatrix(3, call=diagonal_call, default=1.0)
+        mat = SimpleMatrix(3, call=diagonal_call, default=torch.tensor([1.0]))
         grad, grad_names = mat.grad()
         assert grad.dtype == torch.float32
         assert grad_names == mat.free_param_names
 
     def test_grad_auto_with_dict(self):
-        mat = SimpleMatrix(3, call=diagonal_call, default=1.0)
+        mat = SimpleMatrix(3, call=diagonal_call, default=torch.tensor([1.0]))
         grad, _ = mat.grad({
             "theta_0": torch.tensor([1.0]),
             "theta_1": torch.tensor([2.0]),
@@ -124,3 +124,16 @@ class TestSimpleMatrix:
         assert mat.num_free_params == 0
         assert mat().shape == (2, 2)
         assert mat.grad() == (None, [])
+
+    def test_default_defaults_to_zero(self):
+        """With no default, every parameter defaults to a zero tensor."""
+        mat = SimpleMatrix(3, call=diagonal_call)
+        assert torch.equal(mat(), torch.zeros(3, 3))
+
+    def test_default_rejects_float(self):
+        with pytest.raises(TypeError, match="1D torch tensor"):
+            SimpleMatrix(3, call=diagonal_call, default=1.0)
+
+    def test_default_rejects_wrong_shape(self):
+        with pytest.raises(ValueError, match=r"shape \(1\)"):
+            SimpleMatrix(3, call=diagonal_call, default=torch.tensor([1.0, 2.0]))

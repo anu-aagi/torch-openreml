@@ -1,7 +1,7 @@
 import torch
 import math
 import pytest
-from torch_openreml.covariance import KroneckerProduct, ScalarMatrix, IdentityMatrix
+from torch_openreml.covariance import KroneckerProduct, ScalarMatrix, DiagonalMatrix, IdentityMatrix
 from torch_openreml.covariance.matrix import Matrix
 
 
@@ -118,6 +118,80 @@ class TestKroneckerProduct:
         free_params = torch.tensor([0.0, 0.5])
         expected, _ = op.grad(free_params)
         assert torch.allclose(op.map_theta_to_dv(free_params), expected)
+
+    def test_inverse_matches_inverse_of_call(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        assert torch.allclose(op.inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
+
+    def test_inverse_is_kron_of_operand_inverses(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        expected = torch.kron(ScalarMatrix(2).inverse(free_params[:1]), DiagonalMatrix(2).inverse(free_params[1:]))
+        assert torch.allclose(op.inverse(free_params), expected)
+
+    def test_inverse_product_with_call_is_identity(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        assert torch.allclose(op.inverse(free_params) @ op(free_params), torch.eye(4), atol=1e-6)
+
+    def test_inverse_does_not_invert_densely(self, monkeypatch):
+        calls = []
+        real_inv = torch.linalg.inv
+
+        def counting_inv(a):
+            calls.append(a)
+            return real_inv(a)
+
+        monkeypatch.setattr(torch.linalg, "inv", counting_inv)
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        op.inverse(torch.tensor([0.5, 0.0, 1.0]))
+        assert calls == []
+
+    def test_inverse_rectangular_operand_raises(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=torch.ones(2, 3))
+        with pytest.raises(RuntimeError):
+            op.inverse(torch.tensor([0.5]))
+
+    def test_inverse_uses_default_free_params(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        assert torch.allclose(op.inverse(), op.inverse(op.free_param_defaults))
+
+    def test_inverse_accepts_dict_of_free_params(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        assert torch.allclose(op.inverse(op._to_free_param_dict(free_params)), op.inverse(free_params))
+
+    def test_inverse_dtype_follows_input(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0])
+        assert op.inverse(free_params).dtype == torch.float32
+        assert op.inverse(free_params.double()).dtype == torch.float64
+
+    def test_inverse_gradients_flow_to_free_params(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0], requires_grad=True)
+        op.inverse(free_params).sum().backward()
+        assert free_params.grad is not None
+        assert torch.all(free_params.grad != 0.0)
+
+    def test_inverse_gradient_matches_autograd_of_inverse_of_call(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        free_params = torch.tensor([0.5, 0.0, 1.0], requires_grad=True)
+        op.inverse(free_params).sum().backward()
+        closed_form_grad = free_params.grad.clone()
+        free_params.grad = None
+        torch.linalg.inv(op(free_params)).sum().backward()
+        assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
+
+    def test_inverse_validation_is_not_bypassed(self):
+        op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
+        with pytest.raises(TypeError, match="Torch tensor"):
+            op.inverse([0.5, 0.0, 1.0])
+        with pytest.raises(ValueError, match="length 3"):
+            op.inverse(torch.tensor([0.5]))
+        with pytest.raises(ValueError, match="Missing free parameters"):
+            op.inverse({})
 
     def test_repr(self):
         op = KroneckerProduct(a=ScalarMatrix(2), b=ScalarMatrix(3))

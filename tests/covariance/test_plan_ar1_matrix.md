@@ -26,6 +26,7 @@ Ensure correct construction of the geometric decay structure, correct manual gra
 - Instance is a subclass of `Matrix`
 - Shape is `(n, n)`
 - `num_params` = 2, `num_free_params` = 2 (default)
+- `n` also accepts a list, a tuple or a `pandas.Series` of levels: the dimension is the number of distinct elements (`n_distinct`), so `AR1Matrix(["a", "b", "a"])` is `AR1Matrix(2)`. An empty sequence resolves to `0` and is rejected by the shape check. The resolved matrix matches the integer form in shape, parameter names and `__call__` values
 
 #### B. `__call__(free_params)` Behavior
 
@@ -49,10 +50,10 @@ Ensure correct construction of the geometric decay structure, correct manual gra
 
 - Two gradient slices (if both params free):
   - dV/d(σ²_free) = trans_grad_σ² * ρ^{|i-j|}
-  - dV/d(ρ_free) = trans_grad_ρ * σ² * |i-j| * ρ^{|i-j|} / ρ (with diagonal zeroed)
-- Rho gradient uses clamping: `sign(ρ) * max(|ρ|, 1e-6)` to avoid div-by-zero
-- Diagonal of dV/dρ is zero
-- Agrees with `auto_grad`
+  - dV/d(ρ_free) = trans_grad_ρ * σ² * |i-j| * ρ^{|i-j|-1}, with the lag-0 entry zero
+- The rho slice is division-free: the exponent is `|i-j| - 1` clamped at 0, so it stays finite at ρ = 0
+- At ρ = 0 the rho slice is σ² times the lag-1 adjacency matrix times `trans_grad_ρ`: lag 0 and lag ≥ 2 are zero, lag 1 is `trans_grad_ρ * σ²`
+- Agrees with `auto_grad`, including at ρ = 0
 - Returns `(None, [])` when both params fixed
 
 #### E. Single Free Parameter Configurations
@@ -70,12 +71,28 @@ Ensure correct construction of the geometric decay structure, correct manual gra
 #### G. Edge Cases
 
 - rho ≈ 0 (rho_free → -inf): check diagonal only, off-diagonals ≈ 0
+- rho = 0: `__call__` is diagonal, and the rho gradient is finite with the lag-1 adjacency pattern
 - rho ≈ 1 (rho_free → +inf): check all entries ≈ σ²
 - n = 1 (trivial 1×1 case)
 
 #### H. REML Interface
 
 - `map_theta_to_v` and `map_theta_to_dv` work correctly
+
+#### I. `inverse(free_params)`
+
+`AR1Matrix` overrides the base default with the tridiagonal closed form: diagonal entries `1 + ρ²` (the two corner ones staying `1`), off-diagonal entries `-ρ`, all scaled by `1 / (σ²(1 - ρ²))`. The inverse of an AR(1) covariance is sparse, so forming `V` and inverting it numerically is pure overhead. The override must be indistinguishable from the default it replaces, and it takes the cache path plus its own `n = 1` branch.
+
+- Agrees with `torch.linalg.inv(mat(free_params))`, and its entries match the closed form: corner diagonal entries are `1`, interior ones are `1 + ρ²`, the two nearest off-diagonals are `-ρ`, and everything further out is exactly zero (the tridiagonal structure is the point of the override)
+- The result is symmetric, and `mat(free_params) @ mat.inverse(free_params)` is the identity
+- Negative ρ, where `-ρ` flips sign: the off-diagonals become positive and the result still matches `torch.linalg.inv`
+- `n = 1`, which the override special-cases before the tridiagonal construction: the result is `I / σ²`
+- `n = 2`, where no entry satisfies "interior" and both diagonal entries are corner entries: the result is the `1 / (σ²(1 - ρ²))` limit, not the general formula
+- The argument contract is the one `__call__` already promises, and it is not bypassed by the override: `None` means the defaults, a dict of free parameters means the same as the flat tensor, and a non-tensor, a wrong-length vector and a bad dict each raise from `build_params`
+- Both single-free-parameter configurations (only `sigma^2` free, only `rho` free) invert correctly, since the closed form reads both parameters regardless of which one is trainable
+- dtype follows the input, and interleaving dtypes across calls does not let a stale cache entry leak through — the cache is keyed on dtype, so a cached float64 `sigma2`/`rho` must not reach a float32 inverse
+- The cache path is exercised in both directions: `inverse` after `__call__` reuses the entry without replacing it, and `inverse` alone populates it
+- The output stays attached to `free_params`, and its gradient equals the gradient of `torch.linalg.inv(mat(free_params))` — the closed form must be the derivative of the same function, not merely equal to it in value
 
 ---
 
@@ -301,6 +318,49 @@ class TestAR1Matrix:
         free_params = torch.tensor([0.0, 1.0], dtype=torch.float64)
         assert mat(free_params).dtype == torch.float64
 
+    def test_inverse_closed_form_structure(self):
+        mat = AR1Matrix(4)
+        free_params = torch.tensor([0.4, 1.0])
+        sigma2, rho = mat.build_params(free_params)
+        d = 1 / (sigma2 * (1 - rho ** 2))
+        expected_diag = torch.stack([d, d * (1 + rho ** 2), d * (1 + rho ** 2), d]).squeeze(-1)
+        result = mat.inverse(free_params)
+        assert torch.allclose(result.diag(), expected_diag)
+        assert torch.allclose(result[0, 1], -rho * d)
+        assert torch.allclose(result[3, 2], -rho * d)
+        assert result[0, 2] == 0.0
+        assert result[0, 3] == 0.0
+
+    def test_inverse_n1(self):
+        mat = AR1Matrix(1)
+        free_params = torch.tensor([0.4, 1.0])
+        sigma2 = mat.build_params(free_params)[0]
+        assert torch.allclose(mat.inverse(free_params), torch.eye(1) / sigma2)
+        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
+
+    def test_inverse_n2_both_diagonal_entries_are_corners(self):
+        mat = AR1Matrix(2)
+        free_params = torch.tensor([0.4, 1.0])
+        sigma2, rho = mat.build_params(free_params)
+        result = mat.inverse(free_params)
+        assert torch.allclose(result.diag(), (1 / (sigma2 * (1 - rho ** 2))).expand(2))
+        assert torch.allclose(result[0, 1], -rho / (sigma2 * (1 - rho ** 2)))
+
+    def test_inverse_follows_dtype_across_interleaved_calls(self):
+        mat = AR1Matrix(4)
+        mat(torch.tensor([0.4, 1.0], dtype=torch.float64))
+        assert mat.inverse(torch.tensor([0.4, 1.0], dtype=torch.float32)).dtype == torch.float32
+
+    def test_inverse_gradient_matches_autograd_of_inverse_of_call(self):
+        mat = AR1Matrix(4)
+        free_params = torch.tensor([0.4, 1.0], requires_grad=True)
+        mat.inverse(free_params).sum().backward()
+        closed_form_grad = free_params.grad.clone()
+        free_params.grad = None
+        mat.reset_intermediates()
+        torch.linalg.inv(mat(free_params)).sum().backward()
+        assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-5)
+
     def test_map_theta_to_v(self):
         mat = AR1Matrix(4)
         free_params = torch.tensor([0.0, 1.0])
@@ -326,10 +386,12 @@ Do not need to execute.
 
 ## 4. Key Risks / Notes
 
-- **Rho gradient clamping**: `scaled_rho = torch.sign(rho) * torch.clamp(|rho|, min=1e-6)` prevents division by zero when ρ ≈ 0. Tests with rho ≈ 0 should verify no NaN/inf in the gradient.
+- **Rho gradient at ρ = 0**: the derivative is `|i-j| * ρ^(|i-j|-1)`, computed without dividing by ρ, with the exponent clamped at 0. At ρ = 0 the diagonal and lags ≥ 2 are zero and the first off-diagonals equal `trans_grad_ρ * σ²`; the gradient must contain no NaN or inf.
 - **Geometric decay**: Unlike `CompoundSymmetricMatrix` where off-diagonals are all equal, AR(1) has distance-dependent off-diagonals. The gradient for rho preserves this structure, scaled by |i-j|.
-- **`fill_diagonal_(0.0)`**: The rho gradient explicitly zeros the diagonal after computation. Mathematically, |i-j|=0 on the diagonal so the term `diff * rho_power / rho = 0 * 1 / rho = 0`, but the explicit zeroing is a safety measure.
+- **No diagonal patch**: `fill_diagonal_` is unnecessary because the lag-0 term already carries the factor `|i-j| = 0`; the gradient stays finite at ρ = 0 without a post-hoc overwrite.
 - **`diff` matrix**: The distance matrix `|i - j|` should be Toeplitz with constant diagonals. Verified in the test.
+- **`inverse` reads the cache and branches on `n`**: the closed form is assembled from the cached `sigma2` and `rho`, so it inherits the cache's dtype and device guards — a cache keyed on values alone would return a float64 `sigma2` inside a float32 inverse, which `test_inverse_follows_dtype_across_interleaved_calls` pins. The `n == 1` branch exists because the tridiagonal construction would otherwise leave a lone entry classified as a corner, which is right by accident there; the `n = 1` and `n = 2` tests keep that accident honest for the sizes above it too.
+- **The gradient tests reset the cache between the two backward passes**: `Matrix`'s intermediate cache hands back the tensor objects from the last call with matching values, so a second autograd graph built on the same values reuses tensors whose graph has already been freed. The test calls `reset_intermediates` before differentiating `torch.linalg.inv(mat(free_params))`, which sidesteps the reuse rather than papering over it; the aliasing is a cache property, not an `inverse` property.
 
 ---
 
@@ -337,15 +399,16 @@ Do not need to execute.
 
 | Category | Tests |
 |---|---|
-| Constructor & class attributes | 3 |
-| `__call__` correctness & properties | 7 |
+| Constructor & class attributes | 6 |
+| `__call__` correctness & properties | 6 |
 | Diff matrix | 1 |
-| `manual_grad` structure & correctness | 4 |
-| `manual_grad` vs `auto_grad` | 1 |
+| `manual_grad` structure & correctness | 3 |
+| `manual_grad` vs `auto_grad` | 2 |
 | Single free param configs | 4 |
 | Both fixed | 1 |
 | Intermediate caching | 2 |
 | dtype | 1 |
 | REML interface | 2 |
 | repr | 1 |
-| **Total** | **27** |
+| `inverse` | 18 |
+| **Total** | **47** |

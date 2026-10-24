@@ -43,19 +43,24 @@ was implemented. The "Gap" column is what the tests were missing; §5 records wh
 | 6 | `build_params` | Partial | no-arg call, mixed free/fixed scatter, all four `include_fixed` × `out_format` combinations, fast vs slow transform path, invalid `out_format` on the empty branch |
 | 7 | `_from_free_param_dict` | Covered | — |
 | 8 | `_to_free_param_dict` | Covered | — (note: no library code calls it; only tests do) |
-| 9 | `trans_grad` | Partial | slow path (differing transforms), value checks beyond the single fast-path case, dtype follow |
-| 10 | `auto_grad` | Partial | only the default `jacfwd`; `jacrev`, `jacobian`, `jacobian_chunk_size`, unknown method, cache-clearing side effect |
-| 11 | `manual_grad` (base) | **Missing** | `NotImplementedError` never asserted; subclass contract is covered by `TestManualGradContract` |
-| 12 | `__call__` (abstract) | **Missing** | direct instantiation of `Matrix` |
-| 13 | `grad` | Partial | `grad_mode="manual"` branch untested, both with and without a subclass `manual_grad` |
-| 14 | `set_intermediates` | Partial | overwrite, object identity, the cached values are a copy of the caller's tensor |
-| 15 | `get_intermediates` | Partial | **dtype staleness** and device staleness — the two guards checked before the value comparison |
-| 16 | `reset_intermediates` | Covered | — |
-| 17 | Properties (17 of them) | Partial | non-empty `fixed_*` cases, mixed free/fixed indices, `param_specs` liveness |
-| 18 | `__repr__` / `_repr_indented` | Partial | ≥3-param ellipsis, 0-param omission, multi-line mode |
-| 19 | `_repr_value` | **Missing** | all four branches |
-| 20 | `_repr_dict` | **Missing** | — |
-| 21 | `map_theta_to_v` / `map_theta_to_dv` | **Stale** | removed from the class; `TestREMLInterface` fails |
+| 9 | `set_param_specs` | **New** | added after this plan was implemented; §H-bis records what it must cover |
+| 10 | `trans_grad` | Partial | slow path (differing transforms), value checks beyond the single fast-path case, dtype follow |
+| 11 | `auto_grad` | Partial | only the default `jacfwd`; `jacrev`, `jacobian`, `jacobian_chunk_size`, unknown method, cache-clearing side effect |
+| 12 | `manual_grad` (base) | **Missing** | `NotImplementedError` never asserted; subclass contract is covered by `TestManualGradContract` |
+| 13 | `__call__` (abstract) | **Missing** | direct instantiation of `Matrix` |
+| 14 | `grad` | Partial | `grad_mode="manual"` branch untested, both with and without a subclass `manual_grad` |
+| 15 | `set_intermediates` | Partial | overwrite, object identity, the cached values are a copy of the caller's tensor |
+| 16 | `get_intermediates` | Partial | **dtype staleness** and device staleness — the two guards checked before the value comparison |
+| 17 | `reset_intermediates` | Covered | — |
+| 18 | Properties (17 of them) | Partial | non-empty `fixed_*` cases, mixed free/fixed indices, `param_specs` liveness |
+| 19 | `__repr__` / `_repr_indented` | Partial | ≥3-param ellipsis, 0-param omission, multi-line mode |
+| 20 | `_repr_value` | **Missing** | all four branches |
+| 21 | `_repr_dict` | **Missing** | — |
+| 22 | `map_theta_to_v` / `map_theta_to_dv` | **Stale** | removed from the class; `TestREMLInterface` fails |
+| 23 | `cache` | **New** | added after this plan was implemented; §P-bis records what it must cover |
+| 24 | `enable_cache` / `disable_cache` | **New** | added after this plan was implemented; §P-ter records what they must cover |
+| 25 | `resolve_dim` | **New** | added after this plan was implemented; §S records what it must cover |
+| 26 | `inverse` | **New** | added after this plan was implemented; §T records what it must cover |
 
 `TestREMLInterface` (2 tests) must be **deleted**: `map_theta_to_v` / `map_theta_to_dv` no longer exist on
 `Matrix` or anywhere in the package. Section I of the previous revision of this plan documented a removed
@@ -99,6 +104,12 @@ Constructor calls only, through `MinimalMatrix`:
 - Non-dict → `TypeError("'param_sepc' must be a dict!")` — **note the typo in the source**; the test
   should match the actual string so the message is not silently "fixed" without a plan update
 - Non-`str` parameter name → `TypeError("Parameter name must be a str, got int!")`
+- Parameter name containing `/` → `ValueError("Invalid parameter name '{name}': '/' is not allowed!")`,
+  mirroring the operand-name rule in `Operator._check_operands`. `/` is reserved for the composite
+  namespace, so it can never be part of a leaf name; any other character, `.` included, is accepted
+- Empty parameter name → `ValueError("Parameter name must not be empty!")`. An empty leaf name makes
+  the composite key `"A/"` — the same string a trailing-slash subtree query would use — so the name
+  must be rejected for `/` to be unambiguous syntax at every position
 - Non-dict spec → `TypeError("Individual parameter specification must be a dict, got str!")`
 - Field set not exactly `{"fixed", "default", "trans"}` → `TypeError`, matching
   `"Parameter specification fields must be 'fixed', 'default', and 'trans'"`. Cover **missing** a field
@@ -108,8 +119,8 @@ Constructor calls only, through `MinimalMatrix`:
 - `default` not 1D → `TypeError("... must be a 1D torch.Tensor, got torch.Size([1, 1])!")` — raised as
   `TypeError`, not `ValueError`, despite being about shape
 - `trans` not a `Transform` → `TypeError("... must be a Transform, got str!")`
-- Parameter names are used verbatim: names containing `/` are **not** rejected here (operators rely on
-  namespacing and do their own rejection)
+- Parameter names are otherwise used verbatim: no normalisation, no uniqueness rule beyond the dict
+  keys themselves
 
 #### D. `_check_param_tensor(params, length=None)`
 
@@ -251,6 +262,51 @@ Well covered; keep and extend only where the contract changed:
 - Note in the plan: no library code calls this method — it is a caller-facing helper. Keep it tested as
   part of the public surface, but a change here breaks nothing internal.
 
+#### H-bis. `set_param_specs(key, *, fixed=None, default=None, trans=None)`
+
+- A `key` not ending in `"/"` is resolved against `param_specs` by exact lookup, so it is the key
+  exactly as `param_specs` exposes it: `"sigma^2_1"`, and for composites the flat namespaced form
+  `"A/sigma^2"`, `"inner/op_0/sigma^2_0"`
+- A `key` ending in `"/"` addresses a **subtree**: every key whose leading segments are the query's,
+  the node itself included. `"A/"` is every parameter under operand `A` (nested operands below it too),
+  `"/"` is every parameter of the matrix, and `"sigma^2/"` on a leaf matrix is that one parameter
+- The match is on segments, not on the raw string: `"A/"` must not reach an operand named `"AB"`. This
+  is the test that separates a correct implementation from `key.startswith(prefix)`
+- A subtree key matching nothing → `ValueError("Cannot resolve key '{key}'!")`, the same message as an
+  unknown exact key; cover a tensor-only operand (no parameters below it) and a query with an empty
+  segment (`"A//"`, which no key can match now that names are non-empty)
+- Each field passed as non-`None` replaces that field of the resolved specification: `fixed` (including
+  back to `False`), `default`, `trans`, and several in one call; the whole spec is replaced by passing
+  all three
+- Fields left as `None` are untouched — assert the `trans` object identity survives a `default`-only
+  call — and a call with no fields at all is a no-op
+- The write lands on the stored spec dict, so it takes effect on the next property read or
+  `build_params` call; values are assigned as given, with no copy (identity check on the assigned
+  `default`)
+- Every field is distributed over the resolved specifications the same way: a single value is
+  broadcast, the same object reaching every spec (identity check), while a `list`/`tuple` with one
+  value per resolved specification is split element-wise. `default` is a tensor, so its single-value
+  form is shape `(1,)` and its split form gives each spec a shape `(1,)` slice; `fixed` is a `bool` or
+  a `list`/`tuple` of bools; `trans` is a `Transform` or a `list`/`tuple` of transforms (a
+  `TransformChain` counts as one transform). Cover the split with three distinct transforms and check
+  that `build_params` applies each to its own parameter, and that a length-1 sequence broadcasts like
+  the single value
+- A field of any other length → `ValueError` naming the field, its value count and the number of
+  resolved parameters; a length other than 1 on a one-parameter key is the same error. The checks run
+  before any field is written, so a rejected call leaves every spec untouched — including a valid
+  `fixed` passed alongside a rejected `trans`
+- Wrong field type → `TypeError`: `default` not a `torch.Tensor`; `fixed` neither a `bool` nor a
+  `list`/`tuple` of bools, and a non-bool element; `trans` neither a `Transform` nor a `list`/`tuple`
+  of transforms, and a non-`Transform` element. A 0-dim or 2-D `default` → `ValueError`
+- Composites need no override: `Operator.param_specs` rebuilds a flat dict on every call, but its
+  values are the live leaf spec dicts, so mutating the resolved spec persists. Pin this on an
+  `Operator` and on a nested one, asserting through the operand's own `param_specs` that the leaf spec
+  changed, and that the change reaches `build_params`
+- Unknown key → `ValueError("Cannot resolve key '{key}'!")`, for a plain matrix (`"sigma^3"`), for an
+  operator (`"A/sigma^3"`), and for a bare operand name (`"A"`, which is not a key)
+- Non-str key → `TypeError("'key' must be a str, ...")`
+- The fields are keyword-only: a second positional argument is a `TypeError`
+
 #### I. `trans_grad(free_params=None)`
 
 - Length equals `num_free_params`; `free_params=None` uses `free_param_defaults`
@@ -372,6 +428,7 @@ Four dispatch branches, plus the error path:
 - Non-tensor → `TypeError("Parameters must be a Torch tensor!")`; 2D → `ValueError("... 1D tensor!")`
 - The stored `params` is a **copy**: an in-place edit of the caller's tensor after the set cannot
   change the key of the entry already cached
+- With `cache` off the method is a no-op that returns before validating or writing (§P-bis)
 
 #### O. `get_intermediates(params)`
 
@@ -395,6 +452,7 @@ test that fails if its guard is removed:
 - Non-tensor → `TypeError`; 2D → `ValueError` (the check runs before the empty-params shortcut, so a
   malformed empty tensor still raises)
 - Never returns a value that no `set_intermediates` produced: on a fresh matrix it is `None`
+- With `cache` off it always misses, returning before validation (§P-bis)
 
 #### P. `reset_intermediates()`
 
@@ -402,6 +460,36 @@ test that fails if its guard is removed:
 - Called from `__init__` (fresh matrix caches nothing)
 - Called from `auto_grad` (§J)
 - Subsequent `set_intermediates` repopulates normally
+
+#### P-bis. `cache`
+
+`cache` (default `True`) gates the caching trio: with the flag off, `set_intermediates` returns
+before validating or writing and `get_intermediates` returns `None` before validating, so both
+completely ignore the request. `reset_intermediates` is unaffected.
+
+- Default is `True`: an untouched matrix caches exactly as before
+- With `cache = False`, `set_intermediates` writes nothing; an entry stored while the flag was on
+  stays in `_intermediates`, it is simply unreachable
+- With `cache = False`, `get_intermediates` always misses, including for params that hit while the
+  flag was on
+- Neither method validates while the cache is off: a non-tensor argument is silently ignored
+  rather than raising. That is the point of "ignore the request", so pin it
+- Re-enabling repopulates on the next `set_intermediates`; nothing cached during the off period
+  comes back
+
+#### P-ter. `enable_cache()` / `disable_cache()`
+
+The toggles for `cache`. `enable_cache` sets the flag to `True`; `disable_cache` sets it to `False`
+**and** calls `reset_intermediates`, so the blessed way to disable caching cannot leave an entry
+behind for a later re-enable to return. `Operator` overrides `reset_intermediates` to recurse into
+its operands, so disabling a composite clears its operands' caches as well.
+
+- `disable_cache` clears all four keys, not just the flag: assert `_intermediates` after a set, not
+  only `cache`
+- Calling it twice, or on a fresh matrix, changes nothing further — `reset_intermediates` is
+  idempotent
+- `enable_cache` restores caching: a set after it hits, and an entry cleared by the disable does not
+  come back
 
 #### Q. Properties
 
@@ -461,6 +549,45 @@ Three modes, all reachable in production (`Operator` and `Adapter` set `_repr_si
 - `repr(op)` must not raise for a composite containing tensors, nested operators and empty
   `param_specs`
 
+#### S. `resolve_dim(n)`
+
+The dimension-resolution helper every concrete matrix calls on its `n` (and `m`) argument before
+building parameter specs, computing `rho_min`, or sizing a tensor.
+
+- A non-sequence passes through unchanged — `int`, `None`, a float and a string all come back
+  identical — so validation stays with `_check_shape` and the `n <= 1` checks in the correlated
+  matrices
+- A `list`, `tuple` or `pandas.Series` is a vector of levels: the result is its number of distinct
+  elements, via `n_distinct`
+- Boundaries: duplicates collapse (`["a", "b", "a"]` → `2`), an empty sequence → `0`, and a
+  sequence of unhashable elements (`[[1], [2]]`) raises `TypeError` from `set`
+
+#### T. `inverse(free_params=None)`
+
+The default implementation is `self(free_params).inverse()` — build the matrix, then invert it — and
+it is what every matrix without a cheaper analytic inverse inherits. Six subclasses now override it
+with a closed form (`ScalarMatrix`, `DiagonalMatrix`, `IdentityMatrix`, `EquicorrelationMatrix`,
+`AR1Matrix`, `CompoundSymmetricMatrix`); each override has its own section in its own module plan,
+and this section covers the default itself and the override point:
+
+- The default equals `self(free_params).inverse()` and `mat(p) @ mat.inverse(p)` is the identity, on
+  a vehicle that does not override it
+- `None` means the defaults; a dict of free parameters means the same as the flat tensor
+- A matrix with no parameters inverts (`IdentityMatrix` → the identity, through its own override)
+- Validation is not bypassed: a non-tensor, a wrong-length vector and a bad dict raise from
+  `build_params`, exactly as they do through `__call__`
+- The result stays attached to `free_params`: `requires_grad` on the output, a non-zero `.grad` for
+  every free parameter after `backward()`. Nothing in the default detaches or inverts under `no_grad`
+- A subclass that overrides `inverse` is dispatched to, so the extension point the docstring
+  promises is real
+- `Operator` inherits the default — no operator defines its own `inverse`
+
+**The vehicle decides what is tested.** Most of these cases use `DiagonalMatrix` and
+`IdentityMatrix` as vehicles, following the convention that a concrete subclass carries base-class
+behavior. Both now override `inverse`, so those cases hold the *contract* to account without
+reaching the default implementation. `ThreeParamMatrix` is the vehicle that pins the default
+itself — it defines `__call__` and nothing else, so `inverse` can only come from the base class.
+
 ---
 
 ## 3. How to Test
@@ -471,7 +598,8 @@ Three modes, all reachable in production (`Operator` and `Adapter` set `_repr_si
   `DiagonalMatrix(3)` (three parameters, mixed free/fixed variants), `IdentityMatrix(3)` (no
   parameters), `MinimalMatrix` (base-class access a concrete matrix cannot reach)
 - Reach private validators (`_check_shape`, `_check_param_specs`) through the constructor, and
-  `_repr_value` / `_repr_dict` through a `repr_dict` override — do not call them as free functions
+  `_repr_value` / `_repr_dict` through a `repr_dict` override — do not call them as free functions.
+  `resolve_dim` is reached on a `ScalarMatrix` instance, since the base class is abstract
 - For every fast-path/slow-path pair, assert **both** that the path was taken (by construction) and
   that the results agree
 - Cache tests must isolate each guard: use the *same values* with a different dtype or device, so the
@@ -644,27 +772,124 @@ pytest tests/covariance -q
 Counts are per collected test — parametrized cases multiply, which is why the
 `TestManualGradContract` row (9 matrices × 9 tests) and `TestAutoGradRepeatability` (9 matrices × 6
 tests) dominate. The file previously collected 157 tests, 2 of them failing; the first revision of this
-plan took it to 280. A second revision, closing gaps found by review, takes it to **397**.
+plan took it to 280. A second revision, closing gaps found by review, took it to 397. A third revision
+adds `set_param_specs` (§H-bis) and takes it to 414. A fourth revision adds the caching toggle — the
+`cache` flag (§P-bis) and the `enable_cache` / `disable_cache` pair (§P-ter) — and takes it to 422. A
+fifth revision bans `/` from leaf parameter names and rejects the empty name, replacing the test that
+accepted `/` with a rejection test plus a `.`-is-still-legal test, and takes it to 424. A sixth
+revision adds the trailing-slash subtree form to `set_param_specs` and takes it to 432. A seventh
+revision adds `resolve_dim` (§S) — a matrix dimension may be given as a list, tuple or
+`pandas.Series` of levels, resolved to its number of distinct elements — and takes it to 442. An
+eighth revision adds `inverse` (§T) — the default builds the matrix via `__call__` and inverts the
+result, and subclasses are expected to override it with a cheaper analytic inverse — and takes it to
+**451**. A ninth revision adds the `ThreeParamMatrix` vehicle and two tests that pin the default
+implementation after six subclasses began overriding it, and takes it to **453**. A tenth revision gives
+`set_param_specs` broadcast and split semantics for all three fields, so one call sets a whole subtree
+from a single value or from one value per parameter, and takes it to **474**.
 
 | Area | Method(s) | Tests |
 |---|---|---|
-| Constructor & validation | `__init__`, `_check_shape`, `_check_param_specs` | 35 |
+| Constructor & validation | `__init__`, `_check_shape`, `_check_param_specs`, `resolve_dim` | 47 |
 | Parameter tensor checks | `_check_param_tensor` | 10 |
 | Default resolution | `get_default_dtype_device` | 6 |
 | Parameter construction | `build_params` | 47 |
 | Dict conversion | `_from_free_param_dict`, `_to_free_param_dict` | 19 |
+| Specification updates | `set_param_specs` | 46 |
 | Transform derivatives | `trans_grad` | 17 |
 | Automatic differentiation | `auto_grad` | 19 |
 | Manual differentiation | `manual_grad` + subclass contract | 85 |
 | `auto_grad` repeatability | §J-bis, over every vehicle | 54 |
 | Abstractness | `__call__` | 2 |
 | Dispatch | `grad` | 34 |
-| Caching | `set_` / `get_` / `reset_intermediates` | 23 |
+| Caching | `set_` / `get_` / `reset_intermediates`, `cache`, `enable_cache` / `disable_cache` | 31 |
 | Properties | all 17 | 32 |
 | Representation | `__repr__`, `_repr_indented`, `_repr_value`, `_repr_dict` | 14 |
-| **Total** | | **397** |
+| Inverse | `inverse` | 11 |
+| **Total** | | **474** |
 
-Result: `397 passed`. What the second revision added, and why:
+Result: `474 passed`. What the eighth revision added, and why:
+
+- **`inverse`** (§T), added to the class after this plan: the default is `self(free_params).inverse()`,
+  deliberately the slow generic path, with subclasses expected to override it. The load-bearing tests
+  are the override dispatch — an override that stops being called would silently change
+  `Operator.inverse`, which no operator defines — and the gradient-flow case, which fails if the
+  default is ever wrapped in `no_grad` or switched to a detaching `numpy`-style path. The remaining
+  tests only hold the default to the input contract the rest of the class already promises
+
+What the ninth revision changed, and why:
+
+- **The default lost its vehicle.** The eighth revision's tests used `DiagonalMatrix` and
+  `IdentityMatrix`, which were plain subclasses at the time. Both have since gained an analytic
+  `inverse`, so those cases stopped reaching `matrix.py` and started testing the overrides instead —
+  the suite stayed green while the default quietly lost its coverage. `ThreeParamMatrix` restores it:
+  a concrete subclass with a `__call__` and no `inverse`, so any pass it produces came from the base
+  class. The two new cases are the value/product contract and the gradient flow, which are the two
+  the eighth revision called load-bearing
+
+What the tenth revision added, and why:
+
+- **One dispatch rule for all three fields.** A single value is broadcast, a per-parameter sequence is
+  split, and the type of the value is what says which: a `bool` vs a `list`/`tuple` of bools, a
+  `Transform` vs a `list`/`tuple` of transforms, a length-1 tensor vs a tensor with one value per
+  parameter. Before this revision `default` was distributed while `fixed` and `trans` were copied
+  wholesale, so `set_param_specs("A/", fixed=[...])` silently handed the list to every spec and failed
+  later inside `_check_param_specs`, or in `fixed`'s case aliased a mutable value into every
+  specification. The split-with-three-distinct-transforms test is the load-bearing one: it pins that
+  each spec gets *its own* transform and that `build_params` applies that one to its own parameter, not
+  the last or the first of the list
+- **Validation before mutation.** All three fields are checked up front, so a rejected call is atomic.
+  The load-bearing case pairs a valid `fixed` with a rejected `trans`: an implementation that validated
+  and wrote field by field would leave `fixed` changed by a call that raised, and the test that only
+  checks a rejected `default` (the earlier revision's case) would not notice
+- **Length-1 sequences broadcast.** A one-element `list`/`tuple` counts as the single-value form, which
+  keeps `set_param_specs("/", fixed=[True])` meaning "everything fixed" rather than "this one parameter
+  fixed", matching the length-1 tensor's meaning for `default`
+
+What the sixth revision added, and why:
+
+- **The trailing-slash subtree form** of `set_param_specs`, the payoff of the two name bans: with every
+  key made of non-empty segments, `key.endswith("/")` can never collide with a stored key, and
+  segment-prefix matching is well defined. The load-bearing tests are `"A/"` not reaching an operand
+  named `"AB"` (which a `startswith(prefix)` implementation would fail) and `"/"` resolving to
+  everything (which a raw `startswith` on the stripped prefix would resolve to nothing, since no key
+  starts with `/`)
+- **A subtree key that matches nothing** raises the same `ValueError` as an unknown exact key, so a
+  typo'd subtree fails loudly rather than silently changing nothing
+
+What the fifth revision added, and why:
+
+- **The `/` ban on leaf parameter names**, matching the operand-name rule in `Operator._check_operands`.
+  It replaces a test that pinned the opposite (`"a/b"` accepted, on the grounds that namespacing was the
+  operators' concern); once a leaf name may contain `/`, a composite key like `"A/a/b"` is ambiguous
+  between a two-level path and a one-level path with a slash in the name, so the old contract was the
+  hole rather than the rule. The `.` test is the cheap guard on the other side: the ban is on `/` only,
+  so R-style names (`"theta.1"`) keep working.
+- **The empty-name ban**, closing the position the `/` ban alone leaves open: `""` contains no `/`, so a
+  leaf named `""` under operand `A` produces the key `"A/"` — the exact string a subtree query would
+  use. Rejecting it makes every composite key one or more non-empty segments, so `/` is unambiguous at
+  every position and no stored key can equal `"A/"` or `"/"`.
+
+What the fourth revision added, and why:
+
+- **`cache`**, the caching switch added to the class after this plan was first written: the default,
+  the no-op set, the always-miss get, the skipped validation, and re-enabling. The validation case is
+  the one that pins "completely ignore the request": with the flag off, a non-tensor argument must
+  return `None` rather than raise, so a test that only checked a valid argument would not notice the
+  guards being reordered.
+- **`enable_cache` / `disable_cache`**, the toggles added with it (§P-ter). The load-bearing test is
+  that `disable_cache` clears `_intermediates` rather than only flipping the flag, because that is
+  what stops a re-enable from returning an entry the caller asked to drop.
+
+What the third revision added, and why:
+
+- **`set_param_specs`**, the path-free setter added to the class after this plan was first written:
+  field replacement, untargeted fields kept, the all-`None` no-op, exact-key resolution including the
+  flat namespaced keys of operators and nested operators, and the keyword-only signature. The composite
+  cases matter most: `Operator.param_specs` rebuilds its flat dict on every call, so the tests assert
+  the write landed in the *operand's* stored spec and reached `build_params`, which is what pins the
+  method to mutating the resolved spec rather than rebinding it.
+
+What the second revision added, and why:
 
 - **Value-level `manual_grad` vs `auto_grad` agreement**, all-free and partially-fixed, over every
   vehicle. The contract class previously asserted shape and names only, which left `EqualEntryMatrix`,

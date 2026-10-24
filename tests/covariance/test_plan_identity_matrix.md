@@ -26,6 +26,7 @@ Ensure the matrix is correctly constructed as the identity, exposes a completely
 - Shape is `(n, n)`, stored as a tuple
 - `n` is validated: `0` raises `ValueError` from the shape check, a negative `n` raises `RuntimeError` from `torch.eye`, a non-int `n` (float, str, bool, `None`) raises `TypeError`
 - `n` may be passed as a keyword; a 0-dimensional tensor `n` is accepted by `torch.eye` and then rejected by the shape check with `ValueError`, not `TypeError`
+- `n` also accepts a list, a tuple or a `pandas.Series` of levels: the dimension is the number of distinct elements (`n_distinct`), so `IdentityMatrix(["a", "b", "a"])` is `IdentityMatrix(2)`. An empty sequence resolves to `0` and is rejected by the shape check. The resolved matrix matches the integer form exactly
 - The whole parameter surface is empty: `param_specs`, `param_defaults`, `param_trans` and their free/fixed counterparts are `{}`; the name and index properties are `[]`; `num_params == num_free_params == num_fixed_params == 0`
 - `grad_mode` defaults to `"default"`
 - `repr_dict` is `{"shape": (n, n), "param_specs": {}}`
@@ -78,6 +79,16 @@ Ensure the matrix is correctly constructed as the identity, exposes a completely
 
 - Contains the class name and the shape, is a single line, and omits the empty `param_specs`
 
+#### H. `inverse(free_params=None)`
+
+`IdentityMatrix` overrides the base default: the inverse of `I` is `I`, so building the matrix and inverting it would be wasted work for a result identical to `__call__`'s. The override delegates to `__call__`, and must inherit its whole contract rather than restate it.
+
+- Is the identity, for several `n` including `n = 1`, and agrees with `__call__` and with `torch.linalg.inv(mat())`
+- Follows the input dtype, including a non-float dtype, and falls back to the Torch default dtype when no input is given
+- Follows the input device, like `__call__`
+- The empty-parameter validation is not bypassed: a non-tensor raises `TypeError`, and a non-empty tensor or dict raises `ValueError` with the same message as `__call__`
+- The returned tensor is fresh: mutating it leaves both the internal matrix and later calls untouched, so the delegation must not skip `__call__`'s clone
+
 ---
 
 ## 3. How to Test
@@ -104,6 +115,21 @@ class TestIdentityMatrixCallValues:
         result[0, 0] = 99.0
         result[0, 1] = 99.0
         assert torch.equal(mat(), torch.eye(3))
+
+
+class TestIdentityMatrixInverse:
+    """``inverse`` is the identity itself, on the dtype and device of the input."""
+
+    def test_matches_inverse_of_call(self):
+        mat = IdentityMatrix(3)
+        assert torch.allclose(mat.inverse(), torch.linalg.inv(mat()))
+
+    def test_returns_a_fresh_tensor(self):
+        mat = IdentityMatrix(3)
+        result = mat.inverse()
+        result[0, 0] = 99.0
+        assert torch.equal(mat.inverse(), torch.eye(3))
+        assert float(mat()[0, 0]) == 1.0
 ```
 
 ### 3.3 Test Execution
@@ -122,6 +148,7 @@ class TestIdentityMatrixCallValues:
 - **The intermediate cache is dead weight here**: `set_intermediates` returns early when `params` has length 0, and an empty tensor is the only valid input, so the cache can never hold a value. The tests assert the no-op rather than an unreachable populated state.
 - **Boundary of `n` validation**: `n = 0` is caught by `Matrix._check_shape` (`ValueError`), while a negative `n` is rejected earlier by `torch.eye` itself (`RuntimeError`). Both are pinned, so any future move to validate `n` inside the constructor will surface as a test change.
 - **Removed REML interface**: `map_theta_to_v` and `map_theta_to_dv` no longer exist on `Matrix`, so this module no longer tests a REML-specific mapping; `__call__` and `grad` are the interface.
+- **`inverse` is a delegation, so it inherits the aliasing hazard**: the override is `self(free_params)`, which means the freshness guarantee in section 2.1.H rests entirely on `__call__`'s clone. An "optimization" that returns `self._matrix` from either method fails `test_returns_a_fresh_tensor` here as well as the `__call__` test, since both are pinned independently.
 
 ---
 
@@ -129,7 +156,7 @@ class TestIdentityMatrixCallValues:
 
 | Category | Tests |
 |---|---|
-| Constructor, shape, empty parameter surface, `repr_dict` | 29 |
+| Constructor, shape, empty parameter surface, `repr_dict` | 32 |
 | `__call__` values, argument forms, freshness | 15 |
 | dtype & device resolution | 14 |
 | Free-parameter validation | 13 |
@@ -137,4 +164,5 @@ class TestIdentityMatrixCallValues:
 | `grad` / `auto_grad` / `manual_grad` / `trans_grad` | 21 |
 | Intermediate caching | 8 |
 | `repr` | 4 |
-| **Total** | **116** |
+| `inverse` | 16 |
+| **Total** | **135** |

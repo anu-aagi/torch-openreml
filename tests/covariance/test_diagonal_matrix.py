@@ -1,5 +1,6 @@
 import torch
 import pytest
+import pandas as pd
 from torch_openreml.covariance import DiagonalMatrix
 from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.covariance.transform import TransformExpPow2, TransformExp
@@ -15,6 +16,23 @@ class TestDiagonalMatrix:
     def test_shape(self):
         mat = DiagonalMatrix(3)
         assert mat.shape == (3, 3)
+
+    def test_shape_from_levels(self):
+        assert DiagonalMatrix(["a", "b", "a", "c"]).shape == (3, 3)
+        assert DiagonalMatrix(("a", "b", "a", "c")).shape == (3, 3)
+        assert DiagonalMatrix(pd.Series(["a", "b", "a", "c"])).shape == (3, 3)
+
+    def test_levels_equivalent_to_distinct_count(self):
+        from_levels = DiagonalMatrix(["a", "b", "a", "c"])
+        from_int = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert from_levels.shape == from_int.shape
+        assert from_levels.param_names == from_int.param_names
+        assert torch.equal(from_levels(free_params), from_int(free_params))
+
+    def test_rejects_empty_levels(self):
+        with pytest.raises(ValueError, match="positive int"):
+            DiagonalMatrix([])
 
     def test_default_params(self):
         mat = DiagonalMatrix(3)
@@ -189,6 +207,84 @@ class TestDiagonalMatrix:
         free_params = torch.tensor([0.0, 0.5, 1.0])
         expected, _ = mat.grad(free_params)
         assert torch.allclose(mat.map_theta_to_dv(free_params), expected)
+
+    def test_inverse_matches_inverse_of_call(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
+
+    def test_inverse_is_reciprocal_diagonal(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat.inverse(free_params).diag(), torch.exp(-2.0 * free_params))
+
+    def test_inverse_off_diagonal_zero(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        result = mat.inverse(free_params)
+        n = 3
+        off_diag = result[~torch.eye(n, dtype=torch.bool)]
+        assert (off_diag == 0.0).all()
+
+    def test_inverse_product_with_matrix_is_identity(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat(free_params) @ mat.inverse(free_params), torch.eye(3), atol=1e-6)
+
+    def test_inverse_n1(self):
+        mat = DiagonalMatrix(1)
+        free_params = torch.tensor([0.5])
+        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
+
+    def test_inverse_uses_default_free_params(self):
+        mat = DiagonalMatrix(3)
+        assert torch.allclose(mat.inverse(), mat.inverse(mat.free_param_defaults))
+
+    def test_inverse_accepts_dict_of_free_params(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat.inverse(mat._to_free_param_dict(free_params)), mat.inverse(free_params))
+
+    def test_inverse_mixed_free_fixed(self):
+        mat = DiagonalMatrix(3, param_specs={
+            "sigma^2_0": {"fixed": False, "default": torch.tensor([0.0]), "trans": TransformExpPow2()},
+            "sigma^2_1": {"fixed": True, "default": torch.tensor([1.0]), "trans": TransformExpPow2()},
+            "sigma^2_2": {"fixed": False, "default": torch.tensor([0.0]), "trans": TransformExpPow2()},
+        })
+        free_params = torch.tensor([0.0, 0.0])
+        assert torch.allclose(mat.inverse(free_params).diag(), torch.tensor([1.0, torch.exp(torch.tensor(-2.0)), 1.0]))
+        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
+
+    def test_inverse_dtype_follows_input(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert mat.inverse(free_params).dtype == torch.float32
+        assert mat.inverse(free_params.double()).dtype == torch.float64
+
+    def test_inverse_gradients_flow_to_free_params(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0], requires_grad=True)
+        mat.inverse(free_params).sum().backward()
+        assert free_params.grad is not None
+        assert torch.all(free_params.grad != 0.0)
+
+    def test_inverse_gradient_matches_autograd_of_inverse_of_call(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0], requires_grad=True)
+        mat.inverse(free_params).sum().backward()
+        closed_form_grad = free_params.grad.clone()
+        free_params.grad = None
+        torch.linalg.inv(mat(free_params)).sum().backward()
+        assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
+
+    def test_inverse_validation_is_not_bypassed(self):
+        mat = DiagonalMatrix(3)
+        with pytest.raises(TypeError, match="Torch tensor"):
+            mat.inverse([0.0, 0.5, 1.0])
+        with pytest.raises(ValueError, match="length 3"):
+            mat.inverse(torch.tensor([0.0, 0.5]))
+        with pytest.raises(ValueError, match="Missing free parameters"):
+            mat.inverse({})
 
     def test_repr(self):
         mat = DiagonalMatrix(3)

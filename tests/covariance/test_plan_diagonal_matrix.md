@@ -26,6 +26,7 @@ Ensure correct diagonal construction, independent parameter handling (including 
 - Instance is a subclass of `Matrix`
 - Shape is `(n, n)`
 - `num_params` = `n`, `num_free_params` = `n` (default)
+- `n` also accepts a list, a tuple or a `pandas.Series` of levels: the dimension is the number of distinct elements (`n_distinct`), so `DiagonalMatrix(["a", "b", "a"])` is `DiagonalMatrix(2)`. An empty sequence resolves to `0` and is rejected by the shape check. The resolved matrix matches the integer form in shape, parameter names and `__call__` values
 - `num_params` = 0 for `n=0` (edge case, if allowed)
 - Custom param_specs accepted
 
@@ -79,6 +80,19 @@ Ensure correct diagonal construction, independent parameter handling (including 
 
 - `map_theta_to_v` returns diagonal matrix
 - `map_theta_to_dv` returns gradient tensor
+
+#### I. `inverse(free_params)`
+
+`DiagonalMatrix` overrides the base default with the closed form `V⁻¹ = diag(1 / σ²)`. Inverting a diagonal matrix is a reciprocal, so the generic build-then-invert path is pure overhead. The override must be indistinguishable from the default it replaces.
+
+- Agrees with `torch.linalg.inv(mat(free_params))`, and with the explicit closed form `diag(exp(-2θ))` for the default transform
+- Off-diagonal entries are exactly zero, as in `__call__`
+- `mat(free_params) @ mat.inverse(free_params)` is the identity
+- Works with `n=1`
+- The argument contract is the one `__call__` already promises, and it is not bypassed by the override: `None` means the defaults, a dict of free parameters means the same as the flat tensor, and a non-tensor, a wrong-length vector and a bad dict each raise from `build_params`
+- Mixed free/fixed configuration: the fixed entry inverts from its own transformed default and lands on its own diagonal position, so the reciprocal is not applied positionally to the free parameters alone
+- dtype follows the input
+- The output stays attached to `free_params`, and its gradient equals the gradient of `torch.linalg.inv(mat(free_params))` — the closed form must be the derivative of the same function, not merely equal to it in value
 
 ---
 
@@ -281,6 +295,40 @@ class TestDiagonalMatrix:
         free_params = torch.tensor([0.0, 0.5, 1.0], dtype=torch.float64)
         assert mat(free_params).dtype == torch.float64
 
+    def test_inverse_matches_inverse_of_call(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
+
+    def test_inverse_is_reciprocal_diagonal(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat.inverse(free_params).diag(), torch.exp(-2.0 * free_params))
+
+    def test_inverse_product_with_matrix_is_identity(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert torch.allclose(mat(free_params) @ mat.inverse(free_params), torch.eye(3), atol=1e-6)
+
+    def test_inverse_mixed_free_fixed(self):
+        mat = DiagonalMatrix(3, param_specs={
+            "sigma^2_0": {"fixed": False, "default": torch.tensor([0.0]), "trans": TransformExpPow2()},
+            "sigma^2_1": {"fixed": True, "default": torch.tensor([1.0]), "trans": TransformExpPow2()},
+            "sigma^2_2": {"fixed": False, "default": torch.tensor([0.0]), "trans": TransformExpPow2()},
+        })
+        free_params = torch.tensor([0.0, 0.0])
+        assert torch.allclose(mat.inverse(free_params).diag(), torch.tensor([1.0, torch.exp(torch.tensor(-2.0)), 1.0]))
+        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
+
+    def test_inverse_gradient_matches_autograd_of_inverse_of_call(self):
+        mat = DiagonalMatrix(3)
+        free_params = torch.tensor([0.0, 0.5, 1.0], requires_grad=True)
+        mat.inverse(free_params).sum().backward()
+        closed_form_grad = free_params.grad.clone()
+        free_params.grad = None
+        torch.linalg.inv(mat(free_params)).sum().backward()
+        assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
+
     def test_map_theta_to_v(self):
         mat = DiagonalMatrix(3)
         free_params = torch.tensor([0.0, 0.5, 1.0])
@@ -309,6 +357,7 @@ Do not need to execute.
 - **`manual_grad` mask logic**: The current implementation uses `mask = torch.ones(...)` then redundantly sets `mask[self.free_param_index] = True`. This means `idx` always includes ALL indices (even fixed ones). When `num_free_params < n`, the assignment `grad[idx, idx, idx] = self.trans_grad(free_params)` will have a shape mismatch (LHS uses `n` positions, RHS has `num_free_params` values). The mixed free/fixed grad test is expected to catch this likely bug. The intent was likely `mask = torch.zeros(...)` (not `ones`).
 - **grad shape convention**: The gradient is returned as `(num_free_params, n, n)`. Because the default has all params free, `num_free_params == n`, and the shape is `(n, n, n)`. With mixed free/fixed, the first dimension shrinks.
 - **Independent parameters**: Unlike `ScalarMatrix` where one param affects all diagonal entries, each `DiagonalMatrix` param affects exactly one entry. This makes the gradient tensor "sparse" — only `grad[k, k, k]` is non-zero for the k-th free parameter.
+- **`inverse` is an override, and it does not use the intermediate cache**: `DiagonalMatrix.inverse` reads `build_params` directly, so unlike `EquicorrelationMatrix` and `CompoundSymmetricMatrix` its correctness does not depend on the cache path. The mixed free/fixed test is the load-bearing one for the override: a closed form that reciprocated the free parameters into the first `num_free_params` diagonal slots would pass every all-free test and fail that one.
 
 ---
 
@@ -316,13 +365,14 @@ Do not need to execute.
 
 | Category | Tests |
 |---|---|
-| Constructor & class attributes | 3 |
-| `__call__` correctness & properties | 6 |
-| `manual_grad` & `grad` | 6 |
-| Mixed free/fixed config | 4 |
+| Constructor & class attributes | 6 |
+| `__call__` correctness & properties | 8 |
+| `manual_grad` & `grad` | 5 |
+| Mixed free/fixed config | 3 |
 | Custom transforms | 1 |
 | `build_params` | 2 |
 | dtype | 2 |
 | REML interface | 2 |
+| `inverse` | 12 |
 | repr | 1 |
-| **Total** | **27** |
+| **Total** | **42** |

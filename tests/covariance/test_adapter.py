@@ -1,6 +1,6 @@
 import torch
 import pytest
-from torch_openreml.covariance import Adapter, DiagonalMatrix
+from torch_openreml.covariance import AR1Matrix, Adapter, DiagonalMatrix
 from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.covariance.transform import TransformExp, TransformIdentity
 
@@ -30,6 +30,14 @@ def make_adapter(param_specs=None, seen=None):
     if param_specs is None:
         param_specs = make_param_specs()
     return Adapter(DiagonalMatrix(2), param_specs, param_map)
+
+
+def make_caching_adapter():
+    """An Adapter over AR1Matrix(3), which caches its intermediates."""
+    def param_map(params):
+        return torch.stack([params[0], 0.5 * params[0]])
+
+    return Adapter(AR1Matrix(3), make_param_specs(), param_map)
 
 
 class TestAdapter:
@@ -158,3 +166,54 @@ class TestAdapter:
 
     def test_repr(self):
         assert "Adapter" in repr(make_adapter())
+
+    def test_disable_cache_propagates_to_adaptee(self):
+        mat = make_caching_adapter()
+
+        mat.disable_cache()
+
+        assert mat.cache is False
+        assert mat.adaptee.cache is False
+
+    def test_disable_cache_clears_adaptee_cache(self):
+        mat = make_caching_adapter()
+        adaptee_params = torch.tensor([0.5, 1.0])
+        mat.adaptee(adaptee_params)
+        built = mat.adaptee.build_params(adaptee_params)
+        assert mat.adaptee.get_intermediates(built) is not None
+
+        mat.disable_cache()
+
+        assert mat.adaptee.get_intermediates(built) is None
+
+    def test_enable_cache_propagates_to_adaptee(self):
+        mat = make_caching_adapter()
+        mat.disable_cache()
+
+        mat.enable_cache()
+
+        assert mat.cache is True
+        assert mat.adaptee.cache is True
+
+    def test_enable_cache_restores_adaptee_caching(self):
+        mat = make_caching_adapter()
+        mat.disable_cache()
+        mat.enable_cache()
+        adaptee_params = torch.tensor([0.5, 1.0])
+
+        mat.adaptee(adaptee_params)
+
+        assert mat.adaptee.get_intermediates(mat.adaptee.build_params(adaptee_params)) is not None
+
+    def test_cache_control_reaches_nested_adaptee(self):
+        inner = make_caching_adapter()
+
+        def param_map(params):
+            return params[0:1]
+
+        outer = Adapter(inner, make_param_specs(), param_map)
+
+        outer.disable_cache()
+
+        assert inner.cache is False
+        assert inner.adaptee.cache is False

@@ -1,6 +1,73 @@
 Changelog
 =========
 
+0.4.1-alpha (unreleased)
+------------------------
+
+Breaking changes
+~~~~~~~~~~~~~~~~
+
+* ``Operator.tree`` and ``Operator.grad_tree`` each return a single dict now,
+  rather than a pair of dicts. ``tree`` maps a path to the matrix the node
+  evaluated to, and ``grad_tree`` to that node's ``(grad, grad_names)`` pair;
+  the per-node parameter slices they used to return alongside moved to
+  ``free_param_tree``.
+
+Changes
+~~~~~~~
+
+* ``Matrix.set_param_specs`` distributes each field it is given: a single value
+  is broadcast to every resolved specification, while a sequence holding one
+  value per specification is split element-wise — a ``bool`` or a list or tuple
+  of bools for ``fixed``, a ``Transform`` or a list or tuple of transforms for
+  ``trans``, and a length-1 or ``len(specs)`` tensor for ``default``. Any other
+  length raises ``ValueError``, and a value of the wrong type raises
+  ``TypeError``, before anything is written. Previously every specification was
+  assigned the value as given, so a tensor longer than one parameter was
+  duplicated across specifications instead of split between them.
+
+New features
+~~~~~~~~~~~~
+
+* ``Operator.walk``, listing every node of the operand tree as one
+  ``(path, operand, free_params)`` triple, in the order ``tree``,
+  ``free_param_tree`` and ``grad_tree`` report. The first entry is always
+  ``("/", self, free_params)``: the operator itself and the validated input
+  tensor, whose dtype and device are the resolved ones, while a fixed tensor
+  operand gets ``None``. The walk validates and splits the parameters and reads
+  the operand structure, so it evaluates nothing — the other three methods are
+  built on it.
+* ``Operator.free_param_tree``, mapping the same paths as ``tree`` to the 1D
+  free-parameter slice each node received: the root entry is the validated
+  input tensor and the remaining entries are views of it, while fixed tensor
+  operands get ``None``. It evaluates no operand, so it is the cheap way to
+  inspect how a composite splits its parameters between operands.
+* ``MarginalREML.tree``, evaluating the fitted covariance structure at a
+  parameter estimate and returning the same path-keyed dict as
+  ``Operator.tree``, the root ``"/"`` holding :math:`V(\theta)` itself. It
+  accepts a parameter tensor, a dict of named free parameters, or ``None`` for
+  the free-parameter defaults, and a string is passed to ``get_theta`` —
+  ``"last"`` for the final iterate (the default) or any other selector for the
+  iterate with the highest log-likelihood, so ``reml.tree()`` works straight
+  after ``optimize()``. When ``v`` is a plain matrix rather than an operator,
+  the tree is the root entry alone.
+
+Documentation
+~~~~~~~~~~~~~
+
+* The documentation and the demos read the covariance tree from the fitted
+  model with ``reml.tree()``, which evaluates at the final iterate, rather than
+  calling ``V.tree(theta_hat)``. The R examples use ``fit_openreml$tree()`` and
+  index the returned dict directly instead of unpacking the old pair.
+* Added a planning document for ``MarginalREML.tree`` and a ``walk`` section to
+  the ``Operator`` planning document.
+
+Testing
+~~~~~~~
+
+* Added ``tests/test_marginal_reml.py`` for ``MarginalREML.tree``, and a
+  ``TestOperatorWalk`` class to the ``Operator`` tests.
+
 0.4.0-alpha (2026-10-05)
 ------------------------
 
