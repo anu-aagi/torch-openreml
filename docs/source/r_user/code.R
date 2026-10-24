@@ -43,7 +43,7 @@ print(py_to_r(fit_openreml$get_theta()$numpy()))
 print(py_to_r(V$build_params(fit_openreml$get_theta())$numpy()))
 print(py_to_r(fit_openreml$get_beta()$numpy()))
 
-tree <- V$tree(fit_openreml$get_theta())[[0]]
+tree <- fit_openreml$tree()
 
 b_hat <- openreml$blup(y, X, tree[["random/Z"]], tree[["random/G"]], tree[["/"]])
 print(py_to_r(b_hat$numpy()))
