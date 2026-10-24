@@ -370,16 +370,14 @@ class Operator(Matrix):
         Evaluate this operator and every nested operand, returning each result
         keyed by its path.
 
-        Descends the operand structure, calling :meth:`tree` on nested
-        :class:`~torch_openreml.covariance.operator.Operator` operands.
-        Paths join the operand names leading to a node with ``"/"``, and ``"/"``
-        is the root. Both dictionaries returned share one key set:
-
-        - ``results`` maps each path to the matrix the node evaluated to;
-        - ``free_params_by_path`` maps each path to the free parameter slice
-          the node received, or to ``None`` for fixed tensor operands.
-
-        The root result is the same matrix :meth:`__call__` returns.
+        Descends the operand structure, reporting the root and every nested
+        :class:`~torch_openreml.covariance.operator.Operator` operand's own
+        evaluation. Paths join the operand names leading to a node with
+        ``"/"``, and ``"/"`` is the root. ``results`` maps each path to the
+        matrix the node evaluated to, and the root result is the same matrix
+        :meth:`__call__` returns. :meth:`free_param_tree` reports the free
+        parameters each node received, for the same paths in the same order, and
+        :meth:`walk` lists the nodes themselves.
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D joint parameter tensor or
@@ -387,10 +385,7 @@ class Operator(Matrix):
                 If omitted, default values are used. Default: ``None``.
 
         Returns:
-            tuple: ``(results, free_params_by_path)``, where ``results`` maps
-            paths to evaluated matrices and ``free_params_by_path`` maps the
-            same paths to the free parameter slices the corresponding operands
-            received.
+            dict: Maps each path to the matrix the node evaluated to.
 
         Raises:
             TypeError: If ``free_params`` is not a Torch tensor.
@@ -423,7 +418,7 @@ class Operator(Matrix):
 
                 op = Sum(inner=BlockDiagonal(DiagonalMatrix(2), ScalarMatrix(2)),
                          extra=ScalarMatrix(4))
-                results, free_params_by_path = op.tree(torch.tensor([0.0, 0.5, 1.0, 0.5]))
+                results = op.tree(torch.tensor([0.0, 0.5, 1.0, 0.5]))
 
             .. jupyter-execute::
 
@@ -433,6 +428,19 @@ class Operator(Matrix):
 
                 results["inner/op_0"]
 
+            .. jupyter-execute::
+
+                op.free_param_tree(torch.tensor([0.0, 0.5, 1.0, 0.5]))
+        """
+        nodes = self.walk(free_params)
+        device, dtype = nodes[0][2].device, nodes[0][2].dtype
+
+        return {
+            path: operand(operand_params)
+            if isinstance(operand, Matrix)
+            else operand.to(device=device, dtype=dtype)
+            for path, operand, operand_params in nodes
+        }
             .. jupyter-execute::
 
                 free_params_by_path["inner"]
