@@ -111,18 +111,15 @@ theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=1)
 print(V.build_params(theta_hat), beta_hat)
 
 # BLUP of the random effects, jointly across all levels or for one component.
-tree, _ = V.tree(theta_hat)
+tree = reml.tree()
 b_hat = blup(y, X, tree["random/Z"], tree["random/G"], tree["/"])
 gen_blup = blup(y, X, tree["random/Z/Z_gen"], tree["random/G/G_gen"], tree["/"])
 rep_block_blup = blup(y, X, tree["random/Z/Z_rep_block"], tree["random/G/G_rep_block"], tree["/"])
 ```
 
-Fitting happens on the transformed parameter scale; `V.build_params` maps the estimates back to
-variance components, named by `V.free_param_names`. `V.tree(theta_hat)` evaluates every node of the
-covariance structure and keys the results by operand path, which is how the BLUP reaches the design
-and covariance matrices: `b_hat` holds one prediction per genotype followed by one per
-replicate-by-block combination, `gen_blup` and `rep_block_blup` the level predictions of each
-component alone.
+Fitting is performed on the transformed parameter scale. V.build_params maps the estimates back to the original variance-component scale, with names given by V.free_param_names. V.tree(theta_hat) evaluates the covariance structure at the final parameter estimates and returns the design and covariance matrices indexed by operand path.
+
+The joint BLUP, b_hat, contains predictions for all random-effect levels, with genotype predictions followed by replicate-by-block predictions. The component-specific BLUPs, gen_blup and rep_block_blup, contain predictions for the genotype and replicate-by-block effects, respectively.
 
 ## Documentation
 
