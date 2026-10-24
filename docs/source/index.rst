@@ -269,11 +269,11 @@ Once the variance components have been estimated, the random effects can be pred
     \qquad
     \hat{\mathbf{e}} = \mathbf{y} - \mathbf{X}\hat{\boldsymbol{\beta}}
 
-Here, :math:`\mathbf{Z}` and :math:`\mathbf{G}` are the joint design and covariance matrices defined above, represented by the :py:class:`Augment <torch_openreml.covariance.Augment>` and :py:class:`BlockDiagonal <torch_openreml.covariance.BlockDiagonal>` operands nested within the :py:class:`CovariancePropagation <torch_openreml.covariance.CovariancePropagation>` operator. These matrices can be retrieved directly from the covariance structure rather than reconstructed manually. Calling :py:meth:`V.tree <torch_openreml.covariance.Operator.tree>` at ``theta_hat`` evaluates the structure and returns the evaluated nodes, including the root ``"/"`` for :math:`\mathbf{V}` and ``"random/Z"`` and ``"random/G"`` for the random-effects design and covariance matrices.
+Here, :math:`\mathbf{Z}` and :math:`\mathbf{G}` are the joint design and covariance matrices defined above, represented by the :py:class:`Augment <torch_openreml.covariance.Augment>` and :py:class:`BlockDiagonal <torch_openreml.covariance.BlockDiagonal>` operands nested within the :py:class:`CovariancePropagation <torch_openreml.covariance.CovariancePropagation>` operator. These matrices can be retrieved directly from the fitted model rather than reconstructed manually. Calling :py:meth:`reml.tree <torch_openreml.MarginalREML.tree>` with no arguments evaluates the structure at the final iterate and returns the evaluated nodes, including the root ``"/"`` for :math:`\mathbf{V}` and ``"random/Z"`` and ``"random/G"`` for the random-effects design and covariance matrices. Pass a parameter vector, or a selection such as ``"best"``, to evaluate anywhere other than the final iterate.
 
 .. jupyter-execute::
 
-    tree, _ = V.tree(theta_hat)
+    tree = reml.tree()
 
 The :py:func:`blup <torch_openreml.blup>` function takes :math:`\mathbf{y}`, :math:`\mathbf{X}`, :math:`\mathbf{Z}`, :math:`\mathbf{G}`, and :math:`\mathbf{V}` as inputs and returns a prediction for each random-effect level. In this example, the predictions correspond to the 24 genotypes followed by the 18 replicate-by-block combinations:
 
