@@ -467,8 +467,17 @@ class Matrix(ABC):
         ``key`` is resolved against :attr:`param_specs`, and each field passed
         as something other than ``None`` replaces that field of every resolved
         specification. Fields left as ``None`` are kept unchanged, so a call
-        without fields changes nothing. Values are assigned as given, without
-        validation or copying, and take effect on the next call.
+        without fields changes nothing. Values are assigned without copying and
+        take effect on the next call.
+
+        Every field is distributed the same way: a single value — a ``bool``
+        for ``fixed``, a ``Transform`` for ``trans``, a length-1 tensor for
+        ``default`` — is broadcast to every resolved specification, while a
+        value with as many entries as there are resolved specifications is
+        split element-wise, one entry per specification. The multi-value form
+        is a ``list`` or a ``tuple`` for ``fixed`` and ``trans``, and a tensor
+        for ``default``. Any other length raises ``ValueError`` before anything
+        is written, so a rejected call leaves every specification untouched.
 
         A ``key`` that does not end with ``"/"`` addresses one specification
         exactly. A ``key`` that ends with ``"/"`` addresses a subtree instead:
@@ -483,17 +492,29 @@ class Matrix(ABC):
                 namespace their operands' parameters, so ``"A/sigma^2"``
                 addresses the parameter ``"sigma^2"`` of the operand ``"A"``,
                 and ``"A/"`` addresses every parameter under it.
-            fixed (bool, optional): New value for the ``"fixed"`` field.
-                Default: ``None``.
+            fixed (bool or list or tuple of bools, optional): New value for the
+                ``"fixed"`` field, given either as one bool to broadcast to
+                every resolved specification or as one bool per resolved
+                specification. Default: ``None``.
             default (torch.Tensor, optional): New value for the ``"default"``
-                field. Default: ``None``.
-            trans (Transform, optional): New value for the ``"trans"`` field.
-                Default: ``None``.
+                field, given as a 1D tensor of shape ``(1,)`` to broadcast to
+                every resolved specification, or of shape
+                ``(len(specs),)`` to give one value per resolved
+                specification. Default: ``None``.
+            trans (Transform or list or tuple of Transforms, optional): New
+                value for the ``"trans"`` field, given either as one transform
+                to broadcast to every resolved specification or as one
+                transform per resolved specification. Default: ``None``.
 
         Raises:
-            TypeError: If ``key`` is not a str.
+            TypeError: If ``key`` is not a str; or ``fixed`` is not a bool, a
+                list or a tuple of bools; or ``default`` is not a
+                ``torch.Tensor``; or ``trans`` is not a ``Transform``, a list
+                or a tuple of transforms.
             ValueError: If ``key`` is not a parameter of this matrix, and not a
-                subtree path that resolves to at least one.
+                subtree path that resolves to at least one; or ``default`` is
+                not 1D; or ``fixed``, ``default`` or ``trans`` has a length
+                other than 1 and the number of resolved specifications.
 
         Example:
 
@@ -522,6 +543,21 @@ class Matrix(ABC):
 
             op.set_param_specs("/", fixed=True)
             op.free_param_names
+
+        .. jupyter-execute::
+
+            mat = DiagonalMatrix(3)
+            mat.set_param_specs("/", default=torch.tensor([1.0, 2.0, 3.0]))
+            mat.param_defaults
+
+        .. jupyter-execute::
+
+            mat.set_param_specs("/", fixed=[True, False, True])
+            mat.free_param_names
+
+        .. jupyter-execute::
+
+            mat.build_params(trans=False)
         """
         if not isinstance(key, str):
             raise TypeError(f"'key' must be a str, got {type(key).__name__}!")
@@ -541,15 +577,49 @@ class Matrix(ABC):
         if not specs:
             raise ValueError(f"Cannot resolve key '{key}'!")
 
-        for spec in specs:
+        noun = "parameter" if len(specs) == 1 else "parameters"
+
+        if default is not None:
+            if not isinstance(default, torch.Tensor):
+                raise TypeError(f"'default' must be a torch.Tensor, got {type(default).__name__}!")
+
+            if default.ndim != 1:
+                raise ValueError(f"'default' must be a 1D tensor, got shape {tuple(default.shape)}!")
+
+            if default.shape[0] not in (1, len(specs)):
+                raise ValueError(f"'default' has {default.shape[0]} values, but '{key}' resolves to {len(specs)} {noun}!")
+
+        if fixed is not None and not isinstance(fixed, bool):
+            if not isinstance(fixed, (list, tuple)):
+                raise TypeError(f"'fixed' must be a bool or a list or a tuple of bools, got {type(fixed).__name__}!")
+
+            if len(fixed) not in (1, len(specs)):
+                raise ValueError(f"'fixed' has {len(fixed)} values, but '{key}' resolves to {len(specs)} {noun}!")
+
+            for i, value in enumerate(fixed):
+                if not isinstance(value, bool):
+                    raise TypeError(f"'fixed' must contain only bools, got {type(value).__name__} at index {i}!")
+
+        if trans is not None and not isinstance(trans, Transform):
+            if not isinstance(trans, (list, tuple)):
+                raise TypeError(f"'trans' must be a Transform or a list or a tuple of Transforms, got {type(trans).__name__}!")
+
+            if len(trans) not in (1, len(specs)):
+                raise ValueError(f"'trans' has {len(trans)} values, but '{key}' resolves to {len(specs)} {noun}!")
+
+            for i, value in enumerate(trans):
+                if not isinstance(value, Transform):
+                    raise TypeError(f"'trans' must contain only Transforms, got {type(value).__name__} at index {i}!")
+
+        for i, spec in enumerate(specs):
             if fixed is not None:
-                spec["fixed"] = fixed
+                spec["fixed"] = fixed if isinstance(fixed, bool) else (fixed[0] if len(fixed) == 1 else fixed[i])
 
             if default is not None:
-                spec["default"] = default
+                spec["default"] = default if default.shape[0] == 1 else default[i:i + 1]
 
             if trans is not None:
-                spec["trans"] = trans
+                spec["trans"] = trans if isinstance(trans, Transform) else (trans[0] if len(trans) == 1 else trans[i])
 
     def trans_grad(self, free_params=None):
         """
