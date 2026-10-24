@@ -71,11 +71,11 @@ class MarginalREML:
             n, p = 50, 2
             y = torch.randn(n)
             x = torch.randn(n, p)
-            theta = torch.tensor([0.0])
+            init_values = torch.tensor([0.0])
 
             mat = ScalarMatrix(n)
             reml = MarginalREML(mat)
-            theta_hat, beta_hat, n_iter = reml.optimize(y, x, theta, verbose=1)
+            theta_hat, beta_hat, n_iter = reml.optimize(y, x, init_values, verbose=1)
             theta_hat, beta_hat
         """
 
@@ -582,7 +582,7 @@ class MarginalREML:
     def optimize(self,
                  y,
                  x,
-                 theta=None,
+                 init_values=None,
                  max_iter=200,
                  eta=1.0,
                  require_loglik=True,
@@ -609,9 +609,10 @@ class MarginalREML:
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Design matrix of shape ``(n, p)``.
-            theta (torch.Tensor or dict): Initial covariance parameter tensor,
-                or a dictionary mapping free parameter names to value tensors.
-                If omitted, default values are used. Defaults to ``None``.
+            init_values (torch.Tensor or dict): Initial covariance parameter
+                tensor, or a dictionary mapping free parameter names to value
+                tensors. If omitted, default values are used. Defaults to
+                ``None``.
             max_iter (int, optional): Maximum number of iterations. Defaults
                 to ``200``.
             eta (float, optional): Step size applied to each AI update.
@@ -670,7 +671,7 @@ class MarginalREML:
             covariance parameter estimate, ``beta`` is the corresponding coefficient
             estimate, and ``n_iter`` is the number of iterations completed.
         """
-        theta = self.v.build_params(theta, include_fixed=False, trans=False)
+        theta = self.v.build_params(init_values, include_fixed=False, trans=False)
         theta = theta.detach()
         device = theta.device
         dtype = theta.dtype
