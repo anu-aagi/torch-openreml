@@ -98,16 +98,15 @@ whose distinct values define the dimension.
 
 Random effects are predicted with the same best linear unbiased predictor (BLUP) as in the
 Python example. The joint design and covariance matrices are read back from the fitted
-covariance structure with :py:meth:`V.tree <torch_openreml.covariance.Operator.tree>`, which
+model with :py:meth:`fit_openreml$tree <torch_openreml.MarginalREML.tree>`, which
 evaluates the structure at the estimated parameters and returns each node under its path:
 ``"random/Z"`` and ``"random/G"`` hold :math:`\mathbf{Z}` and :math:`\mathbf{G}`, and the root
-``"/"`` holds :math:`\mathbf{V}`. Note that reticulate indexes Python objects from zero, so
-``[[0]]`` selects the results from the ``(results, free_params_by_path)`` pair that ``tree()``
-returns.
+``"/"`` holds :math:`\mathbf{V}`. Note that reticulate indexes Python objects from zero, so a dict
+entry is read with ``[[path]]`` as below.
 
 .. code-block:: R
 
-    tree <- V$tree(fit_openreml$get_theta())[[0]]
+    tree <- fit_openreml$tree()
 
     b_hat <- openreml$blup(y, X, tree[["random/Z"]], tree[["random/G"]], tree[["/"]])
     print(py_to_r(b_hat$numpy()))
