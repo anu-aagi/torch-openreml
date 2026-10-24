@@ -547,11 +547,11 @@ Retrieving parameter estimates
 
 .. jupyter-execute::
 
-    theta_last = reml.get_theta(select="last")
-    theta_best = reml.get_theta(select="best")
+    theta_last = reml.get_free_params(select="last")
+    theta_best = reml.get_free_params(select="best")
 
-    beta_last = reml.get_beta(select="last")
-    beta_best = reml.get_beta(select="best")
+    beta_last = reml.get_fixed_effects(select="last")
+    beta_best = reml.get_fixed_effects(select="best")
 
 ``select="last"``
     Returns the final optimisation iterate.

@@ -39,9 +39,9 @@ V <- Sum(
 fit_openreml <- MarginalREML(V)
 result <- fit_openreml$optimize(y, X, torch$zeros(3L), verbose = 1L)
 
-print(py_to_r(fit_openreml$get_theta()$numpy()))
-print(py_to_r(V$build_params(fit_openreml$get_theta())$numpy()))
-print(py_to_r(fit_openreml$get_beta()$numpy()))
+print(py_to_r(fit_openreml$get_free_params()$numpy()))
+print(py_to_r(V$build_params(fit_openreml$get_free_params())$numpy()))
+print(py_to_r(fit_openreml$get_fixed_effects()$numpy()))
 
 tree <- fit_openreml$tree()
 

@@ -117,7 +117,7 @@ gen_blup = blup(y, X, tree["random/Z/Z_gen"], tree["random/G/G_gen"], tree["/"])
 rep_block_blup = blup(y, X, tree["random/Z/Z_rep_block"], tree["random/G/G_rep_block"], tree["/"])
 ```
 
-Fitting is performed on the transformed parameter scale. V.build_params maps the estimates back to the original variance-component scale, with names given by V.free_param_names. V.tree(theta_hat) evaluates the covariance structure at the final parameter estimates and returns the design and covariance matrices indexed by operand path.
+Fitting is performed on the transformed parameter scale. V.build_params maps the estimates back to the original variance-component scale, with names given by V.free_param_names. reml.tree() evaluates the covariance structure at the final parameter estimates and returns the design and covariance matrices indexed by operand path.
 
 The joint BLUP, b_hat, contains predictions for all random-effect levels, with genotype predictions followed by replicate-by-block predictions. The component-specific BLUPs, gen_blup and rep_block_blup, contain predictions for the genotype and replicate-by-block effects, respectively.
 

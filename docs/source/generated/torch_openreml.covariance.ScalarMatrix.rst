@@ -1,0 +1,63 @@
+﻿torch\_openreml.covariance.ScalarMatrix
+=======================================
+
+.. currentmodule:: torch_openreml.covariance
+
+.. autoclass:: ScalarMatrix
+
+   
+   
+   
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ScalarMatrix.__call__
+      ~ScalarMatrix.auto_grad
+      ~ScalarMatrix.build_params
+      ~ScalarMatrix.disable_cache
+      ~ScalarMatrix.enable_cache
+      ~ScalarMatrix.get_default_dtype_device
+      ~ScalarMatrix.get_intermediates
+      ~ScalarMatrix.grad
+      ~ScalarMatrix.inverse
+      ~ScalarMatrix.manual_grad
+      ~ScalarMatrix.reset_intermediates
+      ~ScalarMatrix.resolve_dim
+      ~ScalarMatrix.set_intermediates
+      ~ScalarMatrix.set_param_specs
+      ~ScalarMatrix.trans_grad
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ScalarMatrix.fixed_param_defaults
+      ~ScalarMatrix.fixed_param_index
+      ~ScalarMatrix.fixed_param_names
+      ~ScalarMatrix.fixed_param_trans
+      ~ScalarMatrix.free_param_defaults
+      ~ScalarMatrix.free_param_index
+      ~ScalarMatrix.free_param_names
+      ~ScalarMatrix.free_param_trans
+      ~ScalarMatrix.num_fixed_params
+      ~ScalarMatrix.num_free_params
+      ~ScalarMatrix.num_params
+      ~ScalarMatrix.param_defaults
+      ~ScalarMatrix.param_names
+      ~ScalarMatrix.param_specs
+      ~ScalarMatrix.param_trans
+      ~ScalarMatrix.repr_dict
+      ~ScalarMatrix.shape
+      ~ScalarMatrix.grad_mode
+      ~ScalarMatrix.jacobian_method
+      ~ScalarMatrix.jacobian_chunk_size
+      ~ScalarMatrix.cache
+   
+   

@@ -12,6 +12,28 @@ Breaking changes
   evaluated to, and ``grad_tree`` to that node's ``(grad, grad_names)`` pair;
   the per-node parameter slices they used to return alongside moved to
   ``free_param_tree``.
+* ``MarginalREML.optimize``'s first optional argument is now ``init_values``,
+  not ``theta``. The parameter holds the starting covariance parameters, which
+  the loop then updates, so the old name read as if it were the estimate; the
+  estimate is what ``optimize`` returns and what ``get_free_params`` reads
+  back.
+  Positional calls are unaffected, but callers passing ``theta=`` by keyword
+  must rename it. ``update`` keeps its ``theta`` argument, where the name does
+  mean an estimate.
+* ``MarginalREML.get_theta`` and ``MarginalREML.get_beta`` are now
+  ``get_free_params`` and ``get_fixed_effects``, and the ``history`` keys
+  ``"theta"`` and ``"beta"`` are now ``"free_params"`` and ``"fixed_effects"``.
+  The evaluation arguments of ``blue``, ``predict``, ``residual``, ``loglik``,
+  ``compute_v_dv``, ``ai_step`` and ``update`` use the same word,
+  ``free_params``, matching the covariance layer. ``delta`` and ``eta`` keep
+  their names: both are standard symbols for the AI increment and the step
+  size, and the history keys that hold them are unchanged.
+* ``MarginalREML.tree`` no longer takes a single ``theta``: it takes
+  ``free_params`` plus a keyword-only ``select``. ``tree()`` evaluates at the
+  final iterate, ``tree(free_params)`` at the values given,
+  ``tree(select="best")`` at the best iterate, and ``select=None`` at the
+  defaults. A string passed positionally now raises ``TypeError`` naming
+  ``select=`` as the replacement.
 
 Changes
 ~~~~~~~
@@ -45,12 +67,13 @@ New features
 * ``MarginalREML.tree``, evaluating the fitted covariance structure at a
   parameter estimate and returning the same path-keyed dict as
   ``Operator.tree``, the root ``"/"`` holding :math:`V(\theta)` itself. It
-  accepts a parameter tensor, a dict of named free parameters, or ``None`` for
-  the free-parameter defaults, and a string is passed to ``get_theta`` —
+  takes a ``free_params`` tensor or dict, and a keyword-only ``select`` that
+  chooses the optimisation iterate when ``free_params`` is omitted —
   ``"last"`` for the final iterate (the default) or any other selector for the
   iterate with the highest log-likelihood, so ``reml.tree()`` works straight
-  after ``optimize()``. When ``v`` is a plain matrix rather than an operator,
-  the tree is the root entry alone.
+  after ``optimize()``, while ``select=None`` evaluates at the free-parameter
+  defaults. When ``v`` is a plain matrix rather than an operator, the tree is
+  the root entry alone.
 
 Documentation
 ~~~~~~~~~~~~~

@@ -1,0 +1,63 @@
+﻿torch\_openreml.covariance.LowerTriangularMatrix
+================================================
+
+.. currentmodule:: torch_openreml.covariance
+
+.. autoclass:: LowerTriangularMatrix
+
+   
+   
+   
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~LowerTriangularMatrix.__call__
+      ~LowerTriangularMatrix.auto_grad
+      ~LowerTriangularMatrix.build_params
+      ~LowerTriangularMatrix.disable_cache
+      ~LowerTriangularMatrix.enable_cache
+      ~LowerTriangularMatrix.get_default_dtype_device
+      ~LowerTriangularMatrix.get_intermediates
+      ~LowerTriangularMatrix.grad
+      ~LowerTriangularMatrix.inverse
+      ~LowerTriangularMatrix.manual_grad
+      ~LowerTriangularMatrix.reset_intermediates
+      ~LowerTriangularMatrix.resolve_dim
+      ~LowerTriangularMatrix.set_intermediates
+      ~LowerTriangularMatrix.set_param_specs
+      ~LowerTriangularMatrix.trans_grad
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~LowerTriangularMatrix.fixed_param_defaults
+      ~LowerTriangularMatrix.fixed_param_index
+      ~LowerTriangularMatrix.fixed_param_names
+      ~LowerTriangularMatrix.fixed_param_trans
+      ~LowerTriangularMatrix.free_param_defaults
+      ~LowerTriangularMatrix.free_param_index
+      ~LowerTriangularMatrix.free_param_names
+      ~LowerTriangularMatrix.free_param_trans
+      ~LowerTriangularMatrix.num_fixed_params
+      ~LowerTriangularMatrix.num_free_params
+      ~LowerTriangularMatrix.num_params
+      ~LowerTriangularMatrix.param_defaults
+      ~LowerTriangularMatrix.param_names
+      ~LowerTriangularMatrix.param_specs
+      ~LowerTriangularMatrix.param_trans
+      ~LowerTriangularMatrix.repr_dict
+      ~LowerTriangularMatrix.shape
+      ~LowerTriangularMatrix.grad_mode
+      ~LowerTriangularMatrix.jacobian_method
+      ~LowerTriangularMatrix.jacobian_chunk_size
+      ~LowerTriangularMatrix.cache
+   
+   

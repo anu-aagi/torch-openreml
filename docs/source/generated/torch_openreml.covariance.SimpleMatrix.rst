@@ -1,0 +1,63 @@
+﻿torch\_openreml.covariance.SimpleMatrix
+=======================================
+
+.. currentmodule:: torch_openreml.covariance
+
+.. autoclass:: SimpleMatrix
+
+   
+   
+   
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~SimpleMatrix.__call__
+      ~SimpleMatrix.auto_grad
+      ~SimpleMatrix.build_params
+      ~SimpleMatrix.disable_cache
+      ~SimpleMatrix.enable_cache
+      ~SimpleMatrix.get_default_dtype_device
+      ~SimpleMatrix.get_intermediates
+      ~SimpleMatrix.grad
+      ~SimpleMatrix.inverse
+      ~SimpleMatrix.manual_grad
+      ~SimpleMatrix.reset_intermediates
+      ~SimpleMatrix.resolve_dim
+      ~SimpleMatrix.set_intermediates
+      ~SimpleMatrix.set_param_specs
+      ~SimpleMatrix.trans_grad
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~SimpleMatrix.fixed_param_defaults
+      ~SimpleMatrix.fixed_param_index
+      ~SimpleMatrix.fixed_param_names
+      ~SimpleMatrix.fixed_param_trans
+      ~SimpleMatrix.free_param_defaults
+      ~SimpleMatrix.free_param_index
+      ~SimpleMatrix.free_param_names
+      ~SimpleMatrix.free_param_trans
+      ~SimpleMatrix.num_fixed_params
+      ~SimpleMatrix.num_free_params
+      ~SimpleMatrix.num_params
+      ~SimpleMatrix.param_defaults
+      ~SimpleMatrix.param_names
+      ~SimpleMatrix.param_specs
+      ~SimpleMatrix.param_trans
+      ~SimpleMatrix.repr_dict
+      ~SimpleMatrix.shape
+      ~SimpleMatrix.grad_mode
+      ~SimpleMatrix.jacobian_method
+      ~SimpleMatrix.jacobian_chunk_size
+      ~SimpleMatrix.cache
+   
+   

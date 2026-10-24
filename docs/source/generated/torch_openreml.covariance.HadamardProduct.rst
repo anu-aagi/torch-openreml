@@ -1,0 +1,71 @@
+﻿torch\_openreml.covariance.HadamardProduct
+==========================================
+
+.. currentmodule:: torch_openreml.covariance
+
+.. autoclass:: HadamardProduct
+
+   
+   
+   
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~HadamardProduct.__call__
+      ~HadamardProduct.auto_grad
+      ~HadamardProduct.build_operands
+      ~HadamardProduct.build_params
+      ~HadamardProduct.disable_cache
+      ~HadamardProduct.enable_cache
+      ~HadamardProduct.free_param_tree
+      ~HadamardProduct.get_default_dtype_device
+      ~HadamardProduct.get_intermediates
+      ~HadamardProduct.grad
+      ~HadamardProduct.grad_tree
+      ~HadamardProduct.inverse
+      ~HadamardProduct.manual_grad
+      ~HadamardProduct.operands_grad
+      ~HadamardProduct.operands_inverse
+      ~HadamardProduct.reset_intermediates
+      ~HadamardProduct.resolve_dim
+      ~HadamardProduct.set_intermediates
+      ~HadamardProduct.set_param_specs
+      ~HadamardProduct.trans_grad
+      ~HadamardProduct.tree
+      ~HadamardProduct.walk
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~HadamardProduct.fixed_param_defaults
+      ~HadamardProduct.fixed_param_index
+      ~HadamardProduct.fixed_param_names
+      ~HadamardProduct.fixed_param_trans
+      ~HadamardProduct.free_param_defaults
+      ~HadamardProduct.free_param_index
+      ~HadamardProduct.free_param_names
+      ~HadamardProduct.free_param_trans
+      ~HadamardProduct.num_fixed_params
+      ~HadamardProduct.num_free_params
+      ~HadamardProduct.num_params
+      ~HadamardProduct.operands
+      ~HadamardProduct.param_defaults
+      ~HadamardProduct.param_names
+      ~HadamardProduct.param_specs
+      ~HadamardProduct.param_trans
+      ~HadamardProduct.repr_dict
+      ~HadamardProduct.shape
+      ~HadamardProduct.grad_mode
+      ~HadamardProduct.jacobian_method
+      ~HadamardProduct.jacobian_chunk_size
+      ~HadamardProduct.cache
+   
+   

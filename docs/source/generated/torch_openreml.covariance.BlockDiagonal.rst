@@ -1,0 +1,71 @@
+﻿torch\_openreml.covariance.BlockDiagonal
+========================================
+
+.. currentmodule:: torch_openreml.covariance
+
+.. autoclass:: BlockDiagonal
+
+   
+   
+   
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BlockDiagonal.__call__
+      ~BlockDiagonal.auto_grad
+      ~BlockDiagonal.build_operands
+      ~BlockDiagonal.build_params
+      ~BlockDiagonal.disable_cache
+      ~BlockDiagonal.enable_cache
+      ~BlockDiagonal.free_param_tree
+      ~BlockDiagonal.get_default_dtype_device
+      ~BlockDiagonal.get_intermediates
+      ~BlockDiagonal.grad
+      ~BlockDiagonal.grad_tree
+      ~BlockDiagonal.inverse
+      ~BlockDiagonal.manual_grad
+      ~BlockDiagonal.operands_grad
+      ~BlockDiagonal.operands_inverse
+      ~BlockDiagonal.reset_intermediates
+      ~BlockDiagonal.resolve_dim
+      ~BlockDiagonal.set_intermediates
+      ~BlockDiagonal.set_param_specs
+      ~BlockDiagonal.trans_grad
+      ~BlockDiagonal.tree
+      ~BlockDiagonal.walk
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BlockDiagonal.fixed_param_defaults
+      ~BlockDiagonal.fixed_param_index
+      ~BlockDiagonal.fixed_param_names
+      ~BlockDiagonal.fixed_param_trans
+      ~BlockDiagonal.free_param_defaults
+      ~BlockDiagonal.free_param_index
+      ~BlockDiagonal.free_param_names
+      ~BlockDiagonal.free_param_trans
+      ~BlockDiagonal.num_fixed_params
+      ~BlockDiagonal.num_free_params
+      ~BlockDiagonal.num_params
+      ~BlockDiagonal.operands
+      ~BlockDiagonal.param_defaults
+      ~BlockDiagonal.param_names
+      ~BlockDiagonal.param_specs
+      ~BlockDiagonal.param_trans
+      ~BlockDiagonal.repr_dict
+      ~BlockDiagonal.shape
+      ~BlockDiagonal.grad_mode
+      ~BlockDiagonal.jacobian_method
+      ~BlockDiagonal.jacobian_chunk_size
+      ~BlockDiagonal.cache
+   
+   
