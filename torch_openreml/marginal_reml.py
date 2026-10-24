@@ -86,7 +86,7 @@ class MarginalREML:
         self.history = None
         self.nn_optimizers = None
 
-    def blue(self, y, x, theta):
+    def blue(self, y, x, free_params):
         r"""
         Compute the best linear unbiased estimator (BLUE) of :math:`\boldsymbol{\beta}`.
 
@@ -99,15 +99,15 @@ class MarginalREML:
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Design matrix of shape ``(n, p)``.
-            theta (torch.Tensor): Flat covariance parameter tensor.
+            free_params (torch.Tensor): Flat covariance parameter tensor.
 
         Returns:
             torch.Tensor: Coefficient estimate :math:`\hat{\boldsymbol{\beta}}`
             of shape ``(p,)``.
         """
-        return blue(y, x, self.v(theta))
+        return blue(y, x, self.v(free_params))
 
-    def predict(self, y, x, theta):
+    def predict(self, y, x, free_params):
         r"""
         Compute fitted values.
 
@@ -117,14 +117,14 @@ class MarginalREML:
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Design matrix of shape ``(n, p)``.
-            theta (torch.Tensor): Flat covariance parameter tensor.
+            free_params (torch.Tensor): Flat covariance parameter tensor.
 
         Returns:
             torch.Tensor: Fitted values of shape ``(n,)``.
         """
-        return marginal_predict(y, x, self.v(theta))
+        return marginal_predict(y, x, self.v(free_params))
 
-    def residual(self, y, x, theta):
+    def residual(self, y, x, free_params):
         r"""
         Compute residuals.
 
@@ -134,14 +134,14 @@ class MarginalREML:
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Design matrix of shape ``(n, p)``.
-            theta (torch.Tensor): Flat covariance parameter tensor.
+            free_params (torch.Tensor): Flat covariance parameter tensor.
 
         Returns:
             torch.Tensor: Residuals of shape ``(n,)``.
         """
-        return marginal_residual(y, x, self.v(theta))
+        return marginal_residual(y, x, self.v(free_params))
 
-    def loglik(self, y, x, theta):
+    def loglik(self, y, x, free_params):
         r"""
         Evaluate the REML log-likelihood.
 
@@ -155,14 +155,14 @@ class MarginalREML:
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Design matrix of shape ``(n, p)``.
-            theta (torch.Tensor): Flat covariance parameter tensor.
+            free_params (torch.Tensor): Flat covariance parameter tensor.
 
         Returns:
             torch.Tensor: Scalar REML log-likelihood value.
         """
-        return loglik(y, x, self.v(theta))
+        return loglik(y, x, self.v(free_params))
 
-    def compute_v_dv(self, theta):
+    def compute_v_dv(self, free_params):
         r"""
         Compute the covariance matrix and its Jacobian.
 
@@ -171,7 +171,7 @@ class MarginalREML:
         Jacobian :math:`\partial\symbf{V}(\boldsymbol{\theta})/\partial\boldsymbol{\theta}`.
 
         Args:
-            theta (torch.Tensor): Flat covariance parameter tensor.
+            free_params (torch.Tensor): Flat covariance parameter tensor.
 
         Returns:
             tuple: ``(v, dv)``, where ``v`` is the covariance matrix of
@@ -179,11 +179,11 @@ class MarginalREML:
             ``(num_free_params, n, n)``.
         """
         
-        v = self.v(theta)
-        dv, _ = self.v.grad(theta)
+        v = self.v(free_params)
+        dv, _ = self.v.grad(free_params)
         return v, dv
 
-    def ai_step(self, y, x, theta, require_loglik=True, require_beta=True, trace_approx=False, subspace_fraction=0.01):
+    def ai_step(self, y, x, free_params, require_loglik=True, require_beta=True, trace_approx=False, subspace_fraction=0.01):
         r"""
         Perform a single average information (AI) algorithm step.
 
@@ -260,7 +260,7 @@ class MarginalREML:
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Design matrix of shape ``(n, p)``.
-            theta (torch.Tensor): Flat covariance parameter tensor.
+            free_params (torch.Tensor): Flat covariance parameter tensor.
             require_loglik (bool, optional): Whether to evaluate the REML
                 log-likelihood. Defaults to ``True``.
             require_beta (bool, optional): Whether to compute the coefficient
@@ -284,14 +284,16 @@ class MarginalREML:
             ValueError: If ``subspace_fraction`` is outside ``[0, 1]``.
 
         Returns:
-            tuple: ``(beta, score, ai, loglik)``, where ``beta`` is of shape
+            tuple: ``(fixed_effects, score, ai, loglik)``, where
+            ``fixed_effects`` is of shape
             ``(p,)``, ``score`` is of shape ``(num_free_params,)``, ``ai`` is of
             shape ``(num_free_params, num_free_params)``, and ``loglik`` is a scalar
-            tensor. ``beta`` and ``loglik`` are ``torch.nan`` if their
+            tensor. ``fixed_effects`` and ``loglik`` are ``torch.nan`` if
+            their
             respective ``require_*`` flag is ``False``.
         """
-        device = theta.device
-        dtype = theta.dtype
+        device = free_params.device
+        dtype = free_params.dtype
         y = y.to(device=device, dtype=dtype)
         x = x.to(device=device, dtype=dtype)
 
@@ -307,7 +309,7 @@ class MarginalREML:
         matrix["Y"] = y.unsqueeze(-1)
         scalar["N"] = y.shape[0]
         
-        matrix["V"], tensor3d["dV"] = self.compute_v_dv(theta)
+        matrix["V"], tensor3d["dV"] = self.compute_v_dv(free_params)
         scalar["K"] = len(tensor3d["dV"])
         
         matrix["V"] = matrix["V"] + 1e-6 * torch.eye(scalar["N"], device=device, dtype=dtype)
@@ -420,9 +422,9 @@ class MarginalREML:
     
         return vector["beta"], vector["score"], matrix["AI"], scalar["loglik"]
 
-    def get_theta(self, select="last"):
+    def get_free_params(self, select="last"):
         """
-        Retrieve a covariance parameter estimate from the optimisation history.
+        Retrieve a free covariance parameter estimate from the optimisation history.
 
         Args:
             select (str, optional): ``"last"`` returns the final iterate;
@@ -434,17 +436,17 @@ class MarginalREML:
             :math:`\\boldsymbol{\\theta}`.
         """
         if select == "last":
-            return self.history["theta"][-1]
+            return self.history["free_params"][-1]
         else:
             if torch.is_tensor(self.history["loglik"][-1]):
                 index = torch.argmax(torch.stack(self.history["loglik"])).item()
-                return self.history["theta"][index]
+                return self.history["free_params"][index]
             else:
-                return self.history["theta"][-1]
+                return self.history["free_params"][-1]
 
-    def get_beta(self, select="last"):
+    def get_fixed_effects(self, select="last"):
         """
-        Retrieve a coefficient estimate from the optimisation history.
+        Retrieve a fixed-effects coefficient estimate from the optimisation history.
 
         Args:
             select (str, optional): ``"last"`` returns the final iterate;
@@ -456,42 +458,45 @@ class MarginalREML:
             :math:`\\hat{\\boldsymbol{\\beta}}`.
         """
         if select == "last":
-            return self.history["beta"][-1]
+            return self.history["fixed_effects"][-1]
         else:
             if torch.is_tensor(self.history["loglik"][-1]):
                 index = torch.argmax(torch.stack(self.history["loglik"])).item()
-                return self.history["beta"][index]
+                return self.history["fixed_effects"][index]
             else:
-                return self.history["beta"][-1]
+                return self.history["fixed_effects"][-1]
 
-    def tree(self, theta="last"):
+    def tree(self, free_params=None, *, select="last"):
         r"""
         Evaluate the covariance structure and return each node keyed by its path.
 
-        Evaluates :attr:`v` at ``theta`` and returns the same path-keyed dict
-        :meth:`Operator.tree <torch_openreml.covariance.Operator.tree>` returns,
-        with the marginal covariance matrix :math:`V(\theta)` under the root
-        ``"/"``. When ``v`` is not an
+        Evaluates :attr:`v` at ``free_params`` and returns the same path-keyed
+        dict :meth:`Operator.tree <torch_openreml.covariance.Operator.tree>`
+        returns, with the marginal covariance matrix :math:`V(\theta)` under the
+        root ``"/"``. When ``v`` is not an
         :class:`Operator <torch_openreml.covariance.Operator>`, the tree is the
         root entry alone.
 
         Args:
-            theta (torch.Tensor or dict or str, optional): Flat covariance
-                parameter tensor or parameter dictionary to evaluate at;
-                ``None`` evaluates at the free-parameter defaults. A string is
-                passed to :meth:`get_theta`, so ``"last"`` selects the final
+            free_params (torch.Tensor or dict, optional): Flat covariance
+                parameter tensor or parameter dictionary to evaluate at.
+                Defaults to ``None``, which means the parameters come from the
+                optimisation history selected by ``select``. When both are
+                given, ``free_params`` wins.
+            select (str, optional): Which optimisation iterate to evaluate at
+                when ``free_params`` is omitted: ``"last"`` selects the final
                 iterate and any other value the iterate with the highest
-                log-likelihood — useful straight after :meth:`optimize`.
-                Defaults to ``"last"``.
+                log-likelihood. Pass ``None`` to evaluate at the free-parameter
+                defaults instead. Defaults to ``"last"``.
 
         Returns:
             dict: Maps each path to the evaluated matrix.
 
         Raises:
-            ValueError: If ``theta`` is a selector but no optimisation history
+            TypeError: If ``free_params`` is a string, or if ``select`` is
+                neither a string nor ``None``.
+            ValueError: If ``select`` is a string but no optimisation history
                 exists yet.
-            TypeError: If ``theta`` is neither a Torch tensor, a dict, nor a
-                selector.
             ValueError: If the parameter tensor is not 1D or has the wrong
                 length.
 
@@ -510,14 +515,23 @@ class MarginalREML:
                 reml.optimize(y, x, torch.tensor([0.0]), verbose=0)
                 sorted(reml.tree())
         """
-        if isinstance(theta, str):
+        if isinstance(free_params, str):
+            raise TypeError(
+                "'free_params' must be a Torch tensor, a dict or None; pass a "
+                "selector string as select='best' instead of positionally.")
+        if select is not None and not isinstance(select, str):
+            raise TypeError(
+                f"'select' must be a string or None, got {type(select).__name__}!")
+        if free_params is None and select is not None:
             if self.history is None:
-                raise ValueError(f"No optimisation history to select '{theta}' from; call optimize() first, or pass theta.")
-            theta = self.get_theta(theta)
+                raise ValueError(
+                    f"No optimisation history to select '{select}' from; call "
+                    "optimize() first, or pass free_params.")
+            free_params = self.get_free_params(select)
 
         if isinstance(self.v, Operator):
-            return self.v.tree(theta)
-        return {"/": self.v(theta)}
+            return self.v.tree(free_params)
+        return {"/": self.v(free_params)}
 
     def is_converged(self):
         """
@@ -552,7 +566,7 @@ class MarginalREML:
         
         return True
 
-    def update(self, theta, delta, eta, lb=-torch.inf, ub=torch.inf):
+    def update(self, free_params, delta, eta, lb=-torch.inf, ub=torch.inf):
         r"""
         Apply a damped AI step and clip covariance parameters to bounds.
 
@@ -561,7 +575,7 @@ class MarginalREML:
             \mathrm{clip}(\boldsymbol{\theta} + \eta \Delta,\, \text{lb},\, \text{ub})
 
         Args:
-            theta (torch.Tensor): Current covariance parameter tensor.
+            free_params (torch.Tensor): Current covariance parameter tensor.
             delta (torch.Tensor): AI step :math:`\Delta = \symbf{AI}^{-1}\symbf{s}`.
             eta (float): Step size (learning rate).
             lb (float, optional): Lower bound for clipping. Defaults to
@@ -570,14 +584,14 @@ class MarginalREML:
                 ``inf``.
 
         Returns:
-            tuple: ``(theta, update)``, where ``theta`` is the updated
-            covariance parameter tensor and ``update`` is the actual change
-            after clipping.
+            tuple: ``(free_params, update)``, where ``free_params`` is the
+            updated covariance parameter tensor and ``update`` is the actual
+            change after clipping.
         """
-        last_theta = theta
-        theta = theta + delta * eta
-        theta = torch.clamp(theta, min=lb, max=ub)
-        return theta, theta - last_theta
+        last_free_params = free_params
+        free_params = free_params + delta * eta
+        free_params = torch.clamp(free_params, min=lb, max=ub)
+        return free_params, free_params - last_free_params
 
     def optimize(self,
                  y,
@@ -603,8 +617,8 @@ class MarginalREML:
 
         Iterates :meth:`ai_step` and :meth:`update` until convergence or
         ``max_iter`` is reached. Optimisation history is stored in
-        :attr:`history` and can be queried afterwards via :meth:`get_theta`
-        and :meth:`get_beta`.
+        :attr:`history` and can be queried afterwards via :meth:`get_free_params`
+        and :meth:`get_fixed_effects`.
 
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
@@ -667,9 +681,10 @@ class MarginalREML:
                 approximation on throughout. Defaults to ``10.0``.
 
         Returns:
-            tuple: ``(theta, beta, n_iter)``, where ``theta`` is the final
-            covariance parameter estimate, ``beta`` is the corresponding coefficient
-            estimate, and ``n_iter`` is the number of iterations completed.
+            tuple: ``(free_params, fixed_effects, n_iter)``, where
+            ``free_params`` is the final covariance parameter estimate,
+            ``fixed_effects`` is the corresponding coefficient estimate, and
+            ``n_iter`` is the number of iterations completed.
         """
         theta = self.v.build_params(init_values, include_fixed=False, trans=False)
         theta = theta.detach()
@@ -678,8 +693,8 @@ class MarginalREML:
         y = y.to(device=device, dtype=dtype)
         x = x.to(device=device, dtype=dtype)
 
-        self.history = {"theta": [],
-                        "beta": [], 
+        self.history = {"free_params": [],
+                        "fixed_effects": [], 
                         "loglik": [], 
                         "score": [], 
                         "ai": [], 
@@ -697,7 +712,7 @@ class MarginalREML:
 
         with torch.no_grad():
             for i in range(max_iter):
-                beta, score, ai, loglik = self.ai_step(y, x, theta,
+                fixed_effects, score, ai, loglik = self.ai_step(y, x, theta,
                                                        require_loglik=require_loglik,
                                                        subspace_fraction=subspace_fraction,
                                                        trace_approx=trace_approx)
@@ -708,8 +723,8 @@ class MarginalREML:
                 delta = torch.linalg.lstsq(ai, score.unsqueeze(-1)).solution.squeeze()
                 theta, update = self.update(theta, delta, eta, lb, ub)
 
-                self.history["theta"].append(theta)
-                self.history["beta"].append(beta)
+                self.history["free_params"].append(theta)
+                self.history["fixed_effects"].append(fixed_effects)
                 self.history["loglik"].append(loglik)
                 self.history["score"].append(score)
                 self.history["ai"].append(ai)
@@ -737,4 +752,4 @@ class MarginalREML:
                 if verbose > 0:
                     print(f"\n\u2717 Reached maximum iterations ({max_iter}), total time: {time.perf_counter() - start_time:.2f}s\n")
 
-        return theta, beta, i + 1
+        return theta, fixed_effects, i + 1
