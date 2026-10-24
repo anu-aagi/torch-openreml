@@ -14,6 +14,7 @@ Classes:
 import time
 import torch
 from torch_openreml.covariance.matrix import Matrix
+from torch_openreml.covariance.operator import Operator
 from torch_openreml.post import blue, loglik, marginal_predict, marginal_residual
 
 class MarginalREML:
@@ -462,6 +463,61 @@ class MarginalREML:
                 return self.history["beta"][index]
             else:
                 return self.history["beta"][-1]
+
+    def tree(self, theta="last"):
+        r"""
+        Evaluate the covariance structure and return each node keyed by its path.
+
+        Evaluates :attr:`v` at ``theta`` and returns the same path-keyed dict
+        :meth:`Operator.tree <torch_openreml.covariance.Operator.tree>` returns,
+        with the marginal covariance matrix :math:`V(\theta)` under the root
+        ``"/"``. When ``v`` is not an
+        :class:`Operator <torch_openreml.covariance.Operator>`, the tree is the
+        root entry alone.
+
+        Args:
+            theta (torch.Tensor or dict or str, optional): Flat covariance
+                parameter tensor or parameter dictionary to evaluate at;
+                ``None`` evaluates at the free-parameter defaults. A string is
+                passed to :meth:`get_theta`, so ``"last"`` selects the final
+                iterate and any other value the iterate with the highest
+                log-likelihood — useful straight after :meth:`optimize`.
+                Defaults to ``"last"``.
+
+        Returns:
+            dict: Maps each path to the evaluated matrix.
+
+        Raises:
+            ValueError: If ``theta`` is a selector but no optimisation history
+                exists yet.
+            TypeError: If ``theta`` is neither a Torch tensor, a dict, nor a
+                selector.
+            ValueError: If the parameter tensor is not 1D or has the wrong
+                length.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MarginalREML
+                from torch_openreml.covariance import ScalarMatrix
+
+                n = 50
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+
+                reml = MarginalREML(ScalarMatrix(n))
+                reml.optimize(y, x, torch.tensor([0.0]), verbose=0)
+                sorted(reml.tree())
+        """
+        if isinstance(theta, str):
+            if self.history is None:
+                raise ValueError(f"No optimisation history to select '{theta}' from; call optimize() first, or pass theta.")
+            theta = self.get_theta(theta)
+
+        if isinstance(self.v, Operator):
+            return self.v.tree(theta)
+        return {"/": self.v(theta)}
 
     def is_converged(self):
         """
