@@ -126,6 +126,67 @@ class Adapter(Matrix):
         adaptee_free_params = self.param_map(params)
         return self.adaptee(adaptee_free_params)
 
+    def manual_inverse(self, free_params=None):
+        """
+        Return the inverse of the reparameterised matrix from the adaptee's
+        closed form.
+
+        The adapter is
+        :math:`\\symbf{V}(\\boldsymbol{\\theta}) =
+        \\symbf{V}_{\\text{adaptee}}\\!\\big(f(\\boldsymbol{\\theta})\\big)`,
+        so its inverse is
+
+        .. math::
+
+            \\symbf{V}^{-1}(\\boldsymbol{\\theta}) =
+            \\symbf{V}_{\\text{adaptee}}^{-1}\\!\\big(f(\\boldsymbol{\\theta})\\big),
+
+        obtained by forwarding the mapped parameters to the adaptee's
+        :meth:`~torch_openreml.covariance.matrix.Matrix.manual_inverse`. The
+        adapter's parameters reach ``param_map`` untransformed, exactly as in
+        :meth:`__call__`, and the matrix is never inverted densely.
+
+        Args:
+            free_params (torch.Tensor or dict): Flat 1D parameter tensor or
+                parameter dictionary. If omitted, default values are used.
+                Default: ``None``.
+
+        Raises:
+            NotImplementedError: If the adaptee has no closed-form inverse;
+                the error is propagated from its ``manual_inverse``.
+
+        Returns:
+            torch.Tensor: The ``n x n`` inverse of the constructed matrix.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DiagonalMatrix, Adapter
+            from torch_openreml.covariance.transform import TransformIdentity
+
+            adaptee = DiagonalMatrix(2)
+
+            def param_map(params):
+                p = torch.sigmoid(params[0])
+                return torch.stack([p, 1 - p])
+
+            param_specs = {
+                "logit": {
+                    "fixed": False,
+                    "default": torch.tensor([0.0]),
+                    "trans": TransformIdentity(),
+                }
+            }
+
+            adapter = Adapter(adaptee, param_specs, param_map)
+            adapter.manual_inverse(torch.tensor([0.0]))
+        """
+        params = self.build_params(free_params, include_fixed=False, trans=False)
+        adaptee_free_params = self.param_map(params)
+        return self.adaptee.manual_inverse(adaptee_free_params)
+
     def reset_intermediates(self):
         """
         Clear the intermediate caches of this adapter and its adaptee.
