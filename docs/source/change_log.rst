@@ -65,6 +65,9 @@ Changes
 New features
 ~~~~~~~~~~~~
 
+* ``Adapter.manual_inverse``, forwarding its mapped parameters to the
+  adaptee's ``manual_inverse``, so a reparameterised matrix keeps the
+  adaptee's closed form instead of falling back to a dense inversion.
 * ``Operator.walk``, listing every node of the operand tree as one
   ``(path, operand, free_params)`` triple, in the order ``tree``,
   ``free_param_tree`` and ``grad_tree`` report. The first entry is always
