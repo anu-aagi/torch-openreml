@@ -1,6 +1,6 @@
 import torch
 import pytest
-from torch_openreml.covariance import AR1Matrix, Adapter, DiagonalMatrix
+from torch_openreml.covariance import AR1Matrix, Adapter, DiagonalMatrix, UnconstrainedMatrix
 from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.covariance.transform import TransformExp, TransformIdentity
 
@@ -72,6 +72,49 @@ class TestAdapter:
     def test_call_dict_input(self):
         mat = make_adapter()
         assert torch.allclose(mat({"logit": torch.tensor([0.0])}), mat(torch.tensor([0.0])))
+
+    def test_manual_inverse_matches_numeric_inverse(self):
+        """The forwarded closed form agrees with inverting the built matrix."""
+        mat = make_adapter()
+        theta = torch.tensor([0.3])
+        assert torch.allclose(mat.manual_inverse(theta), torch.linalg.inv(mat(theta)), atol=1e-6)
+
+    def test_manual_inverse_forwards_mapped_params(self):
+        """param_map receives the adapter's untransformed parameters, as in __call__."""
+        seen = []
+        mat = make_adapter(seen=seen)
+        mat.manual_inverse(torch.tensor([0.4]))
+        assert len(seen) == 1
+        assert torch.allclose(seen[0], torch.tensor([0.4]))
+
+    def test_manual_inverse_default_and_dict_inputs(self):
+        mat = make_adapter()
+        expected = mat.manual_inverse(torch.tensor([0.0]))
+        assert torch.allclose(mat.manual_inverse(), expected)
+        assert torch.allclose(mat.manual_inverse({"logit": torch.tensor([0.0])}), expected)
+
+    def test_manual_inverse_uses_adaptee_closed_form(self, monkeypatch):
+        """The adaptee's closed form is used, so no dense inversion happens."""
+        mat = make_adapter()
+        calls = []
+
+        def counting_inv(x):
+            calls.append(x)
+            raise AssertionError("torch.linalg.inv must not be called")
+
+        monkeypatch.setattr(torch.linalg, "inv", counting_inv)
+        mat.manual_inverse(torch.tensor([0.2]))
+        assert calls == []
+
+    def test_manual_inverse_raises_when_adaptee_has_no_closed_form(self):
+        """A missing adaptee closed form propagates as NotImplementedError."""
+        mat = Adapter(
+            UnconstrainedMatrix(2),
+            make_param_specs(),
+            lambda params: torch.cat([params, params, params]),
+        )
+        with pytest.raises(NotImplementedError, match="closed-form inverse"):
+            mat.manual_inverse(torch.tensor([0.0]))
 
     def test_param_specs_returns_stored_specs(self):
         """param_specs is the stored dict, not a rebuild: mutations take effect."""

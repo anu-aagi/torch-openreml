@@ -35,7 +35,7 @@ class MinimalOperator(Operator):
 
 
 class StubMatrix(Matrix):
-    """Matrix operand stub recording how operands_inverse consumes it."""
+    """Matrix operand stub recording how operands_manual_inverse consumes it."""
 
     def __init__(self):
         super().__init__((2, 2), {})
@@ -858,11 +858,11 @@ class TestOperatorOperandsGrad:
 
 
 class TestOperatorOperandsInverse:
-    """Tests for operands_inverse."""
+    """Tests for operands_manual_inverse."""
 
     def test_returns_per_operand_inverses(self):
         op = Sum(a=ScalarMatrix(3), b=ScalarMatrix(3))
-        inverses = op.operands_inverse(torch.tensor([0.0, 0.5]))
+        inverses = op.operands_manual_inverse(torch.tensor([0.0, 0.5]))
         assert len(inverses) == 2
         assert torch.allclose(inverses[0], torch.linalg.inv(op.operands["a"](torch.tensor([0.0]))))
         assert torch.allclose(inverses[1], torch.linalg.inv(op.operands["b"](torch.tensor([0.5]))))
@@ -870,50 +870,50 @@ class TestOperatorOperandsInverse:
     def test_uses_operand_own_inverse(self):
         stub = StubMatrix()
         op = Sum(a=stub, b=ScalarMatrix(2))
-        inverses = op.operands_inverse(torch.tensor([0.5]))
+        inverses = op.operands_manual_inverse(torch.tensor([0.5]))
         assert stub.manual_inverse_count == 1
         assert torch.allclose(inverses[0], torch.tensor([[-1.0, -2.0], [-3.0, -4.0]]))
 
     def test_raises_when_operand_has_no_closed_form(self):
         op = Sum(a=Sum(ScalarMatrix(2), ScalarMatrix(2)), b=ScalarMatrix(2))
         with pytest.raises(NotImplementedError, match="closed-form inverse"):
-            op.operands_inverse(torch.tensor([0.0, 0.5, 0.0]))
+            op.operands_manual_inverse(torch.tensor([0.0, 0.5, 0.0]))
 
     def test_does_not_build_matrix_operands(self):
         stub = StubMatrix()
         op = Sum(a=stub, b=ScalarMatrix(2))
-        op.operands_inverse(torch.tensor([0.5]))
+        op.operands_manual_inverse(torch.tensor([0.5]))
         assert stub.call_count == 0
 
     def test_tensor_operand_inverted_directly(self):
         op = Sum(a=ScalarMatrix(2), b=torch.eye(2) * 4.0)
-        inverses = op.operands_inverse(torch.tensor([0.5]))
+        inverses = op.operands_manual_inverse(torch.tensor([0.5]))
         assert torch.allclose(inverses[1], torch.eye(2) / 4.0)
 
     def test_tensor_operand_follows_input_dtype(self):
         op = Sum(a=ScalarMatrix(2), b=torch.eye(2) * 4.0)
-        inverses = op.operands_inverse(torch.tensor([0.5], dtype=torch.float64))
+        inverses = op.operands_manual_inverse(torch.tensor([0.5], dtype=torch.float64))
         assert inverses[1].dtype == torch.float64
         assert inverses[0].dtype == torch.float64
 
     def test_uses_default_free_params(self):
         op = Sum(a=ScalarMatrix(3), b=ScalarMatrix(3))
-        assert torch.allclose(op.operands_inverse()[1], op.operands_inverse(op.free_param_defaults)[1])
+        assert torch.allclose(op.operands_manual_inverse()[1], op.operands_manual_inverse(op.free_param_defaults)[1])
 
     def test_accepts_dict_of_free_params(self):
         op = Sum(a=ScalarMatrix(3), b=ScalarMatrix(3))
         free_params = torch.tensor([0.0, 0.5])
-        as_dict = op.operands_inverse(op._to_free_param_dict(free_params))
-        assert torch.allclose(as_dict[0], op.operands_inverse(free_params)[0])
+        as_dict = op.operands_manual_inverse(op._to_free_param_dict(free_params))
+        assert torch.allclose(as_dict[0], op.operands_manual_inverse(free_params)[0])
 
     def test_validation_is_not_bypassed(self):
         op = Sum(a=ScalarMatrix(3), b=ScalarMatrix(3))
         with pytest.raises(TypeError, match="Torch tensor"):
-            op.operands_inverse([0.0, 0.5])
+            op.operands_manual_inverse([0.0, 0.5])
         with pytest.raises(ValueError, match="length 2"):
-            op.operands_inverse(torch.tensor([0.0]))
+            op.operands_manual_inverse(torch.tensor([0.0]))
         with pytest.raises(ValueError, match="Missing free parameters"):
-            op.operands_inverse({})
+            op.operands_manual_inverse({})
 
 
 class TestOperatorRepr:

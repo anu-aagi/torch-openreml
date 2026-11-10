@@ -176,7 +176,7 @@ Overrides that extend the base toggles over the operand tree, mirroring `reset_i
 - `enable_cache` propagates the same way
 - Fixed `torch.Tensor` operands are skipped rather than raising
 
-#### L. `operands_inverse` Method
+#### L. `operands_manual_inverse` Method
 
 The inversion sibling of `operands_grad`: it splits `free_params` into per-operand slices and inverts each
 operand. A `Matrix` operand is inverted through its own `manual_inverse`, so an analytic inverse — or a
@@ -483,11 +483,11 @@ class TestOperatorOperandsGrad:
 
 
 class TestOperatorOperandsInverse:
-    """Tests for operands_inverse."""
+    """Tests for operands_manual_inverse."""
 
     def test_returns_per_operand_inverses(self):
         op = Sum(a=ScalarMatrix(3), b=ScalarMatrix(3))
-        inverses = op.operands_inverse(torch.tensor([0.0, 0.5]))
+        inverses = op.operands_manual_inverse(torch.tensor([0.0, 0.5]))
         assert len(inverses) == 2
         assert torch.allclose(inverses[0], torch.linalg.inv(op.operands["a"](torch.tensor([0.0]))))
         assert torch.allclose(inverses[1], torch.linalg.inv(op.operands["b"](torch.tensor([0.5]))))
@@ -495,19 +495,19 @@ class TestOperatorOperandsInverse:
     def test_uses_operand_own_inverse(self):
         stub = StubMatrix()
         op = Sum(a=stub, b=ScalarMatrix(2))
-        inverses = op.operands_inverse(torch.tensor([0.5]))
+        inverses = op.operands_manual_inverse(torch.tensor([0.5]))
         assert stub.manual_inverse_count == 1
         assert torch.allclose(inverses[0], torch.tensor([[-1.0, -2.0], [-3.0, -4.0]]))
 
     def test_raises_when_operand_has_no_closed_form(self):
         op = Sum(a=Sum(ScalarMatrix(2), ScalarMatrix(2)), b=ScalarMatrix(2))
         with pytest.raises(NotImplementedError, match="closed-form inverse"):
-            op.operands_inverse(torch.tensor([0.0, 0.5, 0.0]))
+            op.operands_manual_inverse(torch.tensor([0.0, 0.5, 0.0]))
 
     def test_does_not_build_matrix_operands(self):
         stub = StubMatrix()
         op = Sum(a=stub, b=ScalarMatrix(2))
-        op.operands_inverse(torch.tensor([0.5]))
+        op.operands_manual_inverse(torch.tensor([0.5]))
         assert stub.call_count == 0
 ```
 
@@ -516,7 +516,7 @@ counts its calls, so routing and the absence of a build are observable without r
 
 ```python
 class StubMatrix(Matrix):
-    """Matrix operand stub recording how operands_inverse consumes it."""
+    """Matrix operand stub recording how operands_manual_inverse consumes it."""
 
     def __init__(self):
         super().__init__((2, 2), {})
@@ -669,7 +669,7 @@ Do not need to execute.
 
 ## 4. Key Risks / Notes
 
-- **Operand iteration order**: Python dict preserves insertion order (3.7+). All methods that iterate over `self.operands` (`build_params`, `build_operands`, `operands_grad`, `operands_inverse`) must use the same order. Parameter splitting and gradient concatenation depend on this.
+- **Operand iteration order**: Python dict preserves insertion order (3.7+). All methods that iterate over `self.operands` (`build_params`, `build_operands`, `operands_grad`, `operands_manual_inverse`) must use the same order. Parameter splitting and gradient concatenation depend on this.
 - **Namespacing convention**: `"operand_name/param_name"` with `/` as separator. This is why operand names must be non-empty and must not contain `/`: an operand named `""` would put an empty segment in every key it prefixes (`"A//sigma^2"`), and an operand named `"a/b"` would forge a two-level path out of one segment.
 - **At least one Matrix**: The Operator requires at least one Matrix operand (to have params to optimize). Pure-tensor operators don't make sense since they'd have no free params and would just be a fixed matrix.
 - **`_repr_single_line = False`**: Unlike base `Matrix`, operators use multi-line repr because they contain nested operand reprs.
@@ -682,8 +682,8 @@ Do not need to execute.
 - **`grad_tree` does not show the embedding**: A node's Jacobian is in that node's own shape, so how a child's Jacobian is placed into its parent's — `Sum` concatenating, `BlockDiagonal` padding into a block, the products expanding — is not represented. Only the root entry has the composite's full shape. Exposing the embedding would need each operator to describe how it places a child's Jacobian.
 - **`out_format="dict"` name selection follows `include_fixed`**: the concatenated result carries fixed values whenever `include_fixed=True`, so the dict keys must come from `param_names` in that case. Taking them from `free_param_names` instead pairs every value after the first fixed slot with the wrong name — silent, since the zip truncates rather than raises, and an all-fixed composite collapses to `{}` while its tensor output still holds every value. Values are one row per name, shape `(1,)`, matching `Matrix.build_params`, so the dict can be fed back as `free_params`; only the `include_fixed=False` form round-trips, since the `include_fixed=True` form mixes fixed values into keys the input path rejects as "Unexpected free parameters".
 - **Cache control recurses, the `cache` flag does not.** `disable_cache` / `enable_cache` are the operand-tree operations: they flip the flag on every descendant and clear every cache below. Assigning `op.cache = False` directly gates only the operator's own `set_intermediates` / `get_intermediates` and leaves the operands caching. Both behaviours are deliberate; the methods are what a caller means by "nothing in this composite caches".
-- **`operands_inverse` must not build the operands it inverts.** Calling `operand(operand_params)` to get a value would be a double cost: for an operand with a closed-form inverse it rebuilds the matrix the closed form avoids, and for an operand without one `Matrix.manual_inverse` raises instead, so the build buys nothing at all. The `StubMatrix` counters pin both halves: `manual_inverse_count == 1`, `call_count == 0`.
-- **No squareness check in `operands_inverse`.** An operand that cannot be inverted raises from its own `manual_inverse`: `NotImplementedError` when it has no closed form, and a `RuntimeError` from `torch.linalg.inv` when an override exists but the matrix is rectangular. The base helper therefore has no `None` marker for non-invertible operands, unlike `operands_grad`'s `None` for operands with no free parameters, and each closed-form operator states the square-operand precondition in a docstring warning rather than branching on shape at runtime.
+- **`operands_manual_inverse` must not build the operands it inverts.** Calling `operand(operand_params)` to get a value would be a double cost: for an operand with a closed-form inverse it rebuilds the matrix the closed form avoids, and for an operand without one `Matrix.manual_inverse` raises instead, so the build buys nothing at all. The `StubMatrix` counters pin both halves: `manual_inverse_count == 1`, `call_count == 0`.
+- **No squareness check in `operands_manual_inverse`.** An operand that cannot be inverted raises from its own `manual_inverse`: `NotImplementedError` when it has no closed form, and a `RuntimeError` from `torch.linalg.inv` when an override exists but the matrix is rectangular. The base helper therefore has no `None` marker for non-invertible operands, unlike `operands_grad`'s `None` for operands with no free parameters, and each closed-form operator states the square-operand precondition in a docstring warning rather than branching on shape at runtime.
 
 ---
 
@@ -703,5 +703,5 @@ Do not need to execute.
 | `free_param_tree` | 16 |
 | `grad_tree` | 17 |
 | Cache control | 5 |
-| `operands_inverse` | 9 |
+| `operands_manual_inverse` | 9 |
 | **Total** | **130** |
