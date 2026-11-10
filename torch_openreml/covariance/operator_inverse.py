@@ -76,7 +76,7 @@ class Inverse(Operator):
 
         return v
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
         Return the inverse of the composite matrix from its closed form.
 
@@ -107,7 +107,7 @@ class Inverse(Operator):
 
             op = Inverse(a=ScalarMatrix(3))
             free_params = torch.tensor([0.5])
-            op.inverse(free_params)
+            op.manual_inverse(free_params)
         """
         return self.build_operands(free_params)[0]
 

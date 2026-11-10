@@ -92,7 +92,7 @@ class IdentityMatrix(Matrix):
         params = self.build_params(free_params, include_fixed=False, trans=False)
         return self._matrix.to(device=params.device, dtype=params.dtype).clone()
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
         Return the inverse of the identity matrix, which is the identity.
 
@@ -121,10 +121,10 @@ class IdentityMatrix(Matrix):
             from torch_openreml.covariance import IdentityMatrix
 
             mat = IdentityMatrix(3)
-            mat.inverse()
+            mat.manual_inverse()
 
         .. jupyter-execute::
 
-            mat.inverse(torch.tensor([], dtype=torch.float64))
+            mat.manual_inverse(torch.tensor([], dtype=torch.float64))
         """
         return self(free_params)

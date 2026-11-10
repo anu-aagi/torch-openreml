@@ -76,7 +76,7 @@ class DiagonalMatrix(Matrix):
 
         return torch.diag(sigma2)
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
         Return the inverse of the matrix from its closed form.
 
@@ -102,7 +102,7 @@ class DiagonalMatrix(Matrix):
 
             mat = DiagonalMatrix(3)
             free_params = torch.tensor([0.0, 0.5, 1.0])
-            mat.inverse(free_params)
+            mat.manual_inverse(free_params)
         """
         sigma2 = self.build_params(free_params)
 

@@ -848,13 +848,19 @@ class Matrix(ABC):
         else:
             raise RuntimeError(f"Unknown grad mode '{self.grad_mode}'")
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
-        Construct the matrix and return its inverse.
+        Return the inverse of the matrix from a closed-form expression.
 
-        This is the default implementation: it builds :math:`\\symbf{V}` via
-        :meth:`__call__` and inverts the result directly. Subclasses should
-        override it with a cheaper analytic inverse where one is available.
+        This is an opt-in extension point: the base class has no closed form
+        to fall back on, so it raises :exc:`NotImplementedError` rather than
+        inverting :meth:`__call__` numerically. Subclasses that can invert
+        their own structure analytically override this method. For a generic
+        numerical inverse, build the matrix and invert it directly:
+
+        .. code-block:: python
+
+            torch.linalg.inv(mat(free_params))
 
         Args:
             free_params (torch.Tensor or dict): Flat 1D parameter tensor or
@@ -862,15 +868,16 @@ class Matrix(ABC):
                 Default: ``None``.
 
         Raises:
-            TypeError: If ``free_params`` is not a Torch tensor.
-            ValueError: If ``free_params`` is not a 1D tensor or has the wrong length,
-                or if ``free_params`` is a dict with missing or unexpected keys.
+            NotImplementedError: Always, in the base class.
 
         Returns:
             torch.Tensor: Inverse of the constructed matrix, of shape
             :attr:`shape`.
         """
-        return self(free_params).inverse()
+        raise NotImplementedError(
+            f"{type(self).__name__} does not provide a closed-form inverse; "
+            "use torch.linalg.inv(self(free_params)) instead."
+        )
 
     def resolve_dim(self, n):
         """

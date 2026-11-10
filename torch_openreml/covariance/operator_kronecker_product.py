@@ -81,7 +81,7 @@ class KroneckerProduct(Operator):
 
         return v
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
         Return the inverse of the composite matrix from its closed form.
 
@@ -89,7 +89,7 @@ class KroneckerProduct(Operator):
         so its inverse is
         :math:`\\symbf{V}^{-1} = \\symbf{A}^{-1} \\otimes \\symbf{B}^{-1}`:
         each operand is inverted through its own
-        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse`, so the
+        :meth:`~torch_openreml.covariance.matrix.Matrix.manual_inverse`, so the
         composite is never inverted densely and its
         :math:`(mp) \\times (mp)` inverse is never formed in full.
 
@@ -115,7 +115,7 @@ class KroneckerProduct(Operator):
 
             op = KroneckerProduct(time=AR1Matrix(2), subject=ScalarMatrix(2))
             free_params = torch.tensor([1.0, 1.0, 1.0])
-            op.inverse(free_params)
+            op.manual_inverse(free_params)
         """
         inverses = self.operands_inverse(free_params)
 

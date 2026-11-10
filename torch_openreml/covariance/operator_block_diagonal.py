@@ -99,7 +99,7 @@ class BlockDiagonal(Operator):
 
         return v
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
         Return the inverse of the composite matrix from its closed form.
 
@@ -108,7 +108,7 @@ class BlockDiagonal(Operator):
         so its inverse is
         :math:`\\symbf{V}^{-1} = \\mathrm{blockdiag}(\\symbf{V}_0^{-1}, \\symbf{V}_1^{-1}, \\ldots)`:
         each operand is inverted through its own
-        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse` and the
+        :meth:`~torch_openreml.covariance.matrix.Matrix.manual_inverse` and the
         results are placed back on the diagonal, so the composite is never
         inverted densely.
 
@@ -137,7 +137,7 @@ class BlockDiagonal(Operator):
                 random=DiagonalMatrix(2)
             )
             free_params = torch.tensor([0.5, 0.0, 1.0])
-            op.inverse(free_params)
+            op.manual_inverse(free_params)
         """
         inverses = self.operands_inverse(free_params)
 

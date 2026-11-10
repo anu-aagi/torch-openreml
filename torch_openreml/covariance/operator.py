@@ -652,7 +652,7 @@ class Operator(Matrix):
         Compute the inverse of each operand at the current free parameters.
 
         Splits ``free_params`` into per-operand slices, calls
-        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse` on each
+        :meth:`~torch_openreml.covariance.matrix.Matrix.manual_inverse` on each
         :class:`~torch_openreml.covariance.matrix.Matrix` operand, and casts
         and inverts each fixed tensor operand. A
         :class:`~torch_openreml.covariance.matrix.Matrix` operand is never
@@ -674,6 +674,8 @@ class Operator(Matrix):
             ValueError: If ``free_params`` is not a 1D tensor or has the
                 wrong length, or if ``free_params`` is a dict with missing
                 or unexpected keys.
+            NotImplementedError: If a :class:`Matrix` operand has no
+                closed-form inverse of its own.
 
         Example:
             .. jupyter-execute::
@@ -698,7 +700,7 @@ class Operator(Matrix):
                 operand_params = free_params[0:operand.num_free_params]
                 free_params = free_params[operand.num_free_params:]
 
-                inverses.append(operand.inverse(operand_params))
+                inverses.append(operand.manual_inverse(operand_params))
             else:
                 inverses.append(torch.linalg.inv(operand.to(device=device, dtype=dtype)))
 

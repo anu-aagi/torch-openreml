@@ -81,7 +81,7 @@ class ScalarMatrix(Matrix):
 
         return v
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
         Return the inverse of the matrix from its closed form.
 
@@ -105,7 +105,7 @@ class ScalarMatrix(Matrix):
 
             mat = ScalarMatrix(3)
             free_params = torch.tensor([0.5])
-            mat.inverse(free_params)
+            mat.manual_inverse(free_params)
         """
         sigma2 = self.build_params(free_params)
         device = sigma2.device

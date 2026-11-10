@@ -112,7 +112,7 @@ class CompoundSymmetricMatrix(Matrix):
 
         return v
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
         Return the inverse of the matrix from its closed form.
 
@@ -143,7 +143,7 @@ class CompoundSymmetricMatrix(Matrix):
 
             mat = CompoundSymmetricMatrix(3)
             free_params = torch.tensor([0.5, 1.0])
-            mat.inverse(free_params)
+            mat.manual_inverse(free_params)
         """
         cache = self._get_or_build_intermediates(free_params)
         sigma2 = cache["sigma2"]

@@ -77,7 +77,7 @@ class Transpose(Operator):
 
         return v
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
         Return the inverse of the composite matrix from its closed form.
 
@@ -85,7 +85,7 @@ class Transpose(Operator):
         is
         :math:`\\symbf{V}^{-1} = (\\symbf{A}^{-1})^\\top`: the operand is
         inverted through its own
-        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse` and the
+        :meth:`~torch_openreml.covariance.matrix.Matrix.manual_inverse` and the
         result is transposed, so the composite is never inverted densely.
 
         .. warning::
@@ -110,7 +110,7 @@ class Transpose(Operator):
 
             op = Transpose(a=AR1Matrix(3))
             free_params = torch.tensor([0.0, 0.5])
-            op.inverse(free_params)
+            op.manual_inverse(free_params)
         """
         inverses = self.operands_inverse(free_params)
 

@@ -81,7 +81,7 @@ class Product(Operator):
 
         return v
 
-    def inverse(self, free_params=None):
+    def manual_inverse(self, free_params=None):
         """
         Return the inverse of the composite matrix from its closed form.
 
@@ -89,7 +89,7 @@ class Product(Operator):
         inverse is
         :math:`\\symbf{V}^{-1} = \\symbf{B}^{-1} \\symbf{A}^{-1}`, with the
         operands inverted in reverse order through their own
-        :meth:`~torch_openreml.covariance.matrix.Matrix.inverse`, so the
+        :meth:`~torch_openreml.covariance.matrix.Matrix.manual_inverse`, so the
         composite is never inverted densely.
 
         .. warning::
@@ -115,7 +115,7 @@ class Product(Operator):
 
             op = Product(a=DiagonalMatrix(2), b=AR1Matrix(2))
             free_params = torch.tensor([0.0, 0.5, 0.0, 0.5])
-            op.inverse(free_params)
+            op.manual_inverse(free_params)
         """
         inverses = self.operands_inverse(free_params)
 
