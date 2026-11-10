@@ -17,8 +17,8 @@
       ~MarginalREML.ai_step
       ~MarginalREML.blue
       ~MarginalREML.compute_v_dv
-      ~MarginalREML.get_beta
-      ~MarginalREML.get_theta
+      ~MarginalREML.get_fixed_effects
+      ~MarginalREML.get_free_params
       ~MarginalREML.is_converged
       ~MarginalREML.loglik
       ~MarginalREML.optimize
