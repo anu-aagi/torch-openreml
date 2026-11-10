@@ -60,7 +60,7 @@ was implemented. The "Gap" column is what the tests were missing; §5 records wh
 | 23 | `cache` | **New** | added after this plan was implemented; §P-bis records what it must cover |
 | 24 | `enable_cache` / `disable_cache` | **New** | added after this plan was implemented; §P-ter records what they must cover |
 | 25 | `resolve_dim` | **New** | added after this plan was implemented; §S records what it must cover |
-| 26 | `inverse` | **New** | added after this plan was implemented; §T records what it must cover |
+| 26 | `manual_inverse` | **New** | added after this plan was implemented; §T records what it must cover |
 
 `TestREMLInterface` (2 tests) must be **deleted**: `map_theta_to_v` / `map_theta_to_dv` no longer exist on
 `Matrix` or anywhere in the package. Section I of the previous revision of this plan documented a removed
@@ -562,31 +562,31 @@ building parameter specs, computing `rho_min`, or sizing a tensor.
 - Boundaries: duplicates collapse (`["a", "b", "a"]` → `2`), an empty sequence → `0`, and a
   sequence of unhashable elements (`[[1], [2]]`) raises `TypeError` from `set`
 
-#### T. `inverse(free_params=None)`
+#### T. `manual_inverse(free_params=None)`
 
-The default implementation is `self(free_params).inverse()` — build the matrix, then invert it — and
-it is what every matrix without a cheaper analytic inverse inherits. Six subclasses now override it
-with a closed form (`ScalarMatrix`, `DiagonalMatrix`, `IdentityMatrix`, `EquicorrelationMatrix`,
-`AR1Matrix`, `CompoundSymmetricMatrix`); each override has its own section in its own module plan,
-and this section covers the default itself and the override point:
+The base implementation raises `NotImplementedError`. It is an opt-in extension point for matrices
+that can invert themselves in closed form, not a numeric fallback: a caller that wants the inverse of
+an arbitrary matrix calls `torch.linalg.inv(mat(free_params))`. Eleven subclasses override it
+(`ScalarMatrix`, `DiagonalMatrix`, `IdentityMatrix`, `EquicorrelationMatrix`, `AR1Matrix`,
+`CompoundSymmetricMatrix` and the structured operators); each override has its own section in its own
+module plan, and this section covers the base contract and the override point:
 
-- The default equals `self(free_params).inverse()` and `mat(p) @ mat.inverse(p)` is the identity, on
-  a vehicle that does not override it
-- `None` means the defaults; a dict of free parameters means the same as the flat tensor
-- A matrix with no parameters inverts (`IdentityMatrix` → the identity, through its own override)
-- Validation is not bypassed: a non-tensor, a wrong-length vector and a bad dict raise from
-  `build_params`, exactly as they do through `__call__`
-- The result stays attached to `free_params`: `requires_grad` on the output, a non-zero `.grad` for
-  every free parameter after `backward()`. Nothing in the default detaches or inverts under `no_grad`
-- A subclass that overrides `inverse` is dispatched to, so the extension point the docstring
-  promises is real
-- `Operator` inherits the default — no operator defines its own `inverse`
+- The base raises `NotImplementedError` naming the class, and the message points at
+  `torch.linalg.inv(self(free_params))` as the numeric alternative
+- The raise precedes parameter validation: the base has no closed form for any input, so a bad
+  tensor or dict raises `NotImplementedError`, not `TypeError`/`ValueError` from `build_params`
+- A caller without a closed form inverts numerically instead: `torch.linalg.inv(mat(free_params))`
+  is the identity product, so the alternative the message names works
+- A subclass that overrides `manual_inverse` is dispatched to, so the extension point is real
+- `Operator` subclasses without a structured inverse (e.g. `Sum`) inherit the raising base; the
+  operators that do define one (`BlockDiagonal`, `Product`, `KroneckerProduct`, `Transpose`,
+  `Inverse`) propagate `NotImplementedError` when an operand lacks a closed form
+- `ThreeParamMatrix` pins the default: it defines `__call__` and nothing else, so any value it
+  returned would have come from the base class
 
-**The vehicle decides what is tested.** Most of these cases use `DiagonalMatrix` and
-`IdentityMatrix` as vehicles, following the convention that a concrete subclass carries base-class
-behavior. Both now override `inverse`, so those cases hold the *contract* to account without
-reaching the default implementation. `ThreeParamMatrix` is the vehicle that pins the default
-itself — it defines `__call__` and nothing else, so `inverse` can only come from the base class.
+**The vehicle pins the contract.** `ThreeParamMatrix` defines `__call__` and no `manual_inverse`, so
+it exercises the base class directly. `DiagonalMatrix` and `IdentityMatrix` are used only where the
+override itself is the subject; their own module plans cover the closed forms.
 
 ---
 
@@ -780,8 +780,9 @@ accepted `/` with a rejection test plus a `.`-is-still-legal test, and takes it 
 revision adds the trailing-slash subtree form to `set_param_specs` and takes it to 432. A seventh
 revision adds `resolve_dim` (§S) — a matrix dimension may be given as a list, tuple or
 `pandas.Series` of levels, resolved to its number of distinct elements — and takes it to 442. An
-eighth revision adds `inverse` (§T) — the default builds the matrix via `__call__` and inverts the
-result, and subclasses are expected to override it with a cheaper analytic inverse — and takes it to
+eighth revision adds `manual_inverse` (§T) — the default built the matrix via `__call__` and inverted the
+result, and subclasses were expected to override it with a cheaper analytic inverse (superseded by
+the eleventh revision) — and takes it to
 **451**. A ninth revision adds the `ThreeParamMatrix` vehicle and two tests that pin the default
 implementation after six subclasses began overriding it, and takes it to **453**. A tenth revision gives
 `set_param_specs` broadcast and split semantics for all three fields, so one call sets a whole subtree
@@ -804,25 +805,25 @@ from a single value or from one value per parameter, and takes it to **474**.
 | Caching | `set_` / `get_` / `reset_intermediates`, `cache`, `enable_cache` / `disable_cache` | 31 |
 | Properties | all 17 | 32 |
 | Representation | `__repr__`, `_repr_indented`, `_repr_value`, `_repr_dict` | 14 |
-| Inverse | `inverse` | 11 |
-| **Total** | | **474** |
+| Inverse | `manual_inverse` | 7 |
+| **Total** | | **470** |
 
-Result: `474 passed`. What the eighth revision added, and why:
+Result: `470 passed`. What the eighth revision added, and why:
 
-- **`inverse`** (§T), added to the class after this plan: the default is `self(free_params).inverse()`,
-  deliberately the slow generic path, with subclasses expected to override it. The load-bearing tests
-  are the override dispatch — an override that stops being called would silently change
-  `Operator.inverse`, which no operator defines — and the gradient-flow case, which fails if the
-  default is ever wrapped in `no_grad` or switched to a detaching `numpy`-style path. The remaining
-  tests only hold the default to the input contract the rest of the class already promises
+- **`inverse`** (§T), added to the class after this plan: the default built the matrix with
+  `self(free_params)` and inverted it, deliberately the slow generic path, with subclasses expected
+  to override it (superseded by the eleventh revision). The load-bearing tests were the override
+  dispatch — an override that stops being called would silently change `Operator.manual_inverse` —
+  and the gradient-flow case, which would fail if the default were wrapped in `no_grad` or switched
+  to a detaching `numpy`-style path.
 
 What the ninth revision changed, and why:
 
 - **The default lost its vehicle.** The eighth revision's tests used `DiagonalMatrix` and
   `IdentityMatrix`, which were plain subclasses at the time. Both have since gained an analytic
-  `inverse`, so those cases stopped reaching `matrix.py` and started testing the overrides instead —
+  `manual_inverse`, so those cases stopped reaching `matrix.py` and started testing the overrides instead —
   the suite stayed green while the default quietly lost its coverage. `ThreeParamMatrix` restores it:
-  a concrete subclass with a `__call__` and no `inverse`, so any pass it produces came from the base
+  a concrete subclass with a `__call__` and no `manual_inverse`, so any pass it produces came from the base
   class. The two new cases are the value/product contract and the gradient flow, which are the two
   the eighth revision called load-bearing
 
@@ -915,3 +916,14 @@ literal newline, so the test needed a vehicle whose `repr` does.
 
 The 24 failures elsewhere in `pytest tests/covariance` are the stale `map_theta_to_v` /
 `map_theta_to_dv` API documented in `CLAUDE.md`; none is in this module, and none was introduced here.
+
+What the eleventh revision changed, and why:
+
+- **The method became opt-in.** `manual_inverse` was renamed to `manual_inverse` and the base class now
+  raises `NotImplementedError` instead of inverting `self(free_params)` numerically. Inverting a
+  matrix that has no closed form was always the slow generic path, and the name did not say so; the
+  explicit name plus the raise makes each closed form a deliberate override and keeps callers from
+  silently paying for a dense inversion. The section is correspondingly seven tests: the raise, the
+  message that names the numeric alternative, the raise winning over param validation, the numeric
+  route itself, override dispatch, the operators that inherit the raise, and `ThreeParamMatrix`
+  pinning the base. The value and gradient-flow tests went with the numeric default they tested.

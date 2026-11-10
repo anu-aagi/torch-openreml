@@ -505,31 +505,31 @@ class TestIdentityMatrixInverse:
     """``inverse`` is the identity itself, on the dtype and device of the input."""
 
     def test_is_the_identity(self):
-        assert torch.allclose(IdentityMatrix(3).inverse(), torch.eye(3))
+        assert torch.allclose(IdentityMatrix(3).manual_inverse(), torch.eye(3))
 
     def test_matches_inverse_of_call(self):
         mat = IdentityMatrix(3)
-        assert torch.allclose(mat.inverse(), torch.linalg.inv(mat()))
+        assert torch.allclose(mat.manual_inverse(), torch.linalg.inv(mat()))
 
     def test_matches_call(self):
         mat = IdentityMatrix(3)
-        assert torch.equal(mat.inverse(), mat())
+        assert torch.equal(mat.manual_inverse(), mat())
 
     @pytest.mark.parametrize("n", [1, 2, 5])
     def test_shape_is_n_by_n(self, n):
-        assert IdentityMatrix(n).inverse().shape == (n, n)
+        assert IdentityMatrix(n).manual_inverse().shape == (n, n)
 
     @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
     def test_follows_input_dtype(self, dtype):
         mat = IdentityMatrix(3)
-        assert mat.inverse(torch.tensor([], dtype=dtype)).dtype == dtype
+        assert mat.manual_inverse(torch.tensor([], dtype=dtype)).dtype == dtype
 
     def test_follows_non_float_input_dtype(self):
         mat = IdentityMatrix(3)
-        assert mat.inverse(torch.tensor([], dtype=torch.int64)).dtype == torch.int64
+        assert mat.manual_inverse(torch.tensor([], dtype=torch.int64)).dtype == torch.int64
 
     def test_default_dtype_when_omitted(self):
-        assert IdentityMatrix(3).inverse().dtype == torch.get_default_dtype()
+        assert IdentityMatrix(3).manual_inverse().dtype == torch.get_default_dtype()
 
     def test_follows_input_device(self):
         if torch.cuda.is_available():
@@ -539,28 +539,28 @@ class TestIdentityMatrixInverse:
         else:
             pytest.skip("no accelerator available")
         mat = IdentityMatrix(3)
-        result = mat.inverse(torch.tensor([], device=device))
+        result = mat.manual_inverse(torch.tensor([], device=device))
         assert result.device.type == device
         assert torch.equal(result.cpu(), torch.eye(3))
 
     def test_rejects_non_tensor(self):
         with pytest.raises(TypeError, match="Torch tensor"):
-            IdentityMatrix(3).inverse([0.0])
+            IdentityMatrix(3).manual_inverse([0.0])
 
     @pytest.mark.parametrize("length", [1, 3])
     def test_rejects_non_empty_tensor(self, length):
         with pytest.raises(ValueError, match="length 0"):
-            IdentityMatrix(3).inverse(torch.ones(length))
+            IdentityMatrix(3).manual_inverse(torch.ones(length))
 
     def test_rejects_non_empty_dict(self):
         with pytest.raises(ValueError, match="Unexpected free parameters"):
-            IdentityMatrix(3).inverse({"sigma^2": torch.tensor([1.0])})
+            IdentityMatrix(3).manual_inverse({"sigma^2": torch.tensor([1.0])})
 
     def test_returns_a_fresh_tensor(self):
         mat = IdentityMatrix(3)
-        result = mat.inverse()
+        result = mat.manual_inverse()
         result[0, 0] = 99.0
-        assert torch.equal(mat.inverse(), torch.eye(3))
+        assert torch.equal(mat.manual_inverse(), torch.eye(3))
         assert float(mat()[0, 0]) == 1.0
 
 

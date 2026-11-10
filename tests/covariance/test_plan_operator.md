@@ -179,18 +179,22 @@ Overrides that extend the base toggles over the operand tree, mirroring `reset_i
 #### L. `operands_inverse` Method
 
 The inversion sibling of `operands_grad`: it splits `free_params` into per-operand slices and inverts each
-operand. A `Matrix` operand is inverted through its own `inverse`, so an analytic inverse — or a nested
-operator's structured inverse — replaces a dense inversion of that operand; a fixed `torch.Tensor` operand
-is cast to the resolved dtype and device and inverted directly.
+operand. A `Matrix` operand is inverted through its own `manual_inverse`, so an analytic inverse — or a
+nested operator's structured inverse — replaces a dense inversion of that operand; a fixed `torch.Tensor`
+operand is cast to the resolved dtype and device and inverted directly. Because `manual_inverse` is opt-in
+and the base class raises, an operand with no closed form makes the whole helper raise
+`NotImplementedError` rather than silently falling back to a dense inversion.
 
 The load-bearing design constraint is that no operand value is built here. Constructing `v = operand(p)`
 to inspect it would rebuild, on the fast path, exactly the matrix a closed-form inverse exists to avoid —
-so the helper must reach the operand's `inverse` without going through its `__call__`. Squareness is
-likewise not checked: an operand that cannot be inverted raises from its own `inverse`, and each operator
-that relies on the closed form documents the square-operand precondition in its docstring instead.
+so the helper must reach the operand's `manual_inverse` without going through its `__call__`. Squareness
+is likewise not checked: an operand that cannot be inverted raises from its own `manual_inverse`, and each
+operator that relies on the closed form documents the square-operand precondition in its docstring
+instead.
 
 - Returns one inverse per operand, in `operands` order
-- A `Matrix` operand's own `inverse` is called, and its `__call__` is never called
+- A `Matrix` operand's own `manual_inverse` is called, and its `__call__` is never called
+- An operand with no closed form raises `NotImplementedError`, propagated unchanged from the operand
 - A fixed tensor operand is inverted directly, following the resolved dtype and device
 - The argument contract is the one `operands_grad` promises: `None` means the defaults, a dict of free
   parameters means the same as the flat tensor, and a non-tensor, a wrong-length vector and a bad dict each
@@ -492,8 +496,13 @@ class TestOperatorOperandsInverse:
         stub = StubMatrix()
         op = Sum(a=stub, b=ScalarMatrix(2))
         inverses = op.operands_inverse(torch.tensor([0.5]))
-        assert stub.inverse_count == 1
+        assert stub.manual_inverse_count == 1
         assert torch.allclose(inverses[0], torch.tensor([[-1.0, -2.0], [-3.0, -4.0]]))
+
+    def test_raises_when_operand_has_no_closed_form(self):
+        op = Sum(a=Sum(ScalarMatrix(2), ScalarMatrix(2)), b=ScalarMatrix(2))
+        with pytest.raises(NotImplementedError, match="closed-form inverse"):
+            op.operands_inverse(torch.tensor([0.0, 0.5, 0.0]))
 
     def test_does_not_build_matrix_operands(self):
         stub = StubMatrix()
@@ -502,8 +511,8 @@ class TestOperatorOperandsInverse:
         assert stub.call_count == 0
 ```
 
-`StubMatrix` is a parameterless `Matrix` whose `inverse` returns a sentinel and whose `__call__` counts
-its calls, so routing and the absence of a build are observable without reading internals:
+`StubMatrix` is a parameterless `Matrix` whose `manual_inverse` returns a sentinel and whose `__call__`
+counts its calls, so routing and the absence of a build are observable without reading internals:
 
 ```python
 class StubMatrix(Matrix):
@@ -512,14 +521,14 @@ class StubMatrix(Matrix):
     def __init__(self):
         super().__init__((2, 2), {})
         self.call_count = 0
-        self.inverse_count = 0
+        self.manual_inverse_count = 0
 
     def __call__(self, free_params=None):
         self.call_count += 1
         return torch.tensor([[1.0, 2.0], [3.0, 4.0]])
 
-    def inverse(self, free_params=None):
-        self.inverse_count += 1
+    def manual_inverse(self, free_params=None):
+        self.manual_inverse_count += 1
         return torch.tensor([[-1.0, -2.0], [-3.0, -4.0]])
 ```
 
@@ -673,8 +682,8 @@ Do not need to execute.
 - **`grad_tree` does not show the embedding**: A node's Jacobian is in that node's own shape, so how a child's Jacobian is placed into its parent's — `Sum` concatenating, `BlockDiagonal` padding into a block, the products expanding — is not represented. Only the root entry has the composite's full shape. Exposing the embedding would need each operator to describe how it places a child's Jacobian.
 - **`out_format="dict"` name selection follows `include_fixed`**: the concatenated result carries fixed values whenever `include_fixed=True`, so the dict keys must come from `param_names` in that case. Taking them from `free_param_names` instead pairs every value after the first fixed slot with the wrong name — silent, since the zip truncates rather than raises, and an all-fixed composite collapses to `{}` while its tensor output still holds every value. Values are one row per name, shape `(1,)`, matching `Matrix.build_params`, so the dict can be fed back as `free_params`; only the `include_fixed=False` form round-trips, since the `include_fixed=True` form mixes fixed values into keys the input path rejects as "Unexpected free parameters".
 - **Cache control recurses, the `cache` flag does not.** `disable_cache` / `enable_cache` are the operand-tree operations: they flip the flag on every descendant and clear every cache below. Assigning `op.cache = False` directly gates only the operator's own `set_intermediates` / `get_intermediates` and leaves the operands caching. Both behaviours are deliberate; the methods are what a caller means by "nothing in this composite caches".
-- **`operands_inverse` must not build the operands it inverts.** Calling `operand(operand_params)` to get a value would be a double cost: for an operand with a closed-form inverse it rebuilds the matrix the closed form avoids, and for an operand without one `Matrix.inverse` builds the matrix itself, so the build is pure overhead either way. It also quietly changes semantics, since a `Matrix` operand whose `inverse` is overridden would be routed to the dense path whenever the shape looked wrong. The `StubMatrix` counters pin both halves: `inverse_count == 1`, `call_count == 0`.
-- **No squareness check in `operands_inverse`.** An operand that cannot be inverted raises from its own `inverse` — a `RuntimeError` from `torch.linalg.inv` for a rectangular matrix. The base helper therefore has no `None` marker for non-invertible operands, unlike `operands_grad`'s `None` for operands with no free parameters, and each closed-form operator states the square-operand precondition in a docstring warning rather than branching on shape at runtime.
+- **`operands_inverse` must not build the operands it inverts.** Calling `operand(operand_params)` to get a value would be a double cost: for an operand with a closed-form inverse it rebuilds the matrix the closed form avoids, and for an operand without one `Matrix.manual_inverse` raises instead, so the build buys nothing at all. The `StubMatrix` counters pin both halves: `manual_inverse_count == 1`, `call_count == 0`.
+- **No squareness check in `operands_inverse`.** An operand that cannot be inverted raises from its own `manual_inverse`: `NotImplementedError` when it has no closed form, and a `RuntimeError` from `torch.linalg.inv` when an override exists but the matrix is rectangular. The base helper therefore has no `None` marker for non-invertible operands, unlike `operands_grad`'s `None` for operands with no free parameters, and each closed-form operator states the square-operand precondition in a docstring warning rather than branching on shape at runtime.
 
 ---
 
@@ -694,5 +703,5 @@ Do not need to execute.
 | `free_param_tree` | 16 |
 | `grad_tree` | 17 |
 | Cache control | 5 |
-| `operands_inverse` | 8 |
-| **Total** | **129** |
+| `operands_inverse` | 9 |
+| **Total** | **130** |

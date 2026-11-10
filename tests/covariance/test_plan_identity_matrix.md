@@ -81,7 +81,7 @@ Ensure the matrix is correctly constructed as the identity, exposes a completely
 
 #### H. `inverse(free_params=None)`
 
-`IdentityMatrix` overrides the base default: the inverse of `I` is `I`, so building the matrix and inverting it would be wasted work for a result identical to `__call__`'s. The override delegates to `__call__`, and must inherit its whole contract rather than restate it.
+`IdentityMatrix` overrides the raising base: the inverse of `I` is `I`, so building the matrix and inverting it would be wasted work for a result identical to `__call__`'s. The override delegates to `__call__`, and must inherit its whole contract rather than restate it.
 
 - Is the identity, for several `n` including `n = 1`, and agrees with `__call__` and with `torch.linalg.inv(mat())`
 - Follows the input dtype, including a non-float dtype, and falls back to the Torch default dtype when no input is given
@@ -118,17 +118,17 @@ class TestIdentityMatrixCallValues:
 
 
 class TestIdentityMatrixInverse:
-    """``inverse`` is the identity itself, on the dtype and device of the input."""
+    """``manual_inverse`` is the identity itself, on the dtype and device of the input."""
 
     def test_matches_inverse_of_call(self):
         mat = IdentityMatrix(3)
-        assert torch.allclose(mat.inverse(), torch.linalg.inv(mat()))
+        assert torch.allclose(mat.manual_inverse(), torch.linalg.inv(mat()))
 
     def test_returns_a_fresh_tensor(self):
         mat = IdentityMatrix(3)
-        result = mat.inverse()
+        result = mat.manual_inverse()
         result[0, 0] = 99.0
-        assert torch.equal(mat.inverse(), torch.eye(3))
+        assert torch.equal(mat.manual_inverse(), torch.eye(3))
         assert float(mat()[0, 0]) == 1.0
 ```
 
@@ -148,7 +148,7 @@ class TestIdentityMatrixInverse:
 - **The intermediate cache is dead weight here**: `set_intermediates` returns early when `params` has length 0, and an empty tensor is the only valid input, so the cache can never hold a value. The tests assert the no-op rather than an unreachable populated state.
 - **Boundary of `n` validation**: `n = 0` is caught by `Matrix._check_shape` (`ValueError`), while a negative `n` is rejected earlier by `torch.eye` itself (`RuntimeError`). Both are pinned, so any future move to validate `n` inside the constructor will surface as a test change.
 - **Removed REML interface**: `map_theta_to_v` and `map_theta_to_dv` no longer exist on `Matrix`, so this module no longer tests a REML-specific mapping; `__call__` and `grad` are the interface.
-- **`inverse` is a delegation, so it inherits the aliasing hazard**: the override is `self(free_params)`, which means the freshness guarantee in section 2.1.H rests entirely on `__call__`'s clone. An "optimization" that returns `self._matrix` from either method fails `test_returns_a_fresh_tensor` here as well as the `__call__` test, since both are pinned independently.
+- **`manual_inverse` is a delegation, so it inherits the aliasing hazard**: the override is `self(free_params)`, which means the freshness guarantee in section 2.1.H rests entirely on `__call__`'s clone. An "optimization" that returns `self._matrix` from either method fails `test_returns_a_fresh_tensor` here as well as the `__call__` test, since both are pinned independently.
 
 ---
 
@@ -164,5 +164,5 @@ class TestIdentityMatrixInverse:
 | `grad` / `auto_grad` / `manual_grad` / `trans_grad` | 21 |
 | Intermediate caching | 8 |
 | `repr` | 4 |
-| `inverse` | 16 |
+| `manual_inverse` | 16 |
 | **Total** | **135** |

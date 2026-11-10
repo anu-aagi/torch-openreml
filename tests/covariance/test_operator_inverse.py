@@ -82,22 +82,22 @@ class TestInverse:
         assert op.num_free_params == 0
         assert op.free_param_names == []
 
-    def test_inverse_matches_inverse_of_call(self):
+    def test_manual_inverse_matches_inverse_of_call(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op.inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
+        assert torch.allclose(op.manual_inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
 
-    def test_inverse_returns_operand(self):
+    def test_manual_inverse_returns_operand(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op.inverse(free_params), DiagonalMatrix(3)(free_params))
+        assert torch.allclose(op.manual_inverse(free_params), DiagonalMatrix(3)(free_params))
 
-    def test_inverse_product_with_call_is_identity(self):
+    def test_manual_inverse_product_with_call_is_identity(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op(free_params) @ op.inverse(free_params), torch.eye(3), atol=1e-6)
+        assert torch.allclose(op(free_params) @ op.manual_inverse(free_params), torch.eye(3), atol=1e-6)
 
-    def test_inverse_does_not_invert_densely(self, monkeypatch):
+    def test_manual_inverse_does_not_invert_densely(self, monkeypatch):
         calls = []
         real_inv = torch.linalg.inv
 
@@ -107,57 +107,57 @@ class TestInverse:
 
         monkeypatch.setattr(torch.linalg, "inv", counting_inv)
         op = Inverse(a=DiagonalMatrix(3))
-        op.inverse(torch.tensor([0.0, 0.5, 1.0]))
+        op.manual_inverse(torch.tensor([0.0, 0.5, 1.0]))
         assert calls == []
 
-    def test_inverse_nested_operand(self):
+    def test_manual_inverse_nested_operand(self):
         op = Inverse(a=Product(a=DiagonalMatrix(2), b=ScalarMatrix(2)))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op.inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
+        assert torch.allclose(op.manual_inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
 
-    def test_inverse_uses_default_free_params(self):
+    def test_manual_inverse_uses_default_free_params(self):
         op = Inverse(a=DiagonalMatrix(3))
-        assert torch.allclose(op.inverse(), op.inverse(op.free_param_defaults))
+        assert torch.allclose(op.manual_inverse(), op.manual_inverse(op.free_param_defaults))
 
-    def test_inverse_accepts_dict_of_free_params(self):
-        op = Inverse(a=DiagonalMatrix(3))
-        free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op.inverse(op._to_free_param_dict(free_params)), op.inverse(free_params))
-
-    def test_inverse_dtype_follows_input(self):
+    def test_manual_inverse_accepts_dict_of_free_params(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert op.inverse(free_params).dtype == torch.float32
-        assert op.inverse(free_params.double()).dtype == torch.float64
+        assert torch.allclose(op.manual_inverse(op._to_free_param_dict(free_params)), op.manual_inverse(free_params))
 
-    def test_inverse_gradients_flow_to_free_params(self):
+    def test_manual_inverse_dtype_follows_input(self):
+        op = Inverse(a=DiagonalMatrix(3))
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert op.manual_inverse(free_params).dtype == torch.float32
+        assert op.manual_inverse(free_params.double()).dtype == torch.float64
+
+    def test_manual_inverse_gradients_flow_to_free_params(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0], requires_grad=True)
-        op.inverse(free_params).sum().backward()
+        op.manual_inverse(free_params).sum().backward()
         assert free_params.grad is not None
         assert torch.all(free_params.grad != 0.0)
 
-    def test_inverse_gradient_matches_autograd_of_inverse_of_call(self):
+    def test_manual_inverse_gradient_matches_autograd_of_inverse_of_call(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0], requires_grad=True)
-        op.inverse(free_params).sum().backward()
+        op.manual_inverse(free_params).sum().backward()
         closed_form_grad = free_params.grad.clone()
         free_params.grad = None
         torch.linalg.inv(op(free_params)).sum().backward()
         assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
 
-    def test_inverse_rectangular_operand_is_not_checked(self):
+    def test_manual_inverse_rectangular_operand_is_not_checked(self):
         op = Inverse(a=DummyMatrix(["a", "b", "c", "a"]))
-        assert op.inverse(torch.tensor([])).shape == (4, 3)
+        assert op.manual_inverse(torch.tensor([])).shape == (4, 3)
 
-    def test_inverse_validation_is_not_bypassed(self):
+    def test_manual_inverse_validation_is_not_bypassed(self):
         op = Inverse(a=DiagonalMatrix(3))
         with pytest.raises(TypeError, match="Torch tensor"):
-            op.inverse([0.0, 0.5, 1.0])
+            op.manual_inverse([0.0, 0.5, 1.0])
         with pytest.raises(ValueError, match="length 3"):
-            op.inverse(torch.tensor([0.0, 0.5]))
+            op.manual_inverse(torch.tensor([0.0, 0.5]))
         with pytest.raises(ValueError, match="Missing free parameters"):
-            op.inverse({})
+            op.manual_inverse({})
 
     def test_repr(self):
         op = Inverse(a=ScalarMatrix(3))
@@ -321,13 +321,13 @@ class TestInverseTree:
 class TestInverseComposition:
     """Tests for Inverse in compositions with other operators."""
 
-    def test_inverse_of_inverse_returns_operand(self):
+    def test_manual_inverse_of_inverse_returns_operand(self):
         operand = UnconstrainedMatrix(2)
         op = Inverse(a=Inverse(a=UnconstrainedMatrix(2)))
         free_params = torch.tensor([0.1, 0.2, 0.3])
         assert torch.allclose(op(free_params), operand(free_params))
 
-    def test_inverse_commutes_with_transpose(self):
+    def test_manual_inverse_commutes_with_transpose(self):
         nested = Inverse(a=Transpose(a=LowerTriangularMatrix(2, 2)))
         commuted = Transpose(a=Inverse(a=LowerTriangularMatrix(2, 2)))
         free_params = torch.tensor([0.2, -0.3, 0.5])
@@ -337,7 +337,7 @@ class TestInverseComposition:
         assert names_nested == names_commuted
         assert torch.allclose(grad_nested, grad_commuted)
 
-    def test_inverse_of_product_is_reversed_product(self):
+    def test_manual_inverse_of_product_is_reversed_product(self):
         lhs = Inverse(a=Product(a=DiagonalMatrix(2), b=LowerTriangularMatrix(2, 2)))
         rhs = Product(
             a=Inverse(a=LowerTriangularMatrix(2, 2)), b=Inverse(a=DiagonalMatrix(2))

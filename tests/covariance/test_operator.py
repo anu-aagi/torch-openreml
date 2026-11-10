@@ -40,14 +40,14 @@ class StubMatrix(Matrix):
     def __init__(self):
         super().__init__((2, 2), {})
         self.call_count = 0
-        self.inverse_count = 0
+        self.manual_inverse_count = 0
 
     def __call__(self, free_params=None):
         self.call_count += 1
         return torch.tensor([[1.0, 2.0], [3.0, 4.0]])
 
-    def inverse(self, free_params=None):
-        self.inverse_count += 1
+    def manual_inverse(self, free_params=None):
+        self.manual_inverse_count += 1
         return torch.tensor([[-1.0, -2.0], [-3.0, -4.0]])
 
 
@@ -871,8 +871,13 @@ class TestOperatorOperandsInverse:
         stub = StubMatrix()
         op = Sum(a=stub, b=ScalarMatrix(2))
         inverses = op.operands_inverse(torch.tensor([0.5]))
-        assert stub.inverse_count == 1
+        assert stub.manual_inverse_count == 1
         assert torch.allclose(inverses[0], torch.tensor([[-1.0, -2.0], [-3.0, -4.0]]))
+
+    def test_raises_when_operand_has_no_closed_form(self):
+        op = Sum(a=Sum(ScalarMatrix(2), ScalarMatrix(2)), b=ScalarMatrix(2))
+        with pytest.raises(NotImplementedError, match="closed-form inverse"):
+            op.operands_inverse(torch.tensor([0.0, 0.5, 0.0]))
 
     def test_does_not_build_matrix_operands(self):
         stub = StubMatrix()

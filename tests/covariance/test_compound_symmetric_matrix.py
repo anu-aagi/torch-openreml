@@ -221,57 +221,57 @@ class TestCompoundSymmetricMatrix:
         expected, _ = mat.grad(free_params)
         assert torch.allclose(mat.map_theta_to_dv(free_params), expected)
 
-    def test_inverse_matches_inverse_of_call(self):
+    def test_manual_inverse_matches_inverse_of_call(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, 0.7])
-        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
-    def test_inverse_closed_form_structure(self):
+        assert torch.allclose(mat.manual_inverse(free_params), torch.linalg.inv(mat(free_params)))
+    def test_manual_inverse_closed_form_structure(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, 0.7])
         sigma2, rho = mat.build_params(free_params)
         expected_diag = (1 / sigma2) * (1 / (1 - rho) - rho / ((1 - rho) * (1 + 2 * rho)))
         expected_off = -(1 / sigma2) * rho / ((1 - rho) * (1 + 2 * rho))
-        result = mat.inverse(free_params)
+        result = mat.manual_inverse(free_params)
         n = 3
         off_diag = result[~torch.eye(n, dtype=torch.bool)]
         assert torch.allclose(result.diag(), expected_diag.expand(n))
         assert torch.allclose(off_diag, expected_off.expand_as(off_diag))
-    def test_inverse_product_with_matrix_is_identity(self):
+    def test_manual_inverse_product_with_matrix_is_identity(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, 0.7])
-        assert torch.allclose(mat(free_params) @ mat.inverse(free_params), torch.eye(3), atol=1e-6)
-    def test_inverse_scales_by_reciprocal_sigma_squared(self):
+        assert torch.allclose(mat(free_params) @ mat.manual_inverse(free_params), torch.eye(3), atol=1e-6)
+    def test_manual_inverse_scales_by_reciprocal_sigma_squared(self):
         mat = CompoundSymmetricMatrix(3)
-        base = mat.inverse(torch.tensor([0.0, 0.7]))
+        base = mat.manual_inverse(torch.tensor([0.0, 0.7]))
         sigma2 = mat.build_params(torch.tensor([1.0, 0.7]))[0]
-        assert torch.allclose(mat.inverse(torch.tensor([1.0, 0.7])), base / sigma2)
-    def test_inverse_rho_zero_is_scaled_identity(self):
+        assert torch.allclose(mat.manual_inverse(torch.tensor([1.0, 0.7])), base / sigma2)
+    def test_manual_inverse_rho_zero_is_scaled_identity(self):
         mat = CompoundSymmetricMatrix(3)
         x = log(1 / 3 / (2 / 3))
         free_params = torch.tensor([0.4, x])
         sigma2 = mat.build_params(free_params)[0]
-        assert torch.allclose(mat.inverse(free_params), torch.eye(3) / sigma2)
-    def test_inverse_n2_reduces_to_reciprocal_one_minus_rho_squared(self):
+        assert torch.allclose(mat.manual_inverse(free_params), torch.eye(3) / sigma2)
+    def test_manual_inverse_n2_reduces_to_reciprocal_one_minus_rho_squared(self):
         mat = CompoundSymmetricMatrix(2)
         free_params = torch.tensor([0.4, 0.7])
         sigma2, rho = mat.build_params(free_params)
-        result = mat.inverse(free_params)
+        result = mat.manual_inverse(free_params)
         assert torch.allclose(result.diag(), ((1 / sigma2) / (1 - rho ** 2)).expand(2))
         assert torch.allclose(result[0, 1], -(1 / sigma2) * rho / (1 - rho ** 2))
-    def test_inverse_near_rho_min(self):
+    def test_manual_inverse_near_rho_min(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, -6.0])
         rho = mat.build_params(free_params)[1]
         assert rho > mat.rho_min
-        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)), atol=1e-3)
-    def test_inverse_uses_default_free_params(self):
+        assert torch.allclose(mat.manual_inverse(free_params), torch.linalg.inv(mat(free_params)), atol=1e-3)
+    def test_manual_inverse_uses_default_free_params(self):
         mat = CompoundSymmetricMatrix(3)
-        assert torch.allclose(mat.inverse(), mat.inverse(mat.free_param_defaults))
-    def test_inverse_accepts_dict_of_free_params(self):
+        assert torch.allclose(mat.manual_inverse(), mat.manual_inverse(mat.free_param_defaults))
+    def test_manual_inverse_accepts_dict_of_free_params(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, 0.7])
-        assert torch.allclose(mat.inverse(mat._to_free_param_dict(free_params)), mat.inverse(free_params))
-    def test_inverse_only_sigma_free(self):
+        assert torch.allclose(mat.manual_inverse(mat._to_free_param_dict(free_params)), mat.manual_inverse(free_params))
+    def test_manual_inverse_only_sigma_free(self):
         mat = CompoundSymmetricMatrix(3, param_specs={
             "sigma^2": {"fixed": False, "default": torch.tensor([0.0]), "trans": TransformExpPow2()},
             "rho": {"fixed": True, "default": torch.tensor([0.0]), "trans": TransformChain([
@@ -279,8 +279,8 @@ class TestCompoundSymmetricMatrix:
             ])},
         })
         free_params = torch.tensor([0.4])
-        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
-    def test_inverse_only_rho_free(self):
+        assert torch.allclose(mat.manual_inverse(free_params), torch.linalg.inv(mat(free_params)))
+    def test_manual_inverse_only_rho_free(self):
         mat = CompoundSymmetricMatrix(3, param_specs={
             "sigma^2": {"fixed": True, "default": torch.tensor([0.0]), "trans": TransformExpPow2()},
             "rho": {"fixed": False, "default": torch.tensor([0.0]), "trans": TransformChain([
@@ -288,53 +288,53 @@ class TestCompoundSymmetricMatrix:
             ])},
         })
         free_params = torch.tensor([0.7])
-        assert torch.allclose(mat.inverse(free_params), torch.linalg.inv(mat(free_params)))
-    def test_inverse_dtype_float64(self):
+        assert torch.allclose(mat.manual_inverse(free_params), torch.linalg.inv(mat(free_params)))
+    def test_manual_inverse_dtype_float64(self):
         mat = CompoundSymmetricMatrix(3)
-        assert mat.inverse(torch.tensor([0.4, 0.7], dtype=torch.float64)).dtype == torch.float64
-    def test_inverse_follows_dtype_across_interleaved_calls(self):
+        assert mat.manual_inverse(torch.tensor([0.4, 0.7], dtype=torch.float64)).dtype == torch.float64
+    def test_manual_inverse_follows_dtype_across_interleaved_calls(self):
         mat = CompoundSymmetricMatrix(3)
         mat(torch.tensor([0.4, 0.7], dtype=torch.float64))
-        assert mat.inverse(torch.tensor([0.4, 0.7], dtype=torch.float32)).dtype == torch.float32
-    def test_inverse_reads_the_cache_without_repopulating_it(self):
+        assert mat.manual_inverse(torch.tensor([0.4, 0.7], dtype=torch.float32)).dtype == torch.float32
+    def test_manual_inverse_reads_the_cache_without_repopulating_it(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, 0.7])
         mat(free_params)
         cache = mat.get_intermediates(mat.build_params(free_params))
-        mat.inverse(free_params)
+        mat.manual_inverse(free_params)
         assert mat.get_intermediates(mat.build_params(free_params)) is cache
-    def test_inverse_populates_the_cache_alone(self):
+    def test_manual_inverse_populates_the_cache_alone(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, 0.7])
-        mat.inverse(free_params)
+        mat.manual_inverse(free_params)
         cache = mat.get_intermediates(mat.build_params(free_params))
         assert cache is not None
         assert "sigma2" in cache
         assert "i_n" in cache
         assert "j_n" in cache
-    def test_inverse_gradients_flow_to_free_params(self):
+    def test_manual_inverse_gradients_flow_to_free_params(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, 0.7], requires_grad=True)
-        mat.inverse(free_params).sum().backward()
+        mat.manual_inverse(free_params).sum().backward()
         assert free_params.grad is not None
         assert torch.all(free_params.grad != 0.0)
-    def test_inverse_gradient_matches_autograd_of_inverse_of_call(self):
+    def test_manual_inverse_gradient_matches_autograd_of_inverse_of_call(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, 0.7], requires_grad=True)
-        mat.inverse(free_params).sum().backward()
+        mat.manual_inverse(free_params).sum().backward()
         closed_form_grad = free_params.grad.clone()
         free_params.grad = None
         mat.reset_intermediates()
         torch.linalg.inv(mat(free_params)).sum().backward()
         assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
-    def test_inverse_validation_is_not_bypassed(self):
+    def test_manual_inverse_validation_is_not_bypassed(self):
         mat = CompoundSymmetricMatrix(3)
         with pytest.raises(TypeError, match="Torch tensor"):
-            mat.inverse([0.4, 0.7])
+            mat.manual_inverse([0.4, 0.7])
         with pytest.raises(ValueError, match="length 2"):
-            mat.inverse(torch.tensor([0.4]))
+            mat.manual_inverse(torch.tensor([0.4]))
         with pytest.raises(ValueError, match="Missing free parameters"):
-            mat.inverse({})
+            mat.manual_inverse({})
     def test_repr(self):
         mat = CompoundSymmetricMatrix(3)
         r = repr(mat)

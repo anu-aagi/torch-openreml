@@ -57,12 +57,12 @@ class MinimalMatrix(Matrix):
 
 
 class ThreeParamMatrix(Matrix):
-    """A concrete Matrix that leaves ``inverse`` to the base class.
+    """A concrete Matrix that leaves ``manual_inverse`` to the base class.
 
-    ``__call__`` returns ``diag(params)``, so every free parameter moves the
-    result and the base-class ``inverse`` has something invertible to work on.
-    Unlike the library's own matrices, this one defines no ``inverse``, which
-    makes it the vehicle that pins the default implementation.
+    ``__call__`` returns ``diag(params)``, so the matrix is invertible, but
+    the class defines no closed form of its own. It is the vehicle that pins
+    the base-class contract: ``manual_inverse`` raises rather than inverting
+    ``__call__`` numerically.
     """
 
     def __init__(self, n):
@@ -1874,74 +1874,47 @@ class TestGradDispatch:
 # --------------------------------------------------------------------------- #
 
 class TestInverse:
-    """Tests for the default ``Matrix.inverse``."""
+    """Tests for the default ``Matrix.manual_inverse``."""
 
-    def test_equals_inverse_of_call(self):
-        mat = DiagonalMatrix(3)
-        free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(mat.inverse(free_params), mat(free_params).inverse())
+    def test_base_class_raises(self):
+        mat = ThreeParamMatrix(3)
+        with pytest.raises(NotImplementedError, match="closed-form inverse"):
+            mat.manual_inverse(torch.tensor([0.5, 1.0, 1.5]))
 
-    def test_product_with_matrix_is_identity(self):
-        mat = DiagonalMatrix(3)
-        free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(mat(free_params) @ mat.inverse(free_params), torch.eye(3), atol=1e-6)
+    def test_error_names_the_numeric_alternative(self):
+        mat = ThreeParamMatrix(3)
+        with pytest.raises(NotImplementedError, match=r"torch\.linalg\.inv"):
+            mat.manual_inverse()
 
-    def test_uses_default_free_params(self):
-        mat = DiagonalMatrix(3)
-        assert torch.allclose(mat.inverse(), mat(mat.free_param_defaults).inverse())
+    def test_raising_precedes_param_validation(self):
+        # The base has no closed form, so it raises for any input rather than
+        # validating parameters that it would never use.
+        mat = MinimalMatrix((2, 2), {})
+        with pytest.raises(NotImplementedError):
+            mat.manual_inverse([0.0])
 
-    def test_accepts_dict_of_free_params(self):
-        mat = DiagonalMatrix(3)
-        free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(mat.inverse(mat._to_free_param_dict(free_params)), mat.inverse(free_params))
-
-    def test_param_less_matrix(self):
-        assert torch.allclose(IdentityMatrix(3).inverse(), torch.eye(3))
-
-    def test_validation_is_not_bypassed(self):
-        mat = DiagonalMatrix(3)
-        with pytest.raises(TypeError, match="Torch tensor"):
-            mat.inverse([0.0, 0.5, 1.0])
-        with pytest.raises(ValueError, match="length 3"):
-            mat.inverse(torch.tensor([0.0, 0.5]))
-        with pytest.raises(ValueError, match="Missing free parameters"):
-            mat.inverse({})
-
-    def test_gradients_flow_to_free_params(self):
-        mat = DiagonalMatrix(2)
-        free_params = torch.tensor([0.5, 1.0], requires_grad=True)
-        inverse = mat.inverse(free_params)
-        assert inverse.requires_grad
-        inverse.sum().backward()
-        assert free_params.grad is not None
-        assert torch.all(free_params.grad != 0)
+    def test_numeric_route_is_available_without_the_method(self):
+        mat = ThreeParamMatrix(3)
+        free_params = torch.tensor([0.5, 1.0, 1.5])
+        inverse = torch.linalg.inv(mat(free_params))
+        assert torch.allclose(mat(free_params) @ inverse, torch.eye(3), atol=1e-6)
 
     def test_subclass_override_wins(self):
         class OverridingMatrix(MinimalMatrix):
-            def inverse(self, free_params=None):
+            def manual_inverse(self, free_params=None):
                 return "analytic"
 
-        assert OverridingMatrix((2, 2), {}).inverse() == "analytic"
+        assert OverridingMatrix((2, 2), {}).manual_inverse() == "analytic"
 
-    def test_inherited_by_operators(self):
+    def test_operators_inherit_the_raising_base(self):
         op = Sum(ScalarMatrix(3), IdentityMatrix(3))
-        free_params = torch.tensor([0.5])
-        assert torch.allclose(op.inverse(free_params), op(free_params).inverse())
+        with pytest.raises(NotImplementedError, match="closed-form inverse"):
+            op.manual_inverse(torch.tensor([0.5]))
 
     def test_default_is_pinned_by_a_non_overriding_subclass(self):
         mat = ThreeParamMatrix(3)
-        free_params = torch.tensor([0.5, 1.0, 1.5])
-        assert torch.allclose(mat.inverse(free_params), mat(free_params).inverse())
-        assert torch.allclose(mat(free_params) @ mat.inverse(free_params), torch.eye(3), atol=1e-6)
-
-    def test_default_gradients_flow_to_every_free_param(self):
-        mat = ThreeParamMatrix(3)
-        free_params = torch.tensor([0.5, 1.0, 1.5], requires_grad=True)
-        inverse = mat.inverse(free_params)
-        assert inverse.requires_grad
-        inverse.sum().backward()
-        assert free_params.grad is not None
-        assert torch.all(free_params.grad != 0.0)
+        with pytest.raises(NotImplementedError):
+            mat.manual_inverse(mat.free_param_defaults)
 
 
 # --------------------------------------------------------------------------- #

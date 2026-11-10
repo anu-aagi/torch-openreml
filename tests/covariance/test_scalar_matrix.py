@@ -1048,59 +1048,59 @@ class TestScalarMatrixInverse:
     def test_matches_inverse_of_call(self):
         mat = ScalarMatrix(3)
         theta = torch.tensor([0.5])
-        assert torch.allclose(mat.inverse(theta), torch.linalg.inv(mat(theta)))
+        assert torch.allclose(mat.manual_inverse(theta), torch.linalg.inv(mat(theta)))
 
     def test_closed_form_is_reciprocal_scaled_identity(self):
         mat = ScalarMatrix(3)
         theta = torch.tensor([0.5])
-        assert torch.allclose(mat.inverse(theta), torch.eye(3) / mat.build_params(theta))
+        assert torch.allclose(mat.manual_inverse(theta), torch.eye(3) / mat.build_params(theta))
 
     def test_product_with_matrix_is_identity(self):
         mat = ScalarMatrix(3)
         theta = torch.tensor([0.5])
-        assert torch.allclose(mat(theta) @ mat.inverse(theta), torch.eye(3), atol=1e-6)
+        assert torch.allclose(mat(theta) @ mat.manual_inverse(theta), torch.eye(3), atol=1e-6)
 
     @pytest.mark.parametrize("theta", [-3.0, 0.0, 2.5])
     def test_matches_inverse_of_call_across_theta(self, theta):
         mat = ScalarMatrix(4)
         theta = torch.tensor([theta])
-        assert torch.allclose(mat.inverse(theta), torch.linalg.inv(mat(theta)), atol=1e-6)
+        assert torch.allclose(mat.manual_inverse(theta), torch.linalg.inv(mat(theta)), atol=1e-6)
 
     @pytest.mark.parametrize("n", [1, 2, 5])
     def test_shape_is_n_by_n(self, n):
-        assert ScalarMatrix(n).inverse(torch.tensor([0.5])).shape == (n, n)
+        assert ScalarMatrix(n).manual_inverse(torch.tensor([0.5])).shape == (n, n)
 
     def test_uses_default_free_params(self):
         mat = ScalarMatrix(3)
-        assert torch.allclose(mat.inverse(), mat.inverse(mat.free_param_defaults))
+        assert torch.allclose(mat.manual_inverse(), mat.manual_inverse(mat.free_param_defaults))
 
     def test_accepts_dict_of_free_params(self):
         mat = ScalarMatrix(3)
         theta = torch.tensor([0.5])
-        assert torch.allclose(mat.inverse(mat._to_free_param_dict(theta)), mat.inverse(theta))
+        assert torch.allclose(mat.manual_inverse(mat._to_free_param_dict(theta)), mat.manual_inverse(theta))
 
     def test_fixed_parameter_uses_its_default(self):
         mat = ScalarMatrix(3, param_specs={
             "sigma^2": {"fixed": True, "default": torch.tensor([1.0]), "trans": TransformExpPow2()}
         })
-        assert torch.allclose(mat.inverse(torch.tensor([])), torch.eye(3) / torch.exp(torch.tensor(2.0)))
+        assert torch.allclose(mat.manual_inverse(torch.tensor([])), torch.eye(3) / torch.exp(torch.tensor(2.0)))
 
     @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
     def test_dtype_follows_input(self, dtype):
         mat = ScalarMatrix(3)
-        assert mat.inverse(torch.tensor([0.5], dtype=dtype)).dtype == dtype
+        assert mat.manual_inverse(torch.tensor([0.5], dtype=dtype)).dtype == dtype
 
     def test_gradients_flow_to_free_params(self):
         mat = ScalarMatrix(3)
         theta = torch.tensor([0.5], requires_grad=True)
-        mat.inverse(theta).sum().backward()
+        mat.manual_inverse(theta).sum().backward()
         assert theta.grad is not None
         assert torch.all(theta.grad != 0.0)
 
     def test_gradient_matches_autograd_of_inverse_of_call(self):
         mat = ScalarMatrix(3)
         theta = torch.tensor([0.5], requires_grad=True)
-        mat.inverse(theta).sum().backward()
+        mat.manual_inverse(theta).sum().backward()
         closed_form_grad = theta.grad.clone()
         theta.grad = None
         torch.linalg.inv(mat(theta)).sum().backward()
@@ -1109,11 +1109,11 @@ class TestScalarMatrixInverse:
     def test_validation_is_not_bypassed(self):
         mat = ScalarMatrix(3)
         with pytest.raises(TypeError, match="Torch tensor"):
-            mat.inverse([0.5])
+            mat.manual_inverse([0.5])
         with pytest.raises(ValueError, match="length 1"):
-            mat.inverse(torch.tensor([0.5, 1.0]))
+            mat.manual_inverse(torch.tensor([0.5, 1.0]))
         with pytest.raises(ValueError, match="Missing free parameters"):
-            mat.inverse({})
+            mat.manual_inverse({})
 
 
 class TestScalarMatrixRepr:

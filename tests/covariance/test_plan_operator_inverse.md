@@ -88,15 +88,15 @@ Ensure correct inverse evaluation for square operands of several matrix types, c
 
 - The old `map_theta_to_v` / `map_theta_to_dv` methods were removed from the library; the estimator uses `__call__` and `grad()`. Coverage is through the `__call__` value tests, the `grad()`-vs-`manual_grad` test, and the composition tests; no separate REML-interface tests exist.
 
-#### L. `inverse(free_params)`
+#### L. `manual_inverse(free_params)`
 
-`Inverse` overrides the base default with the closed form `V⁻¹ = A`: the operand is built once and returned
-as it is, so the dense inversion the base default performs is skipped entirely. The override must be
-indistinguishable from the default it replaces, in both value and argument handling.
+`Inverse` overrides the raising base with the closed form `V⁻¹ = A`: the operand is built once and returned
+as it is, so no inversion is performed at all — the base class would raise instead. The override must be
+indistinguishable from a numeric inversion of the matrix it inverts, in both value and argument handling.
 
 - Agrees with `torch.linalg.inv(op(free_params))`
 - Returns the operand matrix itself, equal to `DiagonalMatrix(3)(free_params)` rather than a re-inverted copy
-- `op(free_params) @ op.inverse(free_params)` is the identity
+- `op(free_params) @ op.manual_inverse(free_params)` is the identity
 - The composite is never inverted densely: `torch.linalg.inv` is not called
 - A nested operand (`Product`) is handled the same way, by value
 - The argument contract is not bypassed: `None` means the defaults, a dict of free parameters means the
@@ -207,22 +207,22 @@ class TestInverse:
         assert op.num_free_params == 0
         assert op.free_param_names == []
 
-    def test_inverse_matches_inverse_of_call(self):
+    def test_manual_inverse_matches_inverse_of_call(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op.inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
+        assert torch.allclose(op.manual_inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
 
-    def test_inverse_returns_operand(self):
+    def test_manual_inverse_returns_operand(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op.inverse(free_params), DiagonalMatrix(3)(free_params))
+        assert torch.allclose(op.manual_inverse(free_params), DiagonalMatrix(3)(free_params))
 
-    def test_inverse_product_with_call_is_identity(self):
+    def test_manual_inverse_product_with_call_is_identity(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op(free_params) @ op.inverse(free_params), torch.eye(3), atol=1e-6)
+        assert torch.allclose(op(free_params) @ op.manual_inverse(free_params), torch.eye(3), atol=1e-6)
 
-    def test_inverse_does_not_invert_densely(self, monkeypatch):
+    def test_manual_inverse_does_not_invert_densely(self, monkeypatch):
         calls = []
         real_inv = torch.linalg.inv
 
@@ -232,57 +232,57 @@ class TestInverse:
 
         monkeypatch.setattr(torch.linalg, "inv", counting_inv)
         op = Inverse(a=DiagonalMatrix(3))
-        op.inverse(torch.tensor([0.0, 0.5, 1.0]))
+        op.manual_inverse(torch.tensor([0.0, 0.5, 1.0]))
         assert calls == []
 
-    def test_inverse_nested_operand(self):
+    def test_manual_inverse_nested_operand(self):
         op = Inverse(a=Product(a=DiagonalMatrix(2), b=ScalarMatrix(2)))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op.inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
+        assert torch.allclose(op.manual_inverse(free_params), torch.linalg.inv(op(free_params)), atol=1e-6)
 
-    def test_inverse_uses_default_free_params(self):
+    def test_manual_inverse_uses_default_free_params(self):
         op = Inverse(a=DiagonalMatrix(3))
-        assert torch.allclose(op.inverse(), op.inverse(op.free_param_defaults))
+        assert torch.allclose(op.manual_inverse(), op.manual_inverse(op.free_param_defaults))
 
-    def test_inverse_accepts_dict_of_free_params(self):
-        op = Inverse(a=DiagonalMatrix(3))
-        free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(op.inverse(op._to_free_param_dict(free_params)), op.inverse(free_params))
-
-    def test_inverse_dtype_follows_input(self):
+    def test_manual_inverse_accepts_dict_of_free_params(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert op.inverse(free_params).dtype == torch.float32
-        assert op.inverse(free_params.double()).dtype == torch.float64
+        assert torch.allclose(op.manual_inverse(op._to_free_param_dict(free_params)), op.manual_inverse(free_params))
 
-    def test_inverse_gradients_flow_to_free_params(self):
+    def test_manual_inverse_dtype_follows_input(self):
+        op = Inverse(a=DiagonalMatrix(3))
+        free_params = torch.tensor([0.0, 0.5, 1.0])
+        assert op.manual_inverse(free_params).dtype == torch.float32
+        assert op.manual_inverse(free_params.double()).dtype == torch.float64
+
+    def test_manual_inverse_gradients_flow_to_free_params(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0], requires_grad=True)
-        op.inverse(free_params).sum().backward()
+        op.manual_inverse(free_params).sum().backward()
         assert free_params.grad is not None
         assert torch.all(free_params.grad != 0.0)
 
-    def test_inverse_gradient_matches_autograd_of_inverse_of_call(self):
+    def test_manual_inverse_gradient_matches_autograd_of_inverse_of_call(self):
         op = Inverse(a=DiagonalMatrix(3))
         free_params = torch.tensor([0.0, 0.5, 1.0], requires_grad=True)
-        op.inverse(free_params).sum().backward()
+        op.manual_inverse(free_params).sum().backward()
         closed_form_grad = free_params.grad.clone()
         free_params.grad = None
         torch.linalg.inv(op(free_params)).sum().backward()
         assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
 
-    def test_inverse_rectangular_operand_is_not_checked(self):
+    def test_manual_inverse_rectangular_operand_is_not_checked(self):
         op = Inverse(a=DummyMatrix(["a", "b", "c", "a"]))
-        assert op.inverse(torch.tensor([])).shape == (4, 3)
+        assert op.manual_inverse(torch.tensor([])).shape == (4, 3)
 
-    def test_inverse_validation_is_not_bypassed(self):
+    def test_manual_inverse_validation_is_not_bypassed(self):
         op = Inverse(a=DiagonalMatrix(3))
         with pytest.raises(TypeError, match="Torch tensor"):
-            op.inverse([0.0, 0.5, 1.0])
+            op.manual_inverse([0.0, 0.5, 1.0])
         with pytest.raises(ValueError, match="length 3"):
-            op.inverse(torch.tensor([0.0, 0.5]))
+            op.manual_inverse(torch.tensor([0.0, 0.5]))
         with pytest.raises(ValueError, match="Missing free parameters"):
-            op.inverse({})
+            op.manual_inverse({})
 
     def test_repr(self):
         op = Inverse(a=ScalarMatrix(3))
@@ -448,13 +448,13 @@ class TestInverseTree:
 class TestInverseComposition:
     """Tests for Inverse in compositions with other operators."""
 
-    def test_inverse_of_inverse_returns_operand(self):
+    def test_manual_inverse_of_inverse_returns_operand(self):
         operand = UnconstrainedMatrix(2)
         op = Inverse(a=Inverse(a=UnconstrainedMatrix(2)))
         free_params = torch.tensor([0.1, 0.2, 0.3])
         assert torch.allclose(op(free_params), operand(free_params))
 
-    def test_inverse_commutes_with_transpose(self):
+    def test_manual_inverse_commutes_with_transpose(self):
         nested = Inverse(a=Transpose(a=LowerTriangularMatrix(2, 2)))
         commuted = Transpose(a=Inverse(a=LowerTriangularMatrix(2, 2)))
         free_params = torch.tensor([0.2, -0.3, 0.5])
@@ -464,7 +464,7 @@ class TestInverseComposition:
         assert names_nested == names_commuted
         assert torch.allclose(grad_nested, grad_commuted)
 
-    def test_inverse_of_product_is_reversed_product(self):
+    def test_manual_inverse_of_product_is_reversed_product(self):
         lhs = Inverse(a=Product(a=DiagonalMatrix(2), b=LowerTriangularMatrix(2, 2)))
         rhs = Product(
             a=Inverse(a=LowerTriangularMatrix(2, 2)), b=Inverse(a=DiagonalMatrix(2))
@@ -490,13 +490,13 @@ Do not need to execute.
 
 ## 4. Key Risks / Notes
 
-- **Sign and ordering of the gradient**: `dV/dθ = −A⁻¹ dA A⁻¹`, not `+`, and the two factors must not be swapped. The explicit-formula test and the manual-vs-auto test both use a **non-symmetric** operand (`LowerTriangularMatrix(2, 2)`) precisely because with a symmetric `A` and symmetric `dA`, `V dA V` is symmetric under reordering (`(V dA V)ᵀ = V dA V` when `V` and `dA` are symmetric), so a transposed or swapped product would pass a symmetric-operand test. `test_inverse_commutes_with_transpose` is the complementary check: `(Aᵀ)⁻¹ = (A⁻¹)ᵀ` holds in values *and* gradients only if both sides are built from the same inverse.
+- **Sign and ordering of the gradient**: `dV/dθ = −A⁻¹ dA A⁻¹`, not `+`, and the two factors must not be swapped. The explicit-formula test and the manual-vs-auto test both use a **non-symmetric** operand (`LowerTriangularMatrix(2, 2)`) precisely because with a symmetric `A` and symmetric `dA`, `V dA V` is symmetric under reordering (`(V dA V)ᵀ = V dA V` when `V` and `dA` are symmetric), so a transposed or swapped product would pass a symmetric-operand test. `test_manual_inverse_commutes_with_transpose` is the complementary check: `(Aᵀ)⁻¹ = (A⁻¹)ᵀ` holds in values *and* gradients only if both sides are built from the same inverse.
 - **Singular and ill-conditioned operands have no safety net**: `torch.linalg.inv` raises for exactly singular input, but silently returns garbage for merely ill-conditioned input, and this operator is designed to sit inside a REML optimizer that will steer parameters wherever the likelihood points. `UnconstrainedMatrix` is already documented as symmetric-but-not-guaranteed-PD, so `Inverse` follows the same convention: it does not check definiteness. NaNs produced here propagate into `manual_grad` rather than raising.
 - **Non-square operand raises at call time, not construction**: there is no shape check (`Inverse(a=DummyMatrix(...))` constructs fine), and the failure is `RuntimeError: linalg.inv: A must be batches of square matrices...`. The test matches only `"square"` so it does not pin torch's exact wording.
 - **The gradient reads the forward pass's cached inverse**: `manual_grad` uses `cache["v"]`, so `manual_grad` after `__call__` performs no second inversion. This is also a hazard: `__call__` returns the cached tensor itself, so a caller that mutates the returned matrix in place corrupts the value subsequent gradients are computed against. The same is true of every operator in the family; no test pins the aliasing, and none should be written to rely on a copy.
 - **Composition tests must feed each side its own parameter ordering**: in `Inverse(A @ B)` versus `Inverse(B) @ Inverse(A)`, the `diag` and `lower` parameters are namespaced in opposite orders, so a single shared parameter tensor would silently evaluate the wrong point. The test constructs `torch.cat([diag, lower])` and `torch.cat([lower, diag])` explicitly for this reason; the same trap applies to any future composition test that compares two differently-ordered parameterisations.
 - **MPS**: `torch.linalg.inv` runs on MPS for `float32` (verified on this machine, and exercised by `test_input_device_is_used` when MPS is the available accelerator). MPS has no float64, so the float64 dtype tests and the device test are necessarily separate.
-- **The `inverse` override returns the operand unchecked**: `V⁻¹ = A` needs no inversion, so the override never calls `torch.linalg.inv` — the monkeypatched-`torch.linalg.inv` test pins that, since a fallback that inverted `__call__` would agree in value and pass every value test. The same shortcut means a non-square operand is returned as the inverse of a composite that has none: unlike `__call__`, `inverse` raises nothing, which the docstring's warning states and `test_inverse_rectangular_operand_is_not_checked` pins deliberately, so the behavior is not mistaken for a bug later.
+- **The `manual_inverse` override returns the operand unchecked**: `V⁻¹ = A` needs no inversion, so the override never calls `torch.linalg.inv` — the monkeypatched-`torch.linalg.inv` test pins that, since a fallback that inverted `__call__` would agree in value and pass every value test. The same shortcut means a non-square operand is returned as the inverse of a composite that has none: unlike `__call__`, `manual_inverse` raises nothing, which the docstring's warning states and `test_manual_inverse_rectangular_operand_is_not_checked` pins deliberately, so the behavior is not mistaken for a bug later.
 - **No dedicated check that the inverse is computed once**: the "reuse the forward's inverse" property is an implementation detail, asserted only indirectly through the cache tests (`"v"` present after a call).
 
 ---
@@ -519,5 +519,5 @@ Do not need to execute.
 | Dtype / device | 4 |
 | Tree integration | 4 |
 | Composition | 4 |
-| `inverse` override | 12 |
+| `manual_inverse` override | 12 |
 | **Total** | **47** |
