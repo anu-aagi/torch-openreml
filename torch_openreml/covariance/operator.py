@@ -647,9 +647,9 @@ class Operator(Matrix):
 
         return grad_groups, grad_name_groups
 
-    def operands_inverse(self, free_params=None):
+    def operands_manual_inverse(self, free_params=None):
         """
-        Compute the inverse of each operand at the current free parameters.
+        Compute each operand's closed-form inverse at the current free parameters.
 
         Splits ``free_params`` into per-operand slices, calls
         :meth:`~torch_openreml.covariance.matrix.Matrix.manual_inverse` on each
@@ -684,7 +684,7 @@ class Operator(Matrix):
                 from torch_openreml.covariance import ScalarMatrix, Sum
 
                 x = Sum(ScalarMatrix(2), ScalarMatrix(2))
-                inverses = x.operands_inverse(torch.tensor([1.0, 2.0]))
+                inverses = x.operands_manual_inverse(torch.tensor([1.0, 2.0]))
                 print(inverses[0])
                 print(inverses[1])
         """

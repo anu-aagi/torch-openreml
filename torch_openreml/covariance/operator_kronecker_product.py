@@ -117,7 +117,7 @@ class KroneckerProduct(Operator):
             free_params = torch.tensor([1.0, 1.0, 1.0])
             op.manual_inverse(free_params)
         """
-        inverses = self.operands_inverse(free_params)
+        inverses = self.operands_manual_inverse(free_params)
 
         return torch.kron(inverses[0], inverses[1])
 

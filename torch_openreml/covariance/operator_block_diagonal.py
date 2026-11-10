@@ -139,7 +139,7 @@ class BlockDiagonal(Operator):
             free_params = torch.tensor([0.5, 0.0, 1.0])
             op.manual_inverse(free_params)
         """
-        inverses = self.operands_inverse(free_params)
+        inverses = self.operands_manual_inverse(free_params)
 
         return torch.block_diag(*inverses)
 

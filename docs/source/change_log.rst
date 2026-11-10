@@ -16,10 +16,11 @@ Breaking changes
   matrix with no closed form now fails loudly instead of silently paying for a
   dense inversion. Callers that relied on the generic behaviour should use
   ``torch.linalg.inv(mat(free_params))``.
-* ``Operator.operands_inverse`` propagates ``NotImplementedError`` when an
-  operand has no closed-form inverse, so ``BlockDiagonal``, ``Product``,
-  ``KroneckerProduct`` and ``Transpose`` no longer fall back to a dense
-  inversion of an operand.
+* ``Operator.operands_inverse`` is now ``Operator.operands_manual_inverse``,
+  matching ``Matrix.manual_inverse``. It propagates ``NotImplementedError``
+  when an operand has no closed-form inverse, so ``BlockDiagonal``,
+  ``Product``, ``KroneckerProduct`` and ``Transpose`` no longer fall back to
+  a dense inversion of an operand.
 * ``Operator.tree`` and ``Operator.grad_tree`` each return a single dict now,
   rather than a pair of dicts. ``tree`` maps a path to the matrix the node
   evaluated to, and ``grad_tree`` to that node's ``(grad, grad_names)`` pair;
