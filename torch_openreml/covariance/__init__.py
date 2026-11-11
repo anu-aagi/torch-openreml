@@ -1,5 +1,6 @@
 from torch_openreml.covariance.matrix import Matrix
 from torch_openreml.covariance.identity_matrix import IdentityMatrix
+from torch_openreml.covariance.known_matrix import KnownMatrix
 from torch_openreml.covariance.scalar_matrix import ScalarMatrix
 from torch_openreml.covariance.equal_entry_matrix import EqualEntryMatrix
 from torch_openreml.covariance.diagonal_matrix import DiagonalMatrix
