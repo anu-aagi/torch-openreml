@@ -53,6 +53,22 @@ The restricted log-likelihood is
 and the score and AI matrix follow from the derivatives of
 :math:`\symbf{P}`; see :meth:`CForm.ai_step`.
 
+The inverse of the coefficient matrix is partitioned into the
+fixed-effect and random-effect blocks,
+
+.. math::
+
+    \symbf{C}^{-1}
+    = \begin{pmatrix}
+          \symbf{C}_{11} & \symbf{C}_{12} \\
+          \symbf{C}_{21} & \symbf{C}_{22}
+      \end{pmatrix},
+
+where :math:`\symbf{C}_{11} = (\symbf{X}^\top\symbf{V}^{-1}\symbf{X})^{-1}`
+is the covariance of the fixed-effect estimates and :math:`\symbf{C}_{22}`
+is the prediction-error covariance of the random-effect predictions.
+:meth:`CForm.c_inverse_blocks` returns these blocks.
+
 The first dimension of ``dz``, ``dg`` and ``dr`` is the parameter
 dimension.  A block with no free parameters is represented by a
 zero-length first dimension, for example ``dz.shape == (0, n, q)``.
@@ -81,6 +97,11 @@ class CForm:
     :math:`\symbf{C}` and :math:`\symbf{P}` and evaluates the score and AI
     matrix directly from ``x``, ``y``, ``z``, ``g``, ``r`` and their
     derivatives.
+
+    :meth:`c_inverse_blocks` and :meth:`c_inverse_blocks_from_tensors` return
+    the blocks of the inverse coefficient matrix :math:`\symbf{C}^{-1}`,
+    which give the fixed-effect covariance and the random-effect
+    prediction-error covariance.
 
     This implementation is for dense problems where the
     :math:`n \times n` matrices fit in memory.  It has no sparse
@@ -183,6 +204,137 @@ class CForm:
         scalar["quad"] = matrix["Y"] @ (matrix["R^{-1}"] @ matrix["Y"]) - vector["W^T R^{-1} y"] @ torch.cholesky_solve(vector["W^T R^{-1} y"].unsqueeze(-1), matrix["L_C"]).squeeze(-1)
         scalar["loglik"] = -0.5 * (scalar["logdet_C"] + scalar["logdet_R"] + scalar["logdet_G"] + scalar["quad"])
         return scalar["loglik"]
+
+    def c_inverse_blocks(self, model, x, free_params):
+        r"""Compute the blocks of the inverse coefficient matrix for ``model``.
+
+        The coefficient matrix is
+
+        .. math::
+
+            \symbf{C}
+            = \begin{pmatrix}
+                  \symbf{X}^\top\symbf{R}^{-1}\symbf{X}
+                  & \symbf{X}^\top\symbf{R}^{-1}\symbf{Z} \\
+                  \symbf{Z}^\top\symbf{R}^{-1}\symbf{X}
+                  & \symbf{Z}^\top\symbf{R}^{-1}\symbf{Z}
+                    + \symbf{G}^{-1}
+              \end{pmatrix}.
+
+        This is the model-aware wrapper around
+        :meth:`c_inverse_blocks_from_tensors`.  It extracts
+        :math:`\symbf{Z}`, :math:`\symbf{G}` and :math:`\symbf{R}` from the
+        model and applies the same residual jitter rule as
+        :meth:`preprocess_input`, so that the blocks are consistent with the
+        matrices used by :meth:`ai_step`.
+
+        Args:
+            model (MixedModelREML): Model supplying ``Z``, ``G`` and ``R``.
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor): Free parameters of the model, ordered as
+                ``[free_params_Z, free_params_G, free_params_R]``.
+
+        Returns:
+            tuple: ``(c11, c12, c21, c22)``, the blocks of
+            :math:`\symbf{C}^{-1}`, with shapes ``(p, p)``, ``(p, q)``,
+            ``(q, p)`` and ``(q, q)``.
+
+        Raises:
+            RuntimeError: If ``model`` has no random-effect term or no
+                free parameters.
+        """
+        if not self.eligible(model):
+            raise RuntimeError("CForm requires at least one random-effect term with free parameters.")
+
+        x = x.to(device=free_params.device, dtype=free_params.dtype)
+
+        z_is_matrix = isinstance(model.Z, Matrix)
+        kz = model.Z.num_free_params if z_is_matrix else 0
+        kg = model.G.num_free_params
+        free_params_g = free_params[kz:kz + kg]
+        free_params_r = free_params[kz + kg:]
+
+        z = model.Z(free_params[:kz]) if z_is_matrix else model.Z
+        g = model.G(free_params_g)
+        r = model.R(free_params_r)
+
+        g_inv = None
+        try:
+            g_inv = model.G.manual_inverse(free_params_g)
+        except NotImplementedError:
+            pass
+
+        r_inv = None
+        try:
+            r_inv = model.R.manual_inverse(free_params_r)
+        except NotImplementedError:
+            pass
+        if r_inv is None:
+            n = r.shape[0]
+            r = r + 1e-6 * torch.eye(n, dtype=r.dtype, device=r.device)
+
+        return self.c_inverse_blocks_from_tensors(x, z, g, r, g_inv=g_inv, r_inv=r_inv)
+
+    @torch.no_grad()
+    def c_inverse_blocks_from_tensors(self, x, z, g, r, g_inv=None, r_inv=None):
+        r"""Compute the blocks of :math:`\symbf{C}^{-1}` from tensors.
+
+        The coefficient matrix is
+
+        .. math::
+
+            \symbf{C}
+            = \begin{pmatrix}
+                  \symbf{X}^\top\symbf{R}^{-1}\symbf{X}
+                  & \symbf{X}^\top\symbf{R}^{-1}\symbf{Z} \\
+                  \symbf{Z}^\top\symbf{R}^{-1}\symbf{X}
+                  & \symbf{Z}^\top\symbf{R}^{-1}\symbf{Z}
+                    + \symbf{G}^{-1}
+              \end{pmatrix},
+
+        and the returned blocks satisfy
+
+        .. math::
+
+            \symbf{C}^{-1}
+            = \begin{pmatrix}
+                  \symbf{C}_{11} & \symbf{C}_{12} \\
+                  \symbf{C}_{21} & \symbf{C}_{22}
+              \end{pmatrix}.
+
+        Args:
+            x: Fixed-effect design matrix of shape ``(n, p)``.
+            z: Random-effect incidence matrix of shape ``(n, q)``.
+            g: Random-effect covariance matrix of shape ``(q, q)``.
+            r: Residual covariance matrix of shape ``(n, n)``.
+            g_inv: Optional precomputed inverse of ``g``.  If ``None``,
+                it is computed from a Cholesky factorisation.  A
+                supplied value is used as given.
+            r_inv: Optional precomputed inverse of ``r``.  If ``None``,
+                it is computed from a Cholesky factorisation.  A
+                supplied value is used as given.
+
+        Returns:
+            tuple: ``(c11, c12, c21, c22)``, the blocks of
+            :math:`\symbf{C}^{-1}`, with shapes ``(p, p)``, ``(p, q)``,
+            ``(q, p)`` and ``(q, q)``.
+        """
+        if r_inv is None:
+            r_inv = torch.cholesky_inverse(torch.linalg.cholesky(r))
+        if g_inv is None:
+            g_inv = torch.cholesky_inverse(torch.linalg.cholesky(g))
+
+        p = x.shape[1]
+        w = torch.cat([x, z], dim=1)
+        c = w.T @ r_inv @ w
+        c[p:, p:] += g_inv
+        c_inv = torch.cholesky_inverse(torch.linalg.cholesky(c))
+
+        c11 = c_inv[:p, :p]
+        c12 = c_inv[:p, p:]
+        c21 = c_inv[p:, :p]
+        c22 = c_inv[p:, p:]
+        return c11, c12, c21, c22
 
     def preprocess_input(self, model, y, x, free_params, grad=True):
         r"""Prepare the tensors needed by :meth:`ai_step`.
