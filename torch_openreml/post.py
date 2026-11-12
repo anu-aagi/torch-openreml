@@ -162,7 +162,7 @@ def blup(y, x, z, g, v):
 
     matrix["G"] = g
 
-    return (matrix["G"] @ (z.T @ matrix["V^{-1} e"])).squeeze()
+    return (matrix["G"] @ (z.T @ matrix["V^{-1} e"])).squeeze(-1)
 
 def predict(y, x, z, g, v):
     r"""
