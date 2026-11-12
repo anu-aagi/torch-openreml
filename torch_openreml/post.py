@@ -14,6 +14,11 @@ Functions:
         Best linear unbiased predictor of the random effects
         :math:`\symbf{b}`, requiring the random-effect covariance
         :math:`\symbf{G}` and design matrix :math:`\symbf{Z}`.
+    cov_blup:
+        Covariance matrix of the best linear unbiased predictor.
+    var_blup:
+        Variances of the best linear unbiased predictor, the diagonal of
+        :func:`cov_blup`.
     loglik:
         Restricted log-likelihood evaluated at given covariance parameters.
     marginal_predict:
@@ -163,6 +168,98 @@ def blup(y, x, z, g, v):
     matrix["G"] = g
 
     return (matrix["G"] @ (z.T @ matrix["V^{-1} e"])).squeeze(-1)
+
+def cov_blup(x, z, g, v):
+    r"""
+    Compute the covariance matrix of the BLUPs.
+
+    .. math::
+
+        \operatorname{Var}(\hat{\symbf{b}})
+        = \symbf{G}\symbf{Z}^\top\symbf{P}\symbf{Z}\symbf{G},
+        \qquad
+        \symbf{P}
+        = \symbf{V}^{-1}
+          - \symbf{V}^{-1}\symbf{X}
+            (\symbf{X}^\top\symbf{V}^{-1}\symbf{X})^{-1}
+            \symbf{X}^\top\symbf{V}^{-1}.
+
+    Unlike the equivalent block form
+    :math:`\symbf{G} - \symbf{C}_{22}`, this expression only requires
+    :math:`\symbf{V}` to be invertible, not :math:`\symbf{G}`.
+
+    Args:
+        x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+        z (torch.Tensor): Random-effect design matrix of shape ``(n, q)``.
+        g (torch.Tensor): Random-effect covariance matrix of shape ``(q, q)``,
+            e.g. :math:`\symbf{G}(\boldsymbol{\theta})` evaluated at fitted
+            covariance parameters.
+        v (torch.Tensor): Marginal covariance matrix of shape ``(n, n)``,
+            e.g. :math:`\symbf{V}(\boldsymbol{\theta})` evaluated at fitted
+            covariance parameters.
+
+    Returns:
+        torch.Tensor: BLUP covariance matrix of shape ``(q, q)``.
+    """
+    device = get_device(x, z, g, v)
+    dtype = get_dtype(x, z, g, v)
+
+    scalar = {}
+    matrix = {}
+
+    scalar["N"] = v.shape[0]
+    matrix["X"] = x.to(device=device, dtype=dtype)
+    matrix["Z"] = z.to(device=device, dtype=dtype)
+    matrix["G"] = g.to(device=device, dtype=dtype)
+
+    matrix["V"] = v + 1e-6 * torch.eye(scalar["N"], device=device, dtype=dtype)
+    matrix["L"] = torch.linalg.cholesky(matrix["V"])
+
+    matrix["V^{-1} X"] = torch.cholesky_solve(matrix["X"], matrix["L"])
+    matrix["V^{-1} Z G"] = torch.cholesky_solve(matrix["Z"] @ matrix["G"], matrix["L"])
+
+    matrix["X^T V^{-1} X"] = matrix["X"].T @ matrix["V^{-1} X"]
+    matrix["L_x"] = torch.linalg.cholesky(matrix["X^T V^{-1} X"])
+
+    matrix["Z^T V^{-1} X"] = matrix["Z"].T @ matrix["V^{-1} X"]
+    matrix["X^T V^{-1} Z G"] = matrix["X"].T @ matrix["V^{-1} Z G"]
+    matrix["Z^T V^{-1} Z G"] = matrix["Z"].T @ matrix["V^{-1} Z G"]
+
+    correction = matrix["Z^T V^{-1} X"] @ torch.cholesky_solve(matrix["X^T V^{-1} Z G"], matrix["L_x"])
+
+    matrix["Z^T P Z G"] = matrix["Z^T V^{-1} Z G"] - correction
+
+    matrix["Var(b)"] = matrix["G"] @ matrix["Z^T P Z G"]
+    matrix["Var(b)"] = 0.5 * (matrix["Var(b)"] + matrix["Var(b)"].T)
+    return matrix["Var(b)"]
+
+def var_blup(x, z, g, v):
+    r"""
+    Compute the variances of the BLUPs.
+
+    This is the diagonal of :func:`cov_blup`,
+
+    .. math::
+
+        \operatorname{Var}(\hat{b}_i)
+        = \left(\symbf{G}\symbf{Z}^\top\symbf{P}\symbf{Z}\symbf{G}\right)_{ii},
+
+    the sampling variance of each random-effect prediction.
+
+    Args:
+        x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+        z (torch.Tensor): Random-effect design matrix of shape ``(n, q)``.
+        g (torch.Tensor): Random-effect covariance matrix of shape ``(q, q)``,
+            e.g. :math:`\symbf{G}(\boldsymbol{\theta})` evaluated at fitted
+            covariance parameters.
+        v (torch.Tensor): Marginal covariance matrix of shape ``(n, n)``,
+            e.g. :math:`\symbf{V}(\boldsymbol{\theta})` evaluated at fitted
+            covariance parameters.
+
+    Returns:
+        torch.Tensor: BLUP variances of shape ``(q,)``.
+    """
+    return torch.diagonal(cov_blup(x, z, g, v))
 
 def predict(y, x, z, g, v):
     r"""
