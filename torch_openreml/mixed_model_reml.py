@@ -7,12 +7,12 @@ linear mixed models
 
     \symbf{y}
     = \symbf{X}\symbf{\beta}
-      + \sum_i \symbf{Z}_i\symbf{u}_i
+      + \sum_i \symbf{Z}_i(\boldsymbol{\theta})\symbf{u}_i
       + \symbf{\epsilon},
     \qquad
-    \symbf{u}_i \sim N(\symbf{0}, \symbf{G}_i),
+    \symbf{u}_i \sim N(\symbf{0}, \symbf{G}_i(\boldsymbol{\theta})),
     \qquad
-    \symbf{\epsilon} \sim N(\symbf{0}, \symbf{R}),
+    \symbf{\epsilon} \sim N(\symbf{0}, \symbf{R}(\boldsymbol{\theta})),
 
 with marginal covariance
 
@@ -20,8 +20,9 @@ with marginal covariance
 
     \symbf{V}(\boldsymbol{\theta})
     = \symbf{R}(\boldsymbol{\theta})
-      + \sum_i \symbf{Z}_i\symbf{G}_i(\boldsymbol{\theta})
-        \symbf{Z}_i^\top.
+      + \sum_i \symbf{Z}_i(\boldsymbol{\theta})
+        \symbf{G}_i(\boldsymbol{\theta})
+        \symbf{Z}_i(\boldsymbol{\theta})^\top.
 
 The frontend owns the structured model specification, the parameter
 ordering, and the choice of numerical method.  It does not implement the
@@ -64,7 +65,10 @@ class MixedModelREML:
     The model is specified by zero or more random-effect terms and one
     residual term, supplied with the keyword ``R``.  A random-effect term
     is a ``(design, covariance)`` pair, where *design* is the incidence
-    matrix :math:`\symbf{Z}_i` and *covariance* is the
+    matrix :math:`\symbf{Z}_i(\boldsymbol{\theta})`, either a fixed tensor
+    or a :class:`~torch_openreml.covariance.matrix.Matrix` — possibly
+    parameterised, in which case its free parameters are part of
+    :math:`\boldsymbol{\theta}` — and *covariance* is the
     :class:`~torch_openreml.covariance.matrix.Matrix` for
     :math:`\symbf{G}_i`, or a fixed two-dimensional tensor for a
     parameter-free :math:`\symbf{G}_i`.  The residual term is a single
@@ -80,10 +84,13 @@ class MixedModelREML:
 
         \symbf{V}(\boldsymbol{\theta})
         = \symbf{R}(\boldsymbol{\theta})
-          + \symbf{Z}\symbf{G}(\boldsymbol{\theta})\symbf{Z}^\top,
+          + \symbf{Z}(\boldsymbol{\theta})
+            \symbf{G}(\boldsymbol{\theta})
+            \symbf{Z}(\boldsymbol{\theta})^\top,
 
-    with :math:`\symbf{Z}` the column-wise augmentation of the
-    :math:`\symbf{Z}_i` and :math:`\symbf{G}` their block-diagonal
+    with :math:`\symbf{Z}(\boldsymbol{\theta})` the column-wise
+    augmentation of the :math:`\symbf{Z}_i(\boldsymbol{\theta})` and
+    :math:`\symbf{G}(\boldsymbol{\theta})` their block-diagonal
     combination.  Score and average-information evaluation is then
     dispatched to a numerical method:
 
@@ -259,7 +266,7 @@ class MixedModelREML:
 
     @property
     def V(self):
-        r"""Marginal covariance :math:`\symbf{V}=\symbf{R}+\symbf{Z}\symbf{G}\symbf{Z}'`."""
+        r"""Marginal covariance :math:`\symbf{V}(\boldsymbol{\theta})=\symbf{R}(\boldsymbol{\theta})+\symbf{Z}(\boldsymbol{\theta})\symbf{G}(\boldsymbol{\theta})\symbf{Z}(\boldsymbol{\theta})^\top`."""
         return self._v
 
     @property
@@ -274,7 +281,7 @@ class MixedModelREML:
 
     @property
     def Z(self):
-        r"""Composite incidence matrix :math:`\symbf{Z}`."""
+        r"""Composite incidence matrix :math:`\symbf{Z}(\boldsymbol{\theta})`; it may carry its own free parameters."""
         return self._z
 
     @property
@@ -1034,7 +1041,7 @@ class MixedModelREML:
                         f"{torch.norm(score):12.4f}, \u2225\u0394\u2225: "
                         f"{torch.norm(delta):6.4f}, \u03B7: {eta_used:.2f}, "
                         f"\u2225\u0394\u1D9C\u2225: {torch.norm(step):6.4f}, "
-                        f"accepted: {accepted}, log \U0001D4DB: {ll_new:8.4f}"
+                        f"accepted: {str(accepted):<5}, log \U0001D4DB: {ll_new:8.4f}"
                     )
 
                 if self.is_converged():
