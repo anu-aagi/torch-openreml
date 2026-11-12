@@ -12,8 +12,10 @@ Covariance
    torch_openreml.covariance.EqualEntryMatrix
    torch_openreml.covariance.EquicorrelationMatrix
    torch_openreml.covariance.IdentityMatrix
+   torch_openreml.covariance.KnownMatrix
    torch_openreml.covariance.LowerTriangularMatrix
    torch_openreml.covariance.ScalarMatrix
    torch_openreml.covariance.UnconstrainedMatrix
    torch_openreml.covariance.SimpleMatrix
    torch_openreml.covariance.simple_param_specs
+   torch_openreml.covariance.MarginalCovariance

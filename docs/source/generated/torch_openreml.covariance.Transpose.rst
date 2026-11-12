@@ -25,10 +25,10 @@
       ~Transpose.get_intermediates
       ~Transpose.grad
       ~Transpose.grad_tree
-      ~Transpose.inverse
       ~Transpose.manual_grad
+      ~Transpose.manual_inverse
       ~Transpose.operands_grad
-      ~Transpose.operands_inverse
+      ~Transpose.operands_manual_inverse
       ~Transpose.reset_intermediates
       ~Transpose.resolve_dim
       ~Transpose.set_intermediates

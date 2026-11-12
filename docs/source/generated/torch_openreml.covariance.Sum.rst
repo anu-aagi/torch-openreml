@@ -25,10 +25,10 @@
       ~Sum.get_intermediates
       ~Sum.grad
       ~Sum.grad_tree
-      ~Sum.inverse
       ~Sum.manual_grad
+      ~Sum.manual_inverse
       ~Sum.operands_grad
-      ~Sum.operands_inverse
+      ~Sum.operands_manual_inverse
       ~Sum.reset_intermediates
       ~Sum.resolve_dim
       ~Sum.set_intermediates

@@ -7,6 +7,7 @@ API Reference
    :maxdepth: 2
 
    api/reml
+   api/methods
    api/covariance
    api/operators
    api/adapter

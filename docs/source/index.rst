@@ -306,7 +306,7 @@ Documentation
      - Model formulation, REML and ML theory, score and AI matrix derivations.
 
    * - :ref:`api`
-     - Full documentation for ``MarginalREML``, covariance matrices, operators, transforms, and utilities.
+     - Full documentation for the REML estimators, covariance matrices, operators, transforms, and utilities.
 
 Citing
 ------

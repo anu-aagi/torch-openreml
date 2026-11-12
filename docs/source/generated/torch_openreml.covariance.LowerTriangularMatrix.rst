@@ -22,8 +22,8 @@
       ~LowerTriangularMatrix.get_default_dtype_device
       ~LowerTriangularMatrix.get_intermediates
       ~LowerTriangularMatrix.grad
-      ~LowerTriangularMatrix.inverse
       ~LowerTriangularMatrix.manual_grad
+      ~LowerTriangularMatrix.manual_inverse
       ~LowerTriangularMatrix.reset_intermediates
       ~LowerTriangularMatrix.resolve_dim
       ~LowerTriangularMatrix.set_intermediates

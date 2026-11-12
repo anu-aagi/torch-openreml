@@ -22,8 +22,8 @@
       ~DiagonalMatrix.get_default_dtype_device
       ~DiagonalMatrix.get_intermediates
       ~DiagonalMatrix.grad
-      ~DiagonalMatrix.inverse
       ~DiagonalMatrix.manual_grad
+      ~DiagonalMatrix.manual_inverse
       ~DiagonalMatrix.reset_intermediates
       ~DiagonalMatrix.resolve_dim
       ~DiagonalMatrix.set_intermediates

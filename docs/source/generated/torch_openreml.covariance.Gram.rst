@@ -25,10 +25,10 @@
       ~Gram.get_intermediates
       ~Gram.grad
       ~Gram.grad_tree
-      ~Gram.inverse
       ~Gram.manual_grad
+      ~Gram.manual_inverse
       ~Gram.operands_grad
-      ~Gram.operands_inverse
+      ~Gram.operands_manual_inverse
       ~Gram.reset_intermediates
       ~Gram.resolve_dim
       ~Gram.set_intermediates

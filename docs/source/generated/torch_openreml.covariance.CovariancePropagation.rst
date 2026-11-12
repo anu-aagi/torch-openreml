@@ -25,10 +25,10 @@
       ~CovariancePropagation.get_intermediates
       ~CovariancePropagation.grad
       ~CovariancePropagation.grad_tree
-      ~CovariancePropagation.inverse
       ~CovariancePropagation.manual_grad
+      ~CovariancePropagation.manual_inverse
       ~CovariancePropagation.operands_grad
-      ~CovariancePropagation.operands_inverse
+      ~CovariancePropagation.operands_manual_inverse
       ~CovariancePropagation.reset_intermediates
       ~CovariancePropagation.resolve_dim
       ~CovariancePropagation.set_intermediates

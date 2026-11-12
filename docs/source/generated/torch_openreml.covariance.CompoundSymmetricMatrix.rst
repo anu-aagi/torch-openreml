@@ -22,8 +22,8 @@
       ~CompoundSymmetricMatrix.get_default_dtype_device
       ~CompoundSymmetricMatrix.get_intermediates
       ~CompoundSymmetricMatrix.grad
-      ~CompoundSymmetricMatrix.inverse
       ~CompoundSymmetricMatrix.manual_grad
+      ~CompoundSymmetricMatrix.manual_inverse
       ~CompoundSymmetricMatrix.reset_intermediates
       ~CompoundSymmetricMatrix.resolve_dim
       ~CompoundSymmetricMatrix.set_intermediates

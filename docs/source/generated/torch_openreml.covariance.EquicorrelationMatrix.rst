@@ -22,8 +22,8 @@
       ~EquicorrelationMatrix.get_default_dtype_device
       ~EquicorrelationMatrix.get_intermediates
       ~EquicorrelationMatrix.grad
-      ~EquicorrelationMatrix.inverse
       ~EquicorrelationMatrix.manual_grad
+      ~EquicorrelationMatrix.manual_inverse
       ~EquicorrelationMatrix.reset_intermediates
       ~EquicorrelationMatrix.resolve_dim
       ~EquicorrelationMatrix.set_intermediates

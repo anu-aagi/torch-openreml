@@ -22,8 +22,8 @@
       ~ScalarMatrix.get_default_dtype_device
       ~ScalarMatrix.get_intermediates
       ~ScalarMatrix.grad
-      ~ScalarMatrix.inverse
       ~ScalarMatrix.manual_grad
+      ~ScalarMatrix.manual_inverse
       ~ScalarMatrix.reset_intermediates
       ~ScalarMatrix.resolve_dim
       ~ScalarMatrix.set_intermediates

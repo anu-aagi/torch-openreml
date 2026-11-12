@@ -22,8 +22,8 @@
       ~Adapter.get_default_dtype_device
       ~Adapter.get_intermediates
       ~Adapter.grad
-      ~Adapter.inverse
       ~Adapter.manual_grad
+      ~Adapter.manual_inverse
       ~Adapter.reset_intermediates
       ~Adapter.resolve_dim
       ~Adapter.set_intermediates

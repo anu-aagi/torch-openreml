@@ -22,8 +22,8 @@
       ~Matrix.get_default_dtype_device
       ~Matrix.get_intermediates
       ~Matrix.grad
-      ~Matrix.inverse
       ~Matrix.manual_grad
+      ~Matrix.manual_inverse
       ~Matrix.reset_intermediates
       ~Matrix.resolve_dim
       ~Matrix.set_intermediates

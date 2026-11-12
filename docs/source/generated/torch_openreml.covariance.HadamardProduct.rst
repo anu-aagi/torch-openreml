@@ -25,10 +25,10 @@
       ~HadamardProduct.get_intermediates
       ~HadamardProduct.grad
       ~HadamardProduct.grad_tree
-      ~HadamardProduct.inverse
       ~HadamardProduct.manual_grad
+      ~HadamardProduct.manual_inverse
       ~HadamardProduct.operands_grad
-      ~HadamardProduct.operands_inverse
+      ~HadamardProduct.operands_manual_inverse
       ~HadamardProduct.reset_intermediates
       ~HadamardProduct.resolve_dim
       ~HadamardProduct.set_intermediates

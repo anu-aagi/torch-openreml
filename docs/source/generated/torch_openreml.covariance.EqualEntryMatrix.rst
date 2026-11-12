@@ -22,8 +22,8 @@
       ~EqualEntryMatrix.get_default_dtype_device
       ~EqualEntryMatrix.get_intermediates
       ~EqualEntryMatrix.grad
-      ~EqualEntryMatrix.inverse
       ~EqualEntryMatrix.manual_grad
+      ~EqualEntryMatrix.manual_inverse
       ~EqualEntryMatrix.reset_intermediates
       ~EqualEntryMatrix.resolve_dim
       ~EqualEntryMatrix.set_intermediates
