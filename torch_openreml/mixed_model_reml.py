@@ -258,22 +258,22 @@ class MixedModelREML:
             raise TypeError(f"The covariance of random term `{label}` must be a Matrix or a fixed two-dimensional Tensor!")
 
     @property
-    def v(self):
+    def V(self):
         r"""Marginal covariance :math:`\symbf{V}=\symbf{R}+\symbf{Z}\symbf{G}\symbf{Z}'`."""
         return self._v
 
     @property
-    def r(self):
+    def R(self):
         r"""Residual covariance :math:`\symbf{R}`."""
         return self._r
 
     @property
-    def g(self):
+    def G(self):
         r"""Composite random-effect covariance :math:`\symbf{G}`."""
         return self._g
 
     @property
-    def z(self):
+    def Z(self):
         r"""Composite incidence matrix :math:`\symbf{Z}`."""
         return self._z
 
@@ -384,7 +384,7 @@ class MixedModelREML:
                 reml.blue(y, x, torch.zeros(2))
         """
         free_params = self._post_free_params(free_params)
-        return blue(y, x, self.v(free_params))
+        return blue(y, x, self.V(free_params))
 
     def marginal_predict(self, y, x, free_params=None):
         r"""Marginal fitted values at ``free_params``.
@@ -401,7 +401,7 @@ class MixedModelREML:
             torch.Tensor: Marginal fitted values of shape ``(n,)``.
         """
         free_params = self._post_free_params(free_params)
-        return marginal_predict(y, x, self.v(free_params))
+        return marginal_predict(y, x, self.V(free_params))
 
     def marginal_residual(self, y, x, free_params=None):
         r"""Marginal residuals at ``free_params``.
@@ -418,7 +418,7 @@ class MixedModelREML:
             torch.Tensor: Marginal residuals of shape ``(n,)``.
         """
         free_params = self._post_free_params(free_params)
-        return marginal_residual(y, x, self.v(free_params))
+        return marginal_residual(y, x, self.V(free_params))
 
     def blup(self, y, x, free_params=None):
         r"""Best linear unbiased predictions of the random effects.
@@ -471,7 +471,7 @@ class MixedModelREML:
 
         z = self._z(theta_z) if isinstance(self._z, Matrix) else self._z
         g = self._g(theta_g) if self._g is not None else None
-        return blup(y, x, z, g, self.v(free_params))
+        return blup(y, x, z, g, self.V(free_params))
 
     def blup_per_term(self, y, x, free_params=None):
         r"""BLUPs split by random-effect term.
@@ -582,7 +582,7 @@ class MixedModelREML:
 
         z = self._z(theta_z) if isinstance(self._z, Matrix) else self._z
         g = self._g(theta_g) if self._g is not None else None
-        return conditional_predict(y, x, z, g, self.v(free_params))
+        return conditional_predict(y, x, z, g, self.V(free_params))
 
     def residual(self, y, x, free_params=None):
         r"""Conditional residuals after removing fixed and random effects.
@@ -629,7 +629,7 @@ class MixedModelREML:
 
         z = self._z(theta_z) if isinstance(self._z, Matrix) else self._z
         g = self._g(theta_g) if self._g is not None else None
-        return conditional_residual(y, x, z, g, self.v(free_params))
+        return conditional_residual(y, x, z, g, self.V(free_params))
 
     def get_free_params(self, select="last"):
         r"""Return a covariance-parameter iterate from the history.
@@ -668,7 +668,7 @@ class MixedModelREML:
             index = torch.argmax(torch.stack(self.history["loglik"])).item()
         else:
             index = -1
-        return self.v.free_param_names, self.history["free_params"][index]
+        return self.V.free_param_names, self.history["free_params"][index]
 
     def build_params(self, free_params=None, include_fixed=True, trans=True, out_format="tensor"):
         r"""Build covariance parameters from free parameters.
@@ -713,7 +713,7 @@ class MixedModelREML:
                 raw, model_scale
         """
         free_params = self._post_free_params(free_params)
-        return self.v.build_params(
+        return self.V.build_params(
             free_params,
             include_fixed=include_fixed,
             trans=trans,
@@ -752,9 +752,9 @@ class MixedModelREML:
         """
         free_params = self._post_free_params(free_params)
 
-        if isinstance(self.v, Operator):
-            return self.v.tree(free_params)
-        return {"/": self.v(free_params)}
+        if isinstance(self.V, Operator):
+            return self.V.tree(free_params)
+        return {"/": self.V(free_params)}
 
     def is_converged(self):
         """Whether the log-likelihood and parameter update have settled.
@@ -940,7 +940,7 @@ class MixedModelREML:
             step; gradient fallback steps are recorded with ``False``.
         """
         eta = eta_max
-        free_params = self.v.build_params(init_values, include_fixed=False, trans=False).detach()
+        free_params = self.V.build_params(init_values, include_fixed=False, trans=False).detach()
         y = y.to(device=free_params.device, dtype=free_params.dtype)
         x = x.to(device=free_params.device, dtype=free_params.dtype)
 
@@ -1054,4 +1054,4 @@ class MixedModelREML:
                         f"{time.perf_counter() - start_time:.2f}s"
                     )
 
-        return self.v.free_param_names, free_params
+        return self.V.free_param_names, free_params
