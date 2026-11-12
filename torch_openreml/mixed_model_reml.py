@@ -40,11 +40,10 @@ import torch
 from torch_openreml.covariance import (
     Augment,
     BlockDiagonal,
-    CovariancePropagation,
     KnownMatrix,
+    MarginalCovariance,
     Matrix,
     Operator,
-    Sum,
 )
 from torch_openreml.methods import CForm, Marginal
 from torch_openreml.post import blue, loglik, marginal_predict, marginal_residual
@@ -185,7 +184,7 @@ class MixedModelREML:
                     self._z = torch.cat([design for _, design in self._z_terms], dim=1)
                 self._g = BlockDiagonal(**dict(self._g_terms))
 
-            v = Sum(CP=CovariancePropagation(Z=self._z, G=self._g), R=self._r)
+            v = MarginalCovariance(Z=self._z, G=self._g, R=self._r)
 
         if v.num_free_params == 0:
             raise ValueError("The marginal covariance must have at least one free parameter!")
