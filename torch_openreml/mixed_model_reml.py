@@ -939,7 +939,7 @@ class MixedModelREML:
 
                 delta = torch.linalg.lstsq(
                     ai, score.unsqueeze(-1)
-                ).solution.squeeze()
+                ).solution.squeeze(-1)
 
                 theta_old = free_params
                 eta_i = eta
