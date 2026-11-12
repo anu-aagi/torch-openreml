@@ -278,14 +278,17 @@ class MixedModelREML:
         return self._z
 
     @property
-    def g_terms(self):
+    def G_terms(self):
         """Named ``(name, covariance)`` random-effect terms."""
         return self._g_terms
 
     @property
-    def z_terms(self):
+    def Z_terms(self):
         """Named ``(name, design)`` random-effect terms."""
         return self._z_terms
+
+    def __repr__(self):
+        return repr(self.V)
 
     def ai_step(self, y, x, free_params, require_loglik=True):
         r"""Evaluate one AI step with the selected method.
