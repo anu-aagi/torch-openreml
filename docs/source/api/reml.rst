@@ -1,5 +1,5 @@
-REML estimators
-===============
+Mixed models
+============
 
 .. autosummary::
    :toctree: ../generated

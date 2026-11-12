@@ -38,11 +38,11 @@
 
    .. autosummary::
    
-      ~MixedModelREML.g
-      ~MixedModelREML.g_terms
-      ~MixedModelREML.r
-      ~MixedModelREML.v
-      ~MixedModelREML.z
-      ~MixedModelREML.z_terms
+      ~MixedModelREML.G
+      ~MixedModelREML.G_terms
+      ~MixedModelREML.R
+      ~MixedModelREML.V
+      ~MixedModelREML.Z
+      ~MixedModelREML.Z_terms
    
    

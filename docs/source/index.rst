@@ -78,7 +78,7 @@ Built on PyTorch, supporting execution on CPU, GPU, and other available accelera
 
 - **AI-REML estimation engine**
 
-Variance component estimation using the Average Information REML (AI-REML) quasi-Newton optimization framework.
+Variance component estimation using average information restricted maximum likelihood (AI-REML), with a Newton-type scoring method, Armijo backtracking, and a gradient fallback.
 
 - **Extensible covariance structure**
 
@@ -166,8 +166,8 @@ We begin by importing the required modules.
 
     import torch
     import pandas as pd
-    from torch_openreml import MarginalREML, blup
-    from torch_openreml.covariance import DummyMatrix, IdentityMatrix, ScalarMatrix, Sum, CovariancePropagation, KroneckerProduct, Augment, BlockDiagonal
+    from torch_openreml import MixedModelREML
+    from torch_openreml.covariance import DummyMatrix, IdentityMatrix, ScalarMatrix, KroneckerProduct, Augment
     from torch_openreml.example_data import john_alpha
 
 Covariance Builder
@@ -177,9 +177,9 @@ Next, we construct :math:`\mathbf{y}`, :math:`\mathbf{X}`, and the components re
 
 The classes :py:class:`ScalarMatrix <torch_openreml.covariance.ScalarMatrix>` and :py:class:`IdentityMatrix <torch_openreml.covariance.IdentityMatrix>` are also matrix builders, parameterized by the required matrix dimension. The dimension may be given as an integer, or directly as the grouping factor itself, in which case the number of distinct values defines the dimension.
 
-We then assemble the covariance structure using composable operators. The :py:class:`Augment <torch_openreml.covariance.Augment>` operator binds its operands side by side, forming the joint design matrix :math:`\mathbf{Z} = [\mathbf{Z}_{gen}\ \mathbf{Z}_{rep:block}]`, and :py:class:`BlockDiagonal <torch_openreml.covariance.BlockDiagonal>` places :math:`\mathbf{G}_{gen}` and the Kronecker product :math:`\mathbf{G}_{rep} \otimes \mathbf{G}_{block}` on the diagonal of the joint :math:`\mathbf{G}`. The :py:class:`CovariancePropagation <torch_openreml.covariance.CovariancePropagation>` operator then represents the transformation :math:`\mathbf{Z}\mathbf{G}\mathbf{Z}^\top`. The :py:class:`KroneckerProduct <torch_openreml.covariance.KroneckerProduct>` operator computes the direct (Kronecker) product of two matrices, and :py:class:`Sum <torch_openreml.covariance.Sum>` adds the residual covariance :math:`\mathbf{R}`.
+Each random-effect term is specified directly as a ``(design, covariance)`` pair. The first term is named ``genotype``, with design :py:class:`DummyMatrix <torch_openreml.covariance.DummyMatrix>` and covariance :py:class:`ScalarMatrix <torch_openreml.covariance.ScalarMatrix>`. The second is named ``replicate_block`` and models the replicate-by-block interaction, whose covariance uses :py:class:`KroneckerProduct <torch_openreml.covariance.KroneckerProduct>` for :math:`\mathbf{G}_{rep} \otimes \mathbf{G}_{block}`. The residual covariance :math:`\mathbf{R}` is supplied separately.
 
-Altogether, the covariance structure can be written as:
+:py:class:`MixedModelREML <torch_openreml.MixedModelREML>` combines the terms into the marginal covariance internally:
 
 .. math::
 
@@ -224,38 +224,53 @@ The logarithmic parameterization ensures that the variance components remain pos
     y = torch.tensor(john_alpha["yield"].values)
     X = Augment(torch.ones(n, 1), DummyMatrix(rep, drop_first=True))()
 
-    V = Sum(
-        random = CovariancePropagation(
-            Z = Augment(
-                Z_gen = DummyMatrix(gen),
-                Z_rep_block = DummyMatrix(rep, block),
-            ),
-            G = BlockDiagonal(
-                G_gen = ScalarMatrix(gen),
-                G_rep_block = KroneckerProduct(
-                    G_rep = IdentityMatrix(rep),
-                    G_block = ScalarMatrix(block),
-                ),
-            ),
-        ),
-        residual = ScalarMatrix(n),
-    )
+MixedModelREML Optimizer
+~~~~~~~~~~~~~~~~~~~~~~~
 
-    print(V)
-
-MarginalREML Optimizer
-~~~~~~~~~~~~~~
-
-Once the covariance structure has been defined, it is passed to :py:class:`MarginalREML <torch_openreml.MarginalREML>` to initialize the estimation procedure. The :py:meth:`optimize <torch_openreml.MarginalREML.optimize>` method is then called with :math:`\mathbf{y}`, :math:`\mathbf{X}`, and an initial value for :math:`\boldsymbol{\theta}` (set to zeros in this example). The `verbose` argument controls the level of diagnostic output.
-
-Because the optimization is performed on the transformed parameter scale, the estimated parameters can be mapped back to variance components using :py:meth:`V.build_params <torch_openreml.covariance.Matrix.build_params>`. The resulting values correspond to the variance components associated with the parameter names stored in :py:attr:`V.param_names <torch_openreml.covariance.Matrix.param_names>`.
+Once the random-effect terms have been specified, they are passed to :py:class:`MixedModelREML <torch_openreml.MixedModelREML>` as ``(design, covariance)`` pairs, and the residual covariance is supplied with the keyword ``R =``:
 
 .. jupyter-execute::
 
-    reml = MarginalREML(V)
-    theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=1)
-    print(theta_hat, V.build_params(theta_hat))
-    print(V.free_param_names)
+    reml = MixedModelREML(
+        genotype = (DummyMatrix(gen), ScalarMatrix(gen)),
+        replicate_block = (DummyMatrix(rep, block), KroneckerProduct(
+            G_rep = IdentityMatrix(rep),
+            G_block = ScalarMatrix(block),
+        )),
+        R = ScalarMatrix(n)
+    )
+
+Printing the model shows the marginal covariance it assembles from those terms:
+
+.. jupyter-execute::
+
+    print(reml)
+
+The :py:meth:`optimize <torch_openreml.MixedModelREML.optimize>` method is then called with :math:`\mathbf{y}`, :math:`\mathbf{X}`, and an initial value for :math:`\boldsymbol{\theta}` (set to zeros in this example). The `verbose` argument controls the level of diagnostic output.
+
+Because the optimization is performed on the transformed parameter scale, the estimated parameters can be mapped back to variance components using :py:meth:`build_params <torch_openreml.MixedModelREML.build_params>`. The resulting values correspond to the variance components associated with the parameter names stored in :py:attr:`free_param_names <torch_openreml.covariance.Matrix.free_param_names>`.
+
+.. jupyter-execute::
+
+    free_param_names, free_params = reml.optimize(y, X, torch.zeros(3), verbose=1)
+    print(free_param_names)
+    print(free_params)
+    print(reml.build_params(free_params))
+
+BLUE
+~~~~
+
+With the variance components estimated, the fixed effects follow from generalized least squares, the best linear unbiased estimate (BLUE):
+
+.. math::
+
+    \hat{\boldsymbol{\beta}} = \left(\mathbf{X}^\top \mathbf{V}^{-1} \mathbf{X}\right)^{-1} \mathbf{X}^\top \mathbf{V}^{-1} \mathbf{y}
+
+The :py:meth:`blue <torch_openreml.MixedModelREML.blue>` method takes :math:`\mathbf{y}`, :math:`\mathbf{X}`, and the fitted parameter vector, and evaluates :math:`\mathbf{V}` at those parameters internally:
+
+.. jupyter-execute::
+
+    beta_hat = reml.blue(y, X)
     print(beta_hat)
 
 BLUP
@@ -269,25 +284,19 @@ Once the variance components have been estimated, the random effects can be pred
     \qquad
     \hat{\mathbf{e}} = \mathbf{y} - \mathbf{X}\hat{\boldsymbol{\beta}}
 
-Here, :math:`\mathbf{Z}` and :math:`\mathbf{G}` are the joint design and covariance matrices defined above, represented by the :py:class:`Augment <torch_openreml.covariance.Augment>` and :py:class:`BlockDiagonal <torch_openreml.covariance.BlockDiagonal>` operands nested within the :py:class:`CovariancePropagation <torch_openreml.covariance.CovariancePropagation>` operator. These matrices can be retrieved directly from the fitted model rather than reconstructed manually. Calling :py:meth:`reml.tree <torch_openreml.MarginalREML.tree>` with no arguments evaluates the structure at the final iterate and returns the evaluated nodes, including the root ``"/"`` for :math:`\mathbf{V}` and ``"random/Z"`` and ``"random/G"`` for the random-effects design and covariance matrices. Pass a parameter vector to evaluate at other values, or keyword ``select="best"`` to evaluate at the iterate with the highest log-likelihood.
+Here, :math:`\mathbf{Z}` and :math:`\mathbf{G}` are assembled internally from the per-term design and covariance blocks. The :py:meth:`blup <torch_openreml.MixedModelREML.blup>` method returns a prediction for each random-effect level. In this example, the predictions correspond to the 24 genotypes followed by the 18 replicate-by-block combinations:
 
 .. jupyter-execute::
 
-    tree = reml.tree()
-
-The :py:func:`blup <torch_openreml.blup>` function takes :math:`\mathbf{y}`, :math:`\mathbf{X}`, :math:`\mathbf{Z}`, :math:`\mathbf{G}`, and :math:`\mathbf{V}` as inputs and returns a prediction for each random-effect level. In this example, the predictions correspond to the 24 genotypes followed by the 18 replicate-by-block combinations:
-
-.. jupyter-execute::
-
-    b_hat = blup(y, X, tree["random/Z"], tree["random/G"], tree["/"])
+    b_hat = reml.blup(y, X)
     b_hat
 
-BLUPs for an individual random-effect component can be obtained in the same way by extracting its corresponding design and covariance matrices. For example, the random intercepts for ``gen`` are defined by ``"random/Z/Z_gen"`` and ``"random/G/G_gen"``:
+:py:meth:`blup_per_term <torch_openreml.MixedModelREML.blup_per_term>` splits the same predictions by random-effect term, returning a dict keyed by the term names supplied to the constructor. The random intercepts for ``genotype`` are then:
 
 .. jupyter-execute::
 
-    gen_blup = blup(y, X, tree["random/Z/Z_gen"], tree["random/G/G_gen"], tree["/"])
-    pd.Series(gen_blup, index=sorted(set(gen)))
+    gen_blup = reml.blup_per_term(y, X)
+    print(gen_blup["genotype"])
 
 Documentation
 -------------
