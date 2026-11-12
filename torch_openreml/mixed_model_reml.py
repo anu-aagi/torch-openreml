@@ -101,7 +101,7 @@ class MixedModelREML:
     ``[free_params_Z, free_params_G, free_params_R]``.  A block with no free
     parameters occupies a zero-length slice.  The fitted model keeps the
     optimisation trace in :attr:`history`; use :meth:`optimize` for fitting
-    and :meth:`blue`, :meth:`blup`, :meth:`blup_per_term`, :meth:`marginal_predict`, :meth:`marginal_residual`, :meth:`predict`, :meth:`residual` and :meth:`loglik`
+    and :meth:`blue`, :meth:`blup`, :meth:`blup_per_term`, :meth:`build_params`, :meth:`marginal_predict`, :meth:`marginal_residual`, :meth:`predict`, :meth:`residual` and :meth:`loglik`
     for post-fitting quantities.
 
     Args:
@@ -544,6 +544,39 @@ class MixedModelREML:
         else:
             index = -1
         return self.v.free_param_names, self.history["free_params"][index]
+
+    def build_params(self, free_params=None, include_fixed=True, trans=True, out_format="tensor"):
+        r"""Build covariance parameters from free parameters.
+
+        This exposes the covariance model's ``build_params`` on the fitted
+        model, using the selected model parameters when ``free_params`` is
+        omitted.
+
+        Args:
+            free_params (torch.Tensor, dict or str, optional): Free
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate.  If omitted, the last fitted parameters are used.
+            include_fixed (bool, optional): Whether to include fixed
+                parameters in the output.  Default: ``True``.
+            trans (bool, optional): Whether to apply parameter transforms.
+                Default: ``True``.
+            out_format (str, optional): ``"tensor"`` for a flat tensor or
+                ``"dict"`` for a name-keyed mapping.  Default: ``"tensor"``.
+
+        Returns:
+            torch.Tensor or dict: The requested covariance parameters.
+
+        Raises:
+            ValueError: If no fitted parameters are available, or if
+                ``out_format`` is invalid.
+        """
+        free_params = self._post_free_params(free_params)
+        return self.v.build_params(
+            free_params,
+            include_fixed=include_fixed,
+            trans=trans,
+            out_format=out_format,
+        )
 
     def tree(self, free_params=None, *, select="last"):
         r"""Evaluate the covariance structure and return its path-keyed tree.
