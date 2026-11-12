@@ -10,6 +10,11 @@ Functions:
     blue:
         Best linear unbiased estimator of the fixed effects
         :math:`\boldsymbol{\beta}`.
+    cov_blue:
+        Covariance matrix of the best linear unbiased estimator.
+    var_blue:
+        Variances of the best linear unbiased estimator, the diagonal of
+        :func:`cov_blue`.
     blup:
         Best linear unbiased predictor of the random effects
         :math:`\symbf{b}`, requiring the random-effect covariance
@@ -80,6 +85,71 @@ def blue(y, x, v):
     matrix[r"\hat{\beta}"] = torch.cholesky_solve(matrix["X^T V^{-1} Y"], matrix["L_{X^T V^{-1} X}"])
 
     return matrix[r"\hat{\beta}"].squeeze()
+
+def cov_blue(x, v):
+    r"""
+    Compute the covariance matrix of the BLUE of the fixed effects.
+
+    .. math::
+
+        \operatorname{Var}(\hat{\boldsymbol{\beta}})
+        = \left(\symbf{X}^\top\symbf{V}^{-1}\symbf{X}\right)^{-1},
+
+    which is the ``C11`` block of the inverse C-form matrix (see
+    :meth:`~torch_openreml.methods.CForm.c_inverse_blocks`). The covariance
+    does not depend on the response :math:`\symbf{y}`, only on the design
+    and the covariance parameters.
+
+    Args:
+        x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+        v (torch.Tensor): Marginal covariance matrix of shape ``(n, n)``,
+            e.g. :math:`\symbf{V}(\boldsymbol{\theta})` evaluated at fitted
+            covariance parameters.
+
+    Returns:
+        torch.Tensor: BLUE covariance matrix of shape ``(p, p)``.
+    """
+    device = get_device(x, v)
+    dtype = get_dtype(x, v)
+
+    matrix = {}
+
+    matrix["V"] = v + 1e-6 * torch.eye(x.shape[0], device=device, dtype=dtype)
+    matrix["L"] = torch.linalg.cholesky(matrix["V"])
+
+    matrix["V^{-1} X"] = torch.cholesky_solve(x, matrix["L"])
+    matrix["X^T V^{-1} X"] = x.T @ matrix["V^{-1} X"]
+
+    matrix["L_{X^T V^{-1} X}"] = torch.linalg.cholesky(matrix["X^T V^{-1} X"])
+    matrix["Var(beta)"] = torch.cholesky_inverse(matrix["L_{X^T V^{-1} X}"])
+    matrix["Var(beta)"] = 0.5 * (matrix["Var(beta)"] + matrix["Var(beta)"].T)
+
+    return matrix["Var(beta)"]
+
+def var_blue(x, v):
+    r"""
+    Compute the variances of the BLUE of the fixed effects.
+
+    This is the diagonal of :func:`cov_blue`,
+
+    .. math::
+
+        \operatorname{Var}(\hat{\beta}_j)
+        = \left[\left(\symbf{X}^\top\symbf{V}^{-1}\symbf{X}\right)^{-1}
+          \right]_{jj},
+
+    the sampling variance of each fixed-effect estimate.
+
+    Args:
+        x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+        v (torch.Tensor): Marginal covariance matrix of shape ``(n, n)``,
+            e.g. :math:`\symbf{V}(\boldsymbol{\theta})` evaluated at fitted
+            covariance parameters.
+
+    Returns:
+        torch.Tensor: BLUE variances of shape ``(p,)``.
+    """
+    return torch.diagonal(cov_blue(x, v))
 
 def marginal_predict(y, x, v):
     r"""
