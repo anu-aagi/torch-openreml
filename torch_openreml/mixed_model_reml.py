@@ -46,7 +46,15 @@ from torch_openreml.covariance import (
     Operator,
 )
 from torch_openreml.methods import CForm, Marginal
-from torch_openreml.post import blue, loglik, marginal_predict, marginal_residual
+from torch_openreml.post import (
+    blue,
+    blup,
+    loglik,
+    marginal_predict,
+    marginal_residual,
+    predict as conditional_predict,
+    residual as conditional_residual,
+)
 
 
 class MixedModelREML:
@@ -93,7 +101,7 @@ class MixedModelREML:
     ``[free_params_Z, free_params_G, free_params_R]``.  A block with no free
     parameters occupies a zero-length slice.  The fitted model keeps the
     optimisation trace in :attr:`history`; use :meth:`optimize` for fitting
-    and :meth:`blue`, :meth:`marginal_predict`, :meth:`marginal_residual` and :meth:`loglik`
+    and :meth:`blue`, :meth:`blup`, :meth:`marginal_predict`, :meth:`marginal_residual`, :meth:`predict`, :meth:`residual` and :meth:`loglik`
     for post-fitting quantities.
 
     Args:
@@ -301,44 +309,174 @@ class MixedModelREML:
             warnings.warn(f"CForm failed ({exc}); falling back to Marginal.", RuntimeWarning, stacklevel=2)
             return self._marginal.ai_step(**kwargs)
 
-    def blue(self, y, x, free_params):
+    def _post_free_params(self, free_params):
+        if isinstance(free_params, str):
+            if free_params not in {"last", "best"}:
+                raise ValueError("free_params must be a tensor, 'last', 'best' or None!")
+            if self.history is None or not self.history["free_params"]:
+                raise ValueError(f"No optimisation history to select '{free_params}' from; call optimize() first.")
+            _, selected = self.get_free_params(free_params)
+            return selected
+
+        if free_params is not None:
+            return free_params
+
+        if self.history is not None and self.history["free_params"]:
+            _, last = self.get_free_params("last")
+            return last
+
+        raise ValueError("No fitted parameters available; pass free_params or call optimize() first.")
+
+    def blue(self, y, x, free_params=None):
         r"""Best linear unbiased estimator of the fixed effects.
 
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
-            free_params (torch.Tensor): Covariance parameters.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate. If omitted, the last fitted parameters are used.
+                A ``ValueError`` is raised when no fit exists.
 
         Returns:
             torch.Tensor: Estimated fixed effects of shape ``(p,)``.
         """
+        free_params = self._post_free_params(free_params)
         return blue(y, x, self.v(free_params))
 
-    def marginal_predict(self, y, x, free_params):
+    def marginal_predict(self, y, x, free_params=None):
         r"""Marginal fitted values at ``free_params``.
 
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
-            free_params (torch.Tensor): Covariance parameters.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate. If omitted, the last fitted parameters are used.
+                A ``ValueError`` is raised when no fit exists.
 
         Returns:
             torch.Tensor: Marginal fitted values of shape ``(n,)``.
         """
+        free_params = self._post_free_params(free_params)
         return marginal_predict(y, x, self.v(free_params))
 
-    def marginal_residual(self, y, x, free_params):
+    def marginal_residual(self, y, x, free_params=None):
         r"""Marginal residuals at ``free_params``.
 
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
-            free_params (torch.Tensor): Covariance parameters.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate. If omitted, the last fitted parameters are used.
+                A ``ValueError`` is raised when no fit exists.
 
         Returns:
             torch.Tensor: Marginal residuals of shape ``(n,)``.
         """
+        free_params = self._post_free_params(free_params)
         return marginal_residual(y, x, self.v(free_params))
+
+    def blup(self, y, x, free_params=None):
+        r"""Best linear unbiased predictions of the random effects.
+
+        .. math::
+
+            \hat{\symbf{b}}
+            = \symbf{G}\symbf{Z}^{\top}\symbf{V}^{-1}
+              (\symbf{y} - \symbf{X}\hat{\boldsymbol{\beta}}).
+
+        Args:
+            y (torch.Tensor): Response vector of shape ``(n,)``.
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters in model order, or ``"last"`` / ``"best"`` to
+                select a fitted iterate. If omitted, the last fitted
+                parameters are used. A ``ValueError`` is raised when no fit
+                exists.
+
+        Returns:
+            torch.Tensor: Random-effect predictions of shape ``(q,)``.
+
+        Raises:
+            ValueError: If the model has no random-effect terms, so there is
+                no random-effect vector to predict.
+        """
+        free_params = self._post_free_params(free_params)
+        if self._z is None:
+            raise ValueError("Cannot compute BLUP: the model has no random-effect terms.")
+
+        kz = self._z.num_free_params if isinstance(self._z, Matrix) else 0
+        kg = self._g.num_free_params if self._g is not None else 0
+        theta_z = free_params[:kz]
+        theta_g = free_params[kz:kz + kg]
+
+        z = self._z(theta_z) if isinstance(self._z, Matrix) else self._z
+        g = self._g(theta_g) if self._g is not None else None
+        return blup(y, x, z, g, self.v(free_params))
+
+    def predict(self, y, x, free_params=None):
+        r"""Conditional fitted values including random effects.
+
+        For a model with no random-effect terms this reduces to
+        :meth:`marginal_predict`.
+
+        Args:
+            y (torch.Tensor): Response vector of shape ``(n,)``.
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters in model order, or ``"last"`` / ``"best"`` to
+                select a fitted iterate. If omitted, the last fitted
+                parameters are used. A ``ValueError`` is raised when no fit
+                exists.
+
+        Returns:
+            torch.Tensor: Conditional fitted values of shape ``(n,)``.
+        """
+        free_params = self._post_free_params(free_params)
+        if self._z is None:
+            return self.marginal_predict(y, x, free_params)
+
+        kz = self._z.num_free_params if isinstance(self._z, Matrix) else 0
+        kg = self._g.num_free_params if self._g is not None else 0
+        theta_z = free_params[:kz]
+        theta_g = free_params[kz:kz + kg]
+
+        z = self._z(theta_z) if isinstance(self._z, Matrix) else self._z
+        g = self._g(theta_g) if self._g is not None else None
+        return conditional_predict(y, x, z, g, self.v(free_params))
+
+    def residual(self, y, x, free_params=None):
+        r"""Conditional residuals after removing fixed and random effects.
+
+        For a model with no random-effect terms this reduces to
+        :meth:`marginal_residual`.
+
+        Args:
+            y (torch.Tensor): Response vector of shape ``(n,)``.
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters in model order, or ``"last"`` / ``"best"`` to
+                select a fitted iterate. If omitted, the last fitted
+                parameters are used. A ``ValueError`` is raised when no fit
+                exists.
+
+        Returns:
+            torch.Tensor: Conditional residuals of shape ``(n,)``.
+        """
+        free_params = self._post_free_params(free_params)
+        if self._z is None:
+            return self.marginal_residual(y, x, free_params)
+
+        kz = self._z.num_free_params if isinstance(self._z, Matrix) else 0
+        kg = self._g.num_free_params if self._g is not None else 0
+        theta_z = free_params[:kz]
+        theta_g = free_params[kz:kz + kg]
+
+        z = self._z(theta_z) if isinstance(self._z, Matrix) else self._z
+        g = self._g(theta_g) if self._g is not None else None
+        return conditional_residual(y, x, z, g, self.v(free_params))
 
     def get_free_params(self, select="last"):
         r"""Return a covariance-parameter iterate from the history.
@@ -442,13 +580,16 @@ class MixedModelREML:
         updated = torch.clamp(free_params + delta * eta, min=lb, max=ub)
         return updated, updated - free_params
 
-    def loglik(self, y, x, free_params):
+    def loglik(self, y, x, free_params=None):
         r"""Evaluate the restricted log-likelihood with the selected method.
 
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
             x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
-            free_params (torch.Tensor): Covariance parameters.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate. If omitted, the last fitted parameters are used.
+                A ``ValueError`` is raised when no fit exists.
 
         Returns:
             torch.Tensor: Scalar restricted log-likelihood.
@@ -457,6 +598,7 @@ class MixedModelREML:
             RuntimeError: If ``method="cform"`` and CForm cannot handle the
                 model.
         """
+        free_params = self._post_free_params(free_params)
         if isinstance(self.method, CForm):
             return self.method.loglik(self, y, x, free_params)
 
