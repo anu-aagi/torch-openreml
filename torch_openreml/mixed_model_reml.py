@@ -93,7 +93,7 @@ class MixedModelREML:
     ``[free_params_Z, free_params_G, free_params_R]``.  A block with no free
     parameters occupies a zero-length slice.  The fitted model keeps the
     optimisation trace in :attr:`history`; use :meth:`optimize` for fitting
-    and :meth:`blue`, :meth:`predict`, :meth:`residual` and :meth:`loglik`
+    and :meth:`blue`, :meth:`marginal_predict`, :meth:`marginal_residual` and :meth:`loglik`
     for post-fitting quantities.
 
     Args:
@@ -314,8 +314,8 @@ class MixedModelREML:
         """
         return blue(y, x, self.v(free_params))
 
-    def predict(self, y, x, free_params):
-        r"""Fitted values at ``free_params``.
+    def marginal_predict(self, y, x, free_params):
+        r"""Marginal fitted values at ``free_params``.
 
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
@@ -323,12 +323,12 @@ class MixedModelREML:
             free_params (torch.Tensor): Covariance parameters.
 
         Returns:
-            torch.Tensor: Fitted values of shape ``(n,)``.
+            torch.Tensor: Marginal fitted values of shape ``(n,)``.
         """
         return marginal_predict(y, x, self.v(free_params))
 
-    def residual(self, y, x, free_params):
-        r"""Residuals at ``free_params``.
+    def marginal_residual(self, y, x, free_params):
+        r"""Marginal residuals at ``free_params``.
 
         Args:
             y (torch.Tensor): Response vector of shape ``(n,)``.
@@ -336,7 +336,7 @@ class MixedModelREML:
             free_params (torch.Tensor): Covariance parameters.
 
         Returns:
-            torch.Tensor: Residuals of shape ``(n,)``.
+            torch.Tensor: Marginal residuals of shape ``(n,)``.
         """
         return marginal_residual(y, x, self.v(free_params))
 
