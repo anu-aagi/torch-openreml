@@ -708,6 +708,135 @@ class MixedModelREML:
 
         return result
 
+    def cov_blup_per_term(self, x, free_params=None):
+        r"""BLUP covariance matrices split by random-effect term.
+
+        The combined BLUP covariance is computed once, then sliced into the
+        random-effect term order used by the constructor. Each entry is the
+        covariance of that term's BLUPs,
+
+        .. math::
+
+            \operatorname{Var}(\hat{\symbf{b}}_i)
+            = \symbf{G}_i\symbf{Z}_i^\top\symbf{P}\symbf{Z}_i\symbf{G}_i,
+
+        the corresponding diagonal block of :meth:`cov_blup`. The fit is
+        shared across terms, so only one factorization is performed.
+        Cross-covariances between terms can be sliced from the full
+        :meth:`cov_blup` matrix.
+
+        Args:
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters in model order, or ``"last"`` / ``"best"`` to
+                select a fitted iterate. If omitted, the last fitted
+                parameters are used. A ``ValueError`` is raised when no fit
+                exists.
+
+        Returns:
+            dict: Mapping from random-effect term name to its covariance
+            matrix of shape ``(q_i, q_i)``.
+
+        Raises:
+            ValueError: If the model has no random-effect terms, or if no
+                fitted parameters are available.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                x = torch.randn(n, 2)
+                z1 = DummyMatrix([f"a{i % 5}" for i in range(n)])
+                z2 = DummyMatrix([f"b{i % 3}" for i in range(n)])
+                reml = MixedModelREML(
+                    (z1, ScalarMatrix(5)),
+                    (z2, ScalarMatrix(3)),
+                    R=ScalarMatrix(n),
+                )
+                reml.cov_blup_per_term(x, torch.zeros(3))
+        """
+        free_params = self._post_free_params(free_params)
+
+        if self._z is None:
+            raise ValueError("Cannot compute the BLUP covariance: the model has no random-effect terms.")
+
+        combined = self.cov_blup(x, free_params)
+
+        result = {}
+        offset = 0
+        kz_offset = 0
+
+        for name, design in self._z_terms:
+            kz = design.num_free_params if isinstance(design, Matrix) else 0
+            theta_z = free_params[kz_offset:kz_offset + kz]
+            z = design(theta_z) if isinstance(design, Matrix) else design
+            q = z.shape[1]
+            result[name] = combined[offset:offset + q, offset:offset + q]
+            offset += q
+            kz_offset += kz
+
+        return result
+
+    def var_blup_per_term(self, x, free_params=None):
+        r"""BLUP variances split by random-effect term.
+
+        This is the diagonal of :meth:`cov_blup_per_term`,
+
+        .. math::
+
+            \operatorname{Var}(\hat{b}_{ij})
+            = \left(\symbf{G}_i\symbf{Z}_i^\top\symbf{P}
+              \symbf{Z}_i\symbf{G}_i\right)_{jj},
+
+        the sampling variance of each random-effect prediction, grouped by
+        the term that produced it. The combined covariance is computed once
+        and shared across terms.
+
+        Args:
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters in model order, or ``"last"`` / ``"best"`` to
+                select a fitted iterate. If omitted, the last fitted
+                parameters are used. A ``ValueError`` is raised when no fit
+                exists.
+
+        Returns:
+            dict: Mapping from random-effect term name to its variance vector
+            of shape ``(q_i,)``.
+
+        Raises:
+            ValueError: If the model has no random-effect terms, or if no
+                fitted parameters are available.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                x = torch.randn(n, 2)
+                z1 = DummyMatrix([f"a{i % 5}" for i in range(n)])
+                z2 = DummyMatrix([f"b{i % 3}" for i in range(n)])
+                reml = MixedModelREML(
+                    (z1, ScalarMatrix(5)),
+                    (z2, ScalarMatrix(3)),
+                    R=ScalarMatrix(n),
+                )
+                reml.var_blup_per_term(x, torch.zeros(3))
+        """
+        return {
+            name: torch.diagonal(block)
+            for name, block in self.cov_blup_per_term(x, free_params).items()
+        }
+
     def predict(self, y, x, free_params=None):
         r"""Conditional fitted values including random effects.
 
