@@ -1,4 +1,5 @@
 from torch_openreml.marginal_reml import MarginalREML
+from torch_openreml.mixed_model_reml import MixedModelREML
 from torch_openreml.post import blue, blup, marginal_predict, marginal_residual, predict, residual, loglik
 import torch_openreml.utils
 import torch_openreml.covariance
