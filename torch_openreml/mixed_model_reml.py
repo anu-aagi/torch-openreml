@@ -129,7 +129,7 @@ class MixedModelREML:
         group = [f"g{i % 20}" for i in range(n)]
         z = DummyMatrix(group)
         reml = MixedModelREML((z, ScalarMatrix(20)), ScalarMatrix(n))
-        free_params_hat, n_iter = reml.optimize(
+        free_param_names, free_params_hat = reml.optimize(
             y, x, torch.tensor([0.0, 0.0]), verbose=0
         )
     """
@@ -349,14 +349,18 @@ class MixedModelREML:
                 log-likelihood.  Default: ``"last"``.
 
         Returns:
-            torch.Tensor: Selected covariance-parameter vector.
+            tuple: ``(free_param_names, free_params)``, where
+            ``free_param_names`` is the list of namespaced covariance
+            parameter names and ``free_params`` is the selected
+            covariance-parameter tensor.
         """
         if select == "last":
-            return self.history["free_params"][-1]
-        if torch.is_tensor(self.history["loglik"][-1]):
+            index = -1
+        elif torch.is_tensor(self.history["loglik"][-1]):
             index = torch.argmax(torch.stack(self.history["loglik"])).item()
-            return self.history["free_params"][index]
-        return self.history["free_params"][-1]
+        else:
+            index = -1
+        return self.v.free_param_names, self.history["free_params"][index]
 
     def tree(self, free_params=None, *, select="last"):
         r"""Evaluate the covariance structure and return its path-keyed tree.
@@ -390,7 +394,7 @@ class MixedModelREML:
                     f"No optimisation history to select '{select}' from; call "
                     "optimize() first, or pass free_params."
                 )
-            free_params = self.get_free_params(select)
+            _, free_params = self.get_free_params(select)
 
         if isinstance(self.v, Operator):
             return self.v.tree(free_params)
@@ -563,9 +567,10 @@ class MixedModelREML:
                 Armijo test.  Default: ``1e-8``.
 
         Returns:
-            tuple: ``(free_params, n_iter)``, where ``free_params`` is the
-            final covariance-parameter tensor and ``n_iter`` is the number of
-            completed iterations.
+            tuple: ``(free_param_names, free_params)``, where
+            ``free_param_names`` is the list of namespaced covariance
+            parameter names and ``free_params`` is the final
+            covariance-parameter tensor in that order.
 
         Notes:
             The optimisation trace is stored in :attr:`history` with keys
@@ -591,7 +596,6 @@ class MixedModelREML:
         self.tol_loglik = tol_loglik
 
         start_time = time.perf_counter()
-        n_iter = 0
 
         with torch.no_grad():
             for i in range(max_iter):
@@ -661,8 +665,6 @@ class MixedModelREML:
                 self.history["eta"].append(eta_used)
                 self.history["accepted"].append(accepted)
 
-                n_iter = i + 1
-
                 if verbose > 0:
                     print(
                         f"[{i + 1:3d}] ||score||: "
@@ -686,4 +688,4 @@ class MixedModelREML:
                         f"{time.perf_counter() - start_time:.2f}s"
                     )
 
-        return free_params, n_iter
+        return self.v.free_param_names, free_params
