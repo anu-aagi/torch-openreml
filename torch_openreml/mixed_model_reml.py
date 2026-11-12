@@ -396,6 +396,64 @@ class MixedModelREML:
         free_params = self._post_free_params(free_params)
         return blue(y, x, self.V(free_params))
 
+    def c_inverse_blocks(self, x, free_params=None):
+        r"""Blocks of the inverse of the mixed-model coefficient matrix.
+
+        With the coefficient matrix
+
+        .. math::
+
+            \symbf{C}
+            = \begin{pmatrix}
+                  \symbf{X}^\top\symbf{R}^{-1}\symbf{X}
+                  & \symbf{X}^\top\symbf{R}^{-1}\symbf{Z} \\
+                  \symbf{Z}^\top\symbf{R}^{-1}\symbf{X}
+                  & \symbf{Z}^\top\symbf{R}^{-1}\symbf{Z}
+                    + \symbf{G}^{-1}
+              \end{pmatrix},
+
+        the method returns the blocks of :math:`\symbf{C}^{-1}`.  Block
+        :math:`\symbf{C}_{11} = (\symbf{X}^\top\symbf{V}^{-1}\symbf{X})^{-1}`
+        is the covariance of the fixed-effect estimates and
+        :math:`\symbf{C}_{22}` is the prediction-error covariance of the
+        random-effect predictions.
+
+        Args:
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate. If omitted, the last fitted parameters are used.
+                A ``ValueError`` is raised when no fit exists.
+
+        Returns:
+            tuple: ``(c11, c12, c21, c22)``, the blocks of
+            :math:`\symbf{C}^{-1}`, with shapes ``(p, p)``, ``(p, q)``,
+            ``(q, p)`` and ``(q, q)``.
+
+        Raises:
+            RuntimeError: If the model has no random-effect term or no
+                free parameters.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
+                c11, c12, c21, c22 = reml.c_inverse_blocks(x, torch.zeros(2))
+                print(c11.shape, c12.shape, c21.shape, c22.shape)
+        """
+        free_params = self._post_free_params(free_params)
+        if self._cform is None:
+            self._cform = CForm()
+        return self._cform.c_inverse_blocks(self, x, free_params)
+
     def marginal_predict(self, y, x, free_params=None):
         r"""Marginal fitted values at ``free_params``.
 
