@@ -137,9 +137,7 @@ class MixedModelREML:
         group = [f"g{i % 20}" for i in range(n)]
         z = DummyMatrix(group)
         reml = MixedModelREML((z, ScalarMatrix(20)), ScalarMatrix(n))
-        free_param_names, free_params_hat = reml.optimize(
-            y, x, torch.tensor([0.0, 0.0]), verbose=0
-        )
+        free_param_names, free_params_hat = reml.optimize(y, x, torch.tensor([0.0, 0.0]), verbose=1)
     """
 
     def __init__(self, *args, method="auto", **kwargs):
@@ -721,7 +719,7 @@ class MixedModelREML:
         eta_max=1.0,
         eta_min=1e-10,
         fallback_eta=1e-3,
-        loglik_tol=1e-8,
+        armijo_slack=1e-8,
     ):
         r"""Run the AI-REML optimisation loop with Armijo backtracking.
 
@@ -742,8 +740,8 @@ class MixedModelREML:
             + c \, \eta \, \symbf{s}^\top\boldsymbol{\delta}
             - \epsilon \max(1, |\ell|),
 
-        where ``c = armijo_c`` and ``epsilon = loglik_tol``.  The last term is
-        a small numerical slack; set ``loglik_tol=0`` for strict Armijo.
+        where ``c = armijo_c`` and ``epsilon = armijo_slack``.  The last term is
+        a small numerical slack; set ``armijo_slack=0`` for strict Armijo.
 
         Any score history kept by the selected :class:`Marginal` instance
         for ``trace_approx="auto"`` is reset before the first iteration.
@@ -783,7 +781,7 @@ class MixedModelREML:
                 Default: ``1e-10``.
             fallback_eta (float, optional): Step length for the normalized
                 gradient fallback.  Default: ``1e-3``.
-            loglik_tol (float, optional): Relative numerical slack in the
+            armijo_slack (float, optional): Relative numerical slack in the
                 Armijo test.  Default: ``1e-8``.
 
         Returns:
@@ -850,7 +848,7 @@ class MixedModelREML:
                         eta_i *= eta_shrink
                         continue
 
-                    threshold = ll + armijo_c * eta_i * torch.dot(score, delta) - loglik_tol * torch.clamp(
+                    threshold = ll + armijo_c * eta_i * torch.dot(score, delta) - armijo_slack * torch.clamp(
                         torch.abs(ll), min=1.0
                     )
                     if torch.isfinite(ll_new) and ll_new >= threshold:
@@ -887,18 +885,24 @@ class MixedModelREML:
 
                 if verbose > 0:
                     print(
-                        f"[{i + 1:3d}] ||score||: "
-                        f"{torch.norm(score):12.4f}, ||delta||: "
-                        f"{torch.norm(delta):6.4f}, eta: {eta_used:.2f}, "
-                        f"||step||: {torch.norm(step):6.4f}, accepted: {accepted}, "
-                        f"loglik: {ll_new:8.4f}"
+                        f"[{i + 1:3d}] \u2225\u2207\u2225: "
+                        f"{torch.norm(score):12.4f}, \u2225\u0394\u2225: "
+                        f"{torch.norm(delta):6.4f}, \u03B7: {eta_used:.2f}, "
+                        f"\u2225\u0394\u1D9C\u2225: {torch.norm(step):6.4f}, "
+                        f"accepted: {accepted}, log \U0001D4DB: {ll_new:8.4f}"
                     )
 
                 if self.is_converged():
                     if verbose > 0:
                         print(
-                            f"Converged at iteration {i + 1}, total time: "
-                            f"{time.perf_counter() - start_time:.2f}s"
+                            "\n[\u2207: score, \u0394: \U0001D409\u207B\u00B9\u2207, "
+                            "\u03B7: learning rate, \u0394\u1D9C: "
+                            "clip(\U0001D6C9 + \u03B7\u0394, lb, ub) - \U0001D6C9, "
+                            "\U0001D4DB: restricted likelihood]"
+                        )
+                        print(
+                            f"\n\u2713 Converged at iteration {i + 1}, total time: "
+                            f"{time.perf_counter() - start_time:.2f}s\n"
                         )
                     break
             else:
