@@ -51,12 +51,14 @@ from torch_openreml.methods import CForm, Marginal
 from torch_openreml.post import (
     blue,
     blup,
+    cov_blue,
     cov_blup,
     loglik,
     marginal_predict,
     marginal_residual,
     predict as conditional_predict,
     residual as conditional_residual,
+    var_blue,
 )
 
 
@@ -396,6 +398,89 @@ class MixedModelREML:
         """
         free_params = self._post_free_params(free_params)
         return blue(y, x, self.V(free_params))
+
+    def cov_blue(self, x, free_params=None):
+        r"""Covariance matrix of the fixed-effect BLUE.
+
+        The BLUE is :math:`\hat{\boldsymbol{\beta}}
+        = (\symbf{X}^{\top}\symbf{V}^{-1}\symbf{X})^{-1}
+          \symbf{X}^{\top}\symbf{V}^{-1}\symbf{y}`, so its covariance is
+
+        .. math::
+
+            \operatorname{Var}(\hat{\boldsymbol{\beta}})
+            = \left(\symbf{X}^{\top}\symbf{V}^{-1}\symbf{X}\right)^{-1},
+
+        the ``C11`` block of the inverse C-form matrix. The covariance does
+        not depend on the response :math:`\symbf{y}`, only on the design and
+        the covariance parameters.
+
+        Args:
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate. If omitted, the last fitted parameters are used.
+                A ``ValueError`` is raised when no fit exists.
+
+        Returns:
+            torch.Tensor: BLUE covariance matrix of shape ``(p, p)``.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
+                reml.cov_blue(x, torch.zeros(2))
+        """
+        free_params = self._post_free_params(free_params)
+        return cov_blue(x, self.V(free_params))
+
+    def var_blue(self, x, free_params=None):
+        r"""Variances of the fixed-effect BLUE.
+
+        This is the diagonal of :meth:`cov_blue`,
+
+        .. math::
+
+            \operatorname{Var}(\hat{\beta}_j)
+            = \left[\left(\symbf{X}^{\top}\symbf{V}^{-1}\symbf{X}\right)^{-1}
+              \right]_{jj},
+
+        the sampling variance of each fixed-effect estimate.
+
+        Args:
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate. If omitted, the last fitted parameters are used.
+                A ``ValueError`` is raised when no fit exists.
+
+        Returns:
+            torch.Tensor: BLUE variances of shape ``(p,)``.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
+                reml.var_blue(x, torch.zeros(2))
+        """
+        free_params = self._post_free_params(free_params)
+        return var_blue(x, self.V(free_params))
 
     def c_inverse_blocks(self, x, free_params=None):
         r"""Blocks of the inverse of the mixed-model coefficient matrix.
