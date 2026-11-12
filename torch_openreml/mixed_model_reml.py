@@ -51,6 +51,7 @@ from torch_openreml.methods import CForm, Marginal
 from torch_openreml.post import (
     blue,
     blup,
+    cov_blup,
     loglik,
     marginal_predict,
     marginal_residual,
@@ -540,6 +541,107 @@ class MixedModelREML:
         z = self._z(theta_z) if isinstance(self._z, Matrix) else self._z
         g = self._g(theta_g) if self._g is not None else None
         return blup(y, x, z, g, self.V(free_params))
+
+    def cov_blup(self, x, free_params=None):
+        r"""Covariance matrix of the BLUPs.
+
+        The BLUP is :math:`\hat{\symbf{b}}
+        = \symbf{G}\symbf{Z}^{\top}\symbf{P}\symbf{y}`, so its covariance is
+
+        .. math::
+
+            \operatorname{Var}(\hat{\symbf{b}})
+            = \symbf{G}\symbf{Z}^{\top}\symbf{P}\symbf{Z}\symbf{G},
+
+        with :math:`\symbf{P} = \symbf{V}^{-1}
+        - \symbf{V}^{-1}\symbf{X}
+          (\symbf{X}^{\top}\symbf{V}^{-1}\symbf{X})^{-1}
+          \symbf{X}^{\top}\symbf{V}^{-1}`.
+        This is equal to :math:`\symbf{G} - \symbf{C}_{22}`, but it only
+        requires :math:`\symbf{V}` to be invertible, not :math:`\symbf{G}`.
+        The covariance does not depend on the response :math:`\symbf{y}`,
+        only on the design and the covariance parameters.
+
+        Args:
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters in model order, or ``"last"`` / ``"best"`` to
+                select a fitted iterate. If omitted, the last fitted
+                parameters are used. A ``ValueError`` is raised when no fit
+                exists.
+
+        Returns:
+            torch.Tensor: BLUP covariance matrix of shape ``(q, q)``.
+
+        Raises:
+            ValueError: If the model has no random-effect terms, so there is
+                no random-effect vector to predict.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
+                reml.cov_blup(x, torch.zeros(2))
+        """
+        free_params = self._post_free_params(free_params)
+        if self._z is None:
+            raise ValueError("Cannot compute the BLUP covariance: the model has no random-effect terms.")
+
+        kz = self._z.num_free_params if isinstance(self._z, Matrix) else 0
+        kg = self._g.num_free_params if self._g is not None else 0
+        theta_z = free_params[:kz]
+        theta_g = free_params[kz:kz + kg]
+
+        z = self._z(theta_z) if isinstance(self._z, Matrix) else self._z
+        g = self._g(theta_g)
+        return cov_blup(x, z, g, self.V(free_params))
+
+    def var_blup(self, x, free_params=None):
+        r"""Variances of the BLUPs.
+
+        This is the diagonal of :meth:`cov_blup`, the sampling variance of
+        each random-effect prediction.  The variance does not depend on the
+        response :math:`\symbf{y}`, only on the design and the covariance
+        parameters.
+
+        Args:
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters in model order, or ``"last"`` / ``"best"`` to
+                select a fitted iterate. If omitted, the last fitted
+                parameters are used. A ``ValueError`` is raised when no fit
+                exists.
+
+        Returns:
+            torch.Tensor: BLUP variances of shape ``(q,)``.
+
+        Raises:
+            ValueError: If the model has no random-effect terms, so there is
+                no random-effect vector to predict.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
+                reml.var_blup(x, torch.zeros(2))
+        """
+        return torch.diagonal(self.cov_blup(x, free_params))
 
     def blup_per_term(self, y, x, free_params=None):
         r"""BLUPs split by random-effect term.
