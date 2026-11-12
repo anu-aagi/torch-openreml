@@ -44,6 +44,7 @@ from torch_openreml.covariance import (
     MarginalCovariance,
     Matrix,
     Operator,
+    ScalarMatrix,
 )
 from torch_openreml.methods import CForm, Marginal
 from torch_openreml.post import (
@@ -61,14 +62,17 @@ class MixedModelREML:
     r"""REML estimator for a structured linear mixed model.
 
     The model is specified by zero or more random-effect terms and one
-    residual term.  A random-effect term is a ``(design, covariance)``
-    pair, where *design* is the incidence matrix :math:`\symbf{Z}_i` and
-    *covariance* is the :class:`~torch_openreml.covariance.matrix.Matrix`
-    for :math:`\symbf{G}_i`, or a fixed two-dimensional tensor for a
+    residual term, supplied with the keyword ``R``.  A random-effect term
+    is a ``(design, covariance)`` pair, where *design* is the incidence
+    matrix :math:`\symbf{Z}_i` and *covariance* is the
+    :class:`~torch_openreml.covariance.matrix.Matrix` for
+    :math:`\symbf{G}_i`, or a fixed two-dimensional tensor for a
     parameter-free :math:`\symbf{G}_i`.  The residual term is a single
     :class:`~torch_openreml.covariance.matrix.Matrix` for :math:`\symbf{R}`,
     or a fixed two-dimensional tensor, which is wrapped in a
-    :class:`~torch_openreml.covariance.known_matrix.KnownMatrix`.
+    :class:`~torch_openreml.covariance.known_matrix.KnownMatrix`.  When
+    ``R`` is omitted it defaults to :math:`\sigma^2\symbf{I}`, with the
+    dimension inferred from the random-effect design.
 
     The constructor builds the composite marginal covariance
 
@@ -105,23 +109,43 @@ class MixedModelREML:
     for post-fitting quantities.
 
     Args:
-        *args: Random-effect ``(design, covariance)`` pairs and exactly one
-            unnamed residual covariance matrix.  The residual covariance is
-            the only positional argument that is not a ``list`` or
-            ``tuple``; it may be a ``Matrix`` or a two-dimensional tensor.
-        **kwargs: Named random-effect terms, each a ``(design, covariance)``
-            pair.  Names must be unique.
+        *args: Random-effect ``(design, covariance)`` pairs.
+        R: Residual covariance :math:`\symbf{R}`, either a
+            :class:`~torch_openreml.covariance.matrix.Matrix` or a fixed
+            two-dimensional tensor, which is wrapped in a
+            :class:`~torch_openreml.covariance.known_matrix.KnownMatrix`.
+            Defaults to ``None``, in which case
+            :math:`\sigma^2\symbf{I}` is used, i.e. a
+            :class:`~torch_openreml.covariance.scalar_matrix.ScalarMatrix`
+            whose dimension is inferred from the random-effect design.
+            ``R`` must be supplied explicitly when the model has no
+            random-effect terms, because the dimension cannot then be
+            inferred.
+        method: Numerical method used for score and average-information
+            evaluation.  ``"auto"`` (the default) tries
+            :class:`~torch_openreml.methods.cform.CForm` first and falls
+            back to :class:`~torch_openreml.methods.marginal.Marginal` when
+            CForm cannot handle the model; ``"cform"`` and ``"marginal"``
+            force one method; a configured
+            :class:`~torch_openreml.methods.cform.CForm` or
+            :class:`~torch_openreml.methods.marginal.Marginal` instance is
+            stored on the model and reused across steps.  Any other value
+            behaves like ``"auto"``.
+        **kwargs: Named random-effect terms, each a ``(design,
+            covariance)`` pair.  Term names must be unique, and no term may
+            be named ``R`` (or ``method``).
 
     Raises:
-        TypeError: If a design is not a tensor or
+        TypeError: If a positional argument is not a ``(design,
+            covariance)`` pair, a design is not a tensor or
             :class:`~torch_openreml.covariance.matrix.Matrix`, or a
             covariance is not a
             :class:`~torch_openreml.covariance.matrix.Matrix` or a fixed
             two-dimensional tensor.
-        ValueError: If the residual term is missing or duplicated, a term
-            has the wrong length, a random-effect covariance tensor is not
-            two-dimensional, a term name is duplicated, or the marginal
-            covariance has no free parameters.
+        ValueError: If ``R`` is omitted and the model has no random-effect
+            terms, a term has the wrong length, a random-effect covariance
+            tensor is not two-dimensional, a term name is duplicated, or the
+            marginal covariance has no free parameters.
 
     Example:
 
@@ -136,29 +160,23 @@ class MixedModelREML:
         x = torch.randn(n, p)
         group = [f"g{i % 20}" for i in range(n)]
         z = DummyMatrix(group)
-        reml = MixedModelREML((z, ScalarMatrix(20)), ScalarMatrix(n))
+        reml = MixedModelREML((z, ScalarMatrix(20)), R=ScalarMatrix(n))
         free_param_names, free_params_hat = reml.optimize(y, x, torch.tensor([0.0, 0.0]), verbose=1)
     """
 
-    def __init__(self, *args, method="auto", **kwargs):
+    def __init__(self, *args, R=None, method="auto", **kwargs):
         def as_matrix(covariance):
             if isinstance(covariance, torch.Tensor):
                 return KnownMatrix(covariance)
             return covariance
 
         random_terms = []
-        residual = None
 
-        for arg in args:
-            if isinstance(arg, (list, tuple)):
-                self._validate_term(arg, len(random_terms))
-                random_terms.append((f"random_term_{len(random_terms)}", arg[0], as_matrix(arg[1])))
-            else:
-                if residual is not None:
-                    raise ValueError("Only a single unnamed residual term should be provided!")
-                if not isinstance(arg, (Matrix, torch.Tensor)):
-                    raise TypeError("The residual term must be a Matrix or a two-dimensional Tensor!")
-                residual = as_matrix(arg)
+        for index, arg in enumerate(args):
+            if not isinstance(arg, (list, tuple)):
+                raise TypeError(f"Positional argument {index} must be a `(design, covariance)` pair.")
+            self._validate_term(arg, index)
+            random_terms.append((f"random_term_{index}", arg[0], as_matrix(arg[1])))
 
         for name, term in kwargs.items():
             if not isinstance(term, (list, tuple)):
@@ -168,17 +186,12 @@ class MixedModelREML:
                 raise ValueError(f"Term name `{name}` already exists!")
             random_terms.append((name, term[0], as_matrix(term[1])))
 
-        if residual is None:
-            raise ValueError("An unnamed residual term must be provided!")
-
-        self._r = residual
         self._z_terms = [(name, design) for name, design, _ in random_terms]
         self._g_terms = [(name, cov) for name, _, cov in random_terms]
 
         if not random_terms:
             self._z = None
             self._g = None
-            v = self._r
         else:
             if len(random_terms) == 1:
                 self._z = random_terms[0][1]
@@ -190,7 +203,23 @@ class MixedModelREML:
                     self._z = torch.cat([design for _, design in self._z_terms], dim=1)
                 self._g = BlockDiagonal(**dict(self._g_terms))
 
-            v = MarginalCovariance(Z=self._z, G=self._g, R=self._r)
+        if R is not None and not isinstance(R, (Matrix, torch.Tensor)):
+            raise TypeError("The residual term `R` must be a Matrix or a two-dimensional Tensor!")
+
+        if R is None:
+            if self._z is None:
+                raise ValueError("A residual term must be provided as `R=` when the model has no random-effect terms!")
+            if isinstance(self._z, torch.Tensor):
+                n = self._z.shape[0]
+            else:
+                with torch.no_grad():
+                    n = self._z().shape[0]
+            residual = ScalarMatrix(n)
+        else:
+            residual = as_matrix(R)
+
+        self._r = residual
+        v = self._r if self._z is None else MarginalCovariance(Z=self._z, G=self._g, R=self._r)
 
         if v.num_free_params == 0:
             raise ValueError("The marginal covariance must have at least one free parameter!")
@@ -351,7 +380,7 @@ class MixedModelREML:
                 y = torch.randn(n)
                 x = torch.randn(n, 2)
                 z = DummyMatrix([f"g{i % 5}" for i in range(n)])
-                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.blue(y, x, torch.zeros(2))
         """
         free_params = self._post_free_params(free_params)
@@ -428,7 +457,7 @@ class MixedModelREML:
                 y = torch.randn(n)
                 x = torch.randn(n, 2)
                 z = DummyMatrix([f"g{i % 5}" for i in range(n)])
-                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.blup(y, x, torch.zeros(2))
         """
         free_params = self._post_free_params(free_params)
@@ -483,7 +512,7 @@ class MixedModelREML:
                 reml = MixedModelREML(
                     (z1, ScalarMatrix(5)),
                     (z2, ScalarMatrix(3)),
-                    ScalarMatrix(n),
+                    R=ScalarMatrix(n),
                 )
                 reml.blup_per_term(y, x, torch.zeros(3))
         """
@@ -539,7 +568,7 @@ class MixedModelREML:
                 y = torch.randn(n)
                 x = torch.randn(n, 2)
                 z = DummyMatrix([f"g{i % 5}" for i in range(n)])
-                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.predict(y, x, torch.zeros(2))
         """
         free_params = self._post_free_params(free_params)
@@ -585,7 +614,7 @@ class MixedModelREML:
                 y = torch.randn(n)
                 x = torch.randn(n, 2)
                 z = DummyMatrix([f"g{i % 5}" for i in range(n)])
-                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.predict(y, x, torch.zeros(2))
                 reml.residual(y, x, torch.zeros(2))
         """
@@ -628,7 +657,7 @@ class MixedModelREML:
                 y = torch.randn(n)
                 x = torch.randn(n, 2)
                 z = DummyMatrix([f"g{i % 5}" for i in range(n)])
-                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.optimize(y, x, torch.zeros(2), max_iter=20)
                 names, values = reml.get_free_params("best")
                 names, values
@@ -678,7 +707,7 @@ class MixedModelREML:
                 y = torch.randn(n)
                 x = torch.randn(n, 2)
                 z = DummyMatrix([f"g{i % 5}" for i in range(n)])
-                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 raw = reml.build_params(torch.zeros(2), trans=False)
                 model_scale = reml.build_params(torch.zeros(2), trans=True)
                 raw, model_scale
@@ -717,7 +746,7 @@ class MixedModelREML:
                 y = torch.randn(n)
                 x = torch.randn(n, 2)
                 z = DummyMatrix([f"g{i % 3}" for i in range(n)])
-                reml = MixedModelREML((z, ScalarMatrix(3)), ScalarMatrix(n))
+                reml = MixedModelREML((z, ScalarMatrix(3)), R=ScalarMatrix(n))
                 reml.optimize(y, x, torch.zeros(2), max_iter=20)
                 reml.tree()
         """
