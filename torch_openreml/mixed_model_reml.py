@@ -338,6 +338,21 @@ class MixedModelREML:
 
         Returns:
             torch.Tensor: Estimated fixed effects of shape ``(p,)``.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml.blue(y, x, torch.zeros(2))
         """
         free_params = self._post_free_params(free_params)
         return blue(y, x, self.v(free_params))
@@ -400,6 +415,21 @@ class MixedModelREML:
         Raises:
             ValueError: If the model has no random-effect terms, so there is
                 no random-effect vector to predict.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml.blup(y, x, torch.zeros(2))
         """
         free_params = self._post_free_params(free_params)
         if self._z is None:
@@ -436,6 +466,26 @@ class MixedModelREML:
         Raises:
             ValueError: If the model has no random-effect terms, or if no
                 fitted parameters are available.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+                z1 = DummyMatrix([f"a{i % 5}" for i in range(n)])
+                z2 = DummyMatrix([f"b{i % 3}" for i in range(n)])
+                reml = MixedModelREML(
+                    (z1, ScalarMatrix(5)),
+                    (z2, ScalarMatrix(3)),
+                    ScalarMatrix(n),
+                )
+                reml.blup_per_term(y, x, torch.zeros(3))
         """
         free_params = self._post_free_params(free_params)
 
@@ -476,6 +526,21 @@ class MixedModelREML:
 
         Returns:
             torch.Tensor: Conditional fitted values of shape ``(n,)``.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml.predict(y, x, torch.zeros(2))
         """
         free_params = self._post_free_params(free_params)
         if self._z is None:
@@ -507,6 +572,22 @@ class MixedModelREML:
 
         Returns:
             torch.Tensor: Conditional residuals of shape ``(n,)``.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml.predict(y, x, torch.zeros(2))
+                reml.residual(y, x, torch.zeros(2))
         """
         free_params = self._post_free_params(free_params)
         if self._z is None:
@@ -534,6 +615,23 @@ class MixedModelREML:
             ``free_param_names`` is the list of namespaced covariance
             parameter names and ``free_params`` is the selected
             covariance-parameter tensor.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                reml.optimize(y, x, torch.zeros(2), max_iter=20)
+                names, values = reml.get_free_params("best")
+                names, values
         """
         if select == "last":
             index = -1
@@ -567,6 +665,23 @@ class MixedModelREML:
         Raises:
             ValueError: If no fitted parameters are available, or if
                 ``out_format`` is invalid.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), ScalarMatrix(n))
+                raw = reml.build_params(torch.zeros(2), trans=False)
+                model_scale = reml.build_params(torch.zeros(2), trans=True)
+                raw, model_scale
         """
         free_params = self._post_free_params(free_params)
         return self.v.build_params(
@@ -576,39 +691,37 @@ class MixedModelREML:
             out_format=out_format,
         )
 
-    def tree(self, free_params=None, *, select="last"):
+    def tree(self, free_params=None):
         r"""Evaluate the covariance structure and return its path-keyed tree.
 
         Args:
-            free_params (torch.Tensor or dict, optional): Covariance
-                parameters to evaluate.  When omitted, ``select`` chooses an
-                iterate from :attr:`history`.
-            select (str, optional): History selector used when
-                ``free_params`` is omitted.  Default: ``"last"``.
+            free_params (torch.Tensor, dict or str, optional): Covariance
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate.  If omitted, the last fitted parameters are used.
 
         Returns:
             dict: Path-keyed covariance tree.
 
         Raises:
-            TypeError: If ``free_params`` or ``select`` has the wrong type.
-            ValueError: If no history exists and no parameters are supplied.
+            ValueError: If no fitted parameters are available.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 8
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 3}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(3)), ScalarMatrix(n))
+                reml.optimize(y, x, torch.zeros(2), max_iter=20)
+                reml.tree()
         """
-        if isinstance(free_params, str):
-            raise TypeError(
-                "'free_params' must be a Torch tensor, a dict or None; pass a "
-                "selector string as select='best' instead of positionally."
-            )
-        if select is not None and not isinstance(select, str):
-            raise TypeError(
-                f"'select' must be a string or None, got {type(select).__name__}!"
-            )
-        if free_params is None and select is not None:
-            if self.history is None:
-                raise ValueError(
-                    f"No optimisation history to select '{select}' from; call "
-                    "optimize() first, or pass free_params."
-                )
-            _, free_params = self.get_free_params(select)
+        free_params = self._post_free_params(free_params)
 
         if isinstance(self.v, Operator):
             return self.v.tree(free_params)
