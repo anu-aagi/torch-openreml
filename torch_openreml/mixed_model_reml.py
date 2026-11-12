@@ -101,7 +101,7 @@ class MixedModelREML:
     ``[free_params_Z, free_params_G, free_params_R]``.  A block with no free
     parameters occupies a zero-length slice.  The fitted model keeps the
     optimisation trace in :attr:`history`; use :meth:`optimize` for fitting
-    and :meth:`blue`, :meth:`blup`, :meth:`marginal_predict`, :meth:`marginal_residual`, :meth:`predict`, :meth:`residual` and :meth:`loglik`
+    and :meth:`blue`, :meth:`blup`, :meth:`blup_per_term`, :meth:`marginal_predict`, :meth:`marginal_residual`, :meth:`predict`, :meth:`residual` and :meth:`loglik`
     for post-fitting quantities.
 
     Args:
@@ -415,6 +415,51 @@ class MixedModelREML:
         z = self._z(theta_z) if isinstance(self._z, Matrix) else self._z
         g = self._g(theta_g) if self._g is not None else None
         return blup(y, x, z, g, self.v(free_params))
+
+    def blup_per_term(self, y, x, free_params=None):
+        r"""BLUPs split by random-effect term.
+
+        The combined BLUP is computed once, then sliced into the
+        random-effect term order used by the constructor. This shares one
+        factorization and one residual solve across all terms.
+
+        Args:
+            y (torch.Tensor): Response vector of shape ``(n,)``.
+            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters, or ``"last"`` / ``"best"`` to select a fitted
+                iterate. If omitted, the last fitted parameters are used.
+                A ``ValueError`` is raised when no fit exists.
+
+        Returns:
+            dict: Mapping from random-effect term name to its BLUP vector of
+            shape ``(q_i,)``.
+
+        Raises:
+            ValueError: If the model has no random-effect terms, or if no
+                fitted parameters are available.
+        """
+        free_params = self._post_free_params(free_params)
+
+        if self._z is None:
+            raise ValueError("Cannot compute BLUP: the model has no random-effect terms.")
+
+        combined = self.blup(y, x, free_params)
+
+        result = {}
+        offset = 0
+        kz_offset = 0
+
+        for name, design in self._z_terms:
+            kz = design.num_free_params if isinstance(design, Matrix) else 0
+            theta_z = free_params[kz_offset:kz_offset + kz]
+            z = design(theta_z) if isinstance(design, Matrix) else design
+            q = z.shape[1]
+            result[name] = combined[offset:offset + q]
+            offset += q
+            kz_offset += kz
+
+        return result
 
     def predict(self, y, x, free_params=None):
         r"""Conditional fitted values including random effects.
