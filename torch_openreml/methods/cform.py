@@ -91,9 +91,9 @@ class CForm:
         """Whether ``model`` can use the dense C-form method."""
         return (
             model is not None
-            and model.z is not None
-            and model.g is not None
-            and model.v.num_free_params > 0
+            and model.Z is not None
+            and model.G is not None
+            and model.V.num_free_params > 0
         )
 
     def loglik(self, model, y, x, free_params):
@@ -219,20 +219,20 @@ class CForm:
         x = x.to(device=free_params.device, dtype=free_params.dtype)
 
         # free_params splitting
-        z_is_matrix = isinstance(model.z, Matrix)
-        kz = model.z.num_free_params if z_is_matrix else 0
-        kg = model.g.num_free_params
+        z_is_matrix = isinstance(model.Z, Matrix)
+        kz = model.Z.num_free_params if z_is_matrix else 0
+        kg = model.G.num_free_params
         free_params_z = free_params[:kz]
         free_params_g = free_params[kz:kz + kg]
         free_params_r = free_params[kz + kg:]
 
         # z, g, r
         if z_is_matrix:
-            z = model.z(free_params_z)
+            z = model.Z(free_params_z)
         else:
-            z = model.z
-        g = model.g(free_params_g)
-        r = model.r(free_params_r)
+            z = model.Z
+        g = model.G(free_params_g)
+        r = model.R(free_params_r)
         n = r.shape[0]
 
         if grad:
@@ -240,30 +240,30 @@ class CForm:
 
             # dz, dg, dr
             if z_is_matrix and kz > 0:
-                dz = model.z.grad(free_params_z)[0]
+                dz = model.Z.grad(free_params_z)[0]
             else:
                 dz = z.new_zeros((0, n, q))
 
-            if model.g.num_free_params > 0:
-                dg = model.g.grad(free_params_g)[0]
+            if model.G.num_free_params > 0:
+                dg = model.G.grad(free_params_g)[0]
             else:
                 dg = free_params_g.new_zeros((0, q, q))
 
-            if model.r.num_free_params > 0:
-                dr = model.r.grad(free_params_r)[0]
+            if model.R.num_free_params > 0:
+                dr = model.R.grad(free_params_r)[0]
             else:
                 dr = free_params_r.new_zeros((0, n, n))
 
         # g_inv, r_inv
         g_inv = None
         try:
-            g_inv = model.g.manual_inverse(free_params_g)
+            g_inv = model.G.manual_inverse(free_params_g)
         except NotImplementedError:
             pass
 
         r_inv = None
         try:
-            r_inv = model.r.manual_inverse(free_params_r)
+            r_inv = model.R.manual_inverse(free_params_r)
         except NotImplementedError:
             pass
         if r_inv is None:

@@ -219,11 +219,11 @@ class Marginal:
         y = y.to(device=free_params.device, dtype=free_params.dtype)
         x = x.to(device=free_params.device, dtype=free_params.dtype)
 
-        v = model.v(free_params)
+        v = model.V(free_params)
 
         v_inv = None
         try:
-            v_inv = model.v.manual_inverse(free_params)
+            v_inv = model.V.manual_inverse(free_params)
         except NotImplementedError:
             pass
 
@@ -233,7 +233,7 @@ class Marginal:
 
         data = {"x": x, "y": y, "v": v, "v_inv": v_inv}
         if grad:
-            data["dv"] = model.v.grad(free_params)[0]
+            data["dv"] = model.V.grad(free_params)[0]
         return data
 
     def ai_step(self, model, y, x, free_params, require_loglik=True):
