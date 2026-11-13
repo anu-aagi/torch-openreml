@@ -1055,6 +1055,132 @@ class MixedModelREML:
         g = self._g(theta_g) if self._g is not None else None
         return conditional_predict(y, x, z, g, self.V(free_params))
 
+    def predict_new(self, x, z=None, free_params=None):
+        r"""Predictions at new rows from already-built design matrices.
+
+        This method only consumes materialised tensors: it does not encode
+        factors or construct the incidence matrix of new data. Build ``x``
+        and each ``z`` block in the training column order, then pass them
+        here. A single new observation is just a one-row batch. The
+        random-effect contribution uses the BLUPs computed from the stored
+        training data by :meth:`blup`.
+
+        Args:
+            x (torch.Tensor): Fixed-effect design matrix of shape
+                ``(n_new, p)`` with at least one row. It must have the same
+                columns as the training design, in the same order.
+            z (torch.Tensor, list, dict or None, optional): Incidence matrix
+                of new data. Either a full tensor of shape ``(n_new, q)``, a
+                list with one ``(n_new, q_i)`` block per random-effect term,
+                or a dict keyed by term name. Terms omitted from a dict
+                contribute zero, so the caller chooses the active terms by
+                what it supplies. ``None`` gives the population prediction,
+                ignoring the random effects. Default: ``None``.
+            free_params (torch.Tensor or str, optional): Covariance
+                parameters in model order, or ``"last"`` / ``"best"`` to
+                select a fitted iterate. If omitted, the last fitted
+                parameters are used.
+
+        Returns:
+            torch.Tensor: Predictions of shape ``(n_new,)``.
+
+        Raises:
+            ValueError: If ``x`` is empty, the shapes disagree, a term name
+                is unknown, or the model has no random-effect terms but
+                ``z`` is given.
+            TypeError: If ``x`` or ``z`` has an unsupported type.
+
+        Example:
+            .. jupyter-execute::
+
+                import torch
+                from torch_openreml import MixedModelREML
+                from torch_openreml.covariance import DummyMatrix, ScalarMatrix
+
+                torch.manual_seed(0)
+                n = 30
+                y = torch.randn(n)
+                x = torch.randn(n, 2)
+                z = DummyMatrix([f"g{i % 5}" for i in range(n)])
+                reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
+                reml.optimize(y, x, torch.zeros(2))
+
+                x_new = torch.zeros(2, 2)
+                z_new = torch.zeros(2, 5)
+                z_new[0, 0] = 1.0
+                reml.predict_new(x_new, z_new)
+        """
+        if not isinstance(x, torch.Tensor):
+            raise TypeError("`x` must be a torch.Tensor.")
+        if x.dim() != 2:
+            raise ValueError(f"`x` must be a two-dimensional tensor of shape (n_new, p); got {tuple(x.shape)}.")
+        if x.shape[0] == 0:
+            raise ValueError("`x` must contain at least one row.")
+
+        free_params = self._post_free_params(free_params)
+        beta = self.blue(free_params=free_params)
+        if x.shape[1] != beta.shape[0]:
+            raise ValueError(f"`x` must have {beta.shape[0]} columns; got {x.shape[1]}.")
+
+        device, dtype = beta.device, beta.dtype
+        predicted = x.to(device=device, dtype=dtype) @ beta
+
+        if z is None:
+            return predicted
+        if not self._z_terms:
+            raise ValueError("The model has no random-effect terms; pass `z=None`.")
+
+        layout = []
+        offset = 0
+        num_params_offset = 0
+        for name, design in self._z_terms:
+            num_params = design.num_free_params if isinstance(design, Matrix) else 0
+            if isinstance(design, Matrix):
+                theta = free_params[num_params_offset:num_params_offset + num_params]
+                block = design(theta)
+            else:
+                block = design
+            q = block.shape[1]
+            layout.append((name, q, num_params, offset))
+            offset += q
+            num_params_offset += num_params
+
+        n_new = x.shape[0]
+        total = layout[-1][3] + layout[-1][1]
+        names = {name for name, _, _, _ in layout}
+        blocks = {}
+        if isinstance(z, torch.Tensor):
+            if z.dim() != 2 or z.shape != (n_new, total):
+                raise ValueError(f"`z` must have shape ({n_new}, {total}); got {tuple(z.shape)}.")
+            for name, q, _, offset in layout:
+                blocks[name] = z[:, offset:offset + q]
+        elif isinstance(z, (list, tuple)):
+            if len(z) != len(layout):
+                raise ValueError(f"`z` must contain one block per random-effect term: expected {len(layout)}, got {len(z)}.")
+            for (name, q, _, _), block in zip(layout, z):
+                if not isinstance(block, torch.Tensor) or block.dim() != 2 or block.shape != (n_new, q):
+                    raise ValueError(f"Term `{name}` expects a block of shape ({n_new}, {q}).")
+                blocks[name] = block
+        elif isinstance(z, dict):
+            unknown = sorted(set(z) - names)
+            if unknown:
+                raise ValueError(f"Unknown random-effect term(s) in `z`: {unknown}; expected a subset of {sorted(names)}.")
+            for name, q, _, _ in layout:
+                if name in z:
+                    block = z[name]
+                    if not isinstance(block, torch.Tensor) or block.dim() != 2 or block.shape != (n_new, q):
+                        raise ValueError(f"Term `{name}` expects a block of shape ({n_new}, {q}).")
+                    blocks[name] = block
+        else:
+            raise TypeError("`z` must be a tensor, a list of tensors or a dict of tensors.")
+
+        z_full = torch.zeros(n_new, total, device=device, dtype=dtype)
+        for name, q, _, offset in layout:
+            if name in blocks:
+                z_full[:, offset:offset + q] = blocks[name].to(device=device, dtype=dtype)
+        b_full = self.blup(free_params=free_params).to(device=device, dtype=dtype)
+        return predicted + z_full @ b_full
+
     def residual(self, y=None, x=None, free_params=None):
         r"""Conditional residuals after removing fixed and random effects.
 
