@@ -323,9 +323,11 @@ class MixedModelREML:
                 restricted log-likelihood.  Default: ``True``.
 
         Returns:
-            tuple: ``(score, ai, loglik)``.  ``score`` has shape ``(k,)``,
-            ``ai`` has shape ``(k, k)``, and ``loglik`` is a scalar tensor,
-            or ``torch.nan`` when ``require_loglik`` is ``False``.
+            tuple: ``(score, ai, loglik, method)``.  ``score`` has shape
+            ``(k,)``, ``ai`` has shape ``(k, k)``, and ``loglik`` is a scalar
+            tensor, or ``torch.nan`` when ``require_loglik`` is ``False``.
+            ``method`` is the numerical method that produced the step, either
+            ``"cform"`` or ``"marginal"``.
         """
         y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
@@ -333,17 +335,20 @@ class MixedModelREML:
         kwargs = {"model": self, "y": y, "x": x, "free_params": free_params, "require_loglik": require_loglik}
 
         if isinstance(self.method, (CForm, Marginal)):
-            return self.method.ai_step(**kwargs)
+            score, ai, ll = self.method.ai_step(**kwargs)
+            return score, ai, ll, "cform" if isinstance(self.method, CForm) else "marginal"
 
         if self.method == "marginal":
             if self._marginal is None:
                 self._marginal = Marginal()
-            return self._marginal.ai_step(**kwargs)
+            score, ai, ll = self._marginal.ai_step(**kwargs)
+            return score, ai, ll, "marginal"
 
         if self.method == "cform":
             if self._cform is None:
                 self._cform = CForm()
-            return self._cform.ai_step(**kwargs)
+            score, ai, ll = self._cform.ai_step(**kwargs)
+            return score, ai, ll, "cform"
 
         # "auto" (and unknown strings) dispatch on capability.
         if self._cform is None:
@@ -352,10 +357,12 @@ class MixedModelREML:
             self._marginal = Marginal()
 
         try:
-            return self._cform.ai_step(**kwargs)
+            score, ai, ll = self._cform.ai_step(**kwargs)
         except RuntimeError as exc:
             warnings.warn(f"CForm failed ({exc}); falling back to Marginal.", RuntimeWarning, stacklevel=2)
-            return self._marginal.ai_step(**kwargs)
+            score, ai, ll = self._marginal.ai_step(**kwargs)
+            return score, ai, ll, "marginal"
+        return score, ai, ll, "cform"
 
     def _post_free_params(self, free_params):
         if isinstance(free_params, str):
@@ -1568,7 +1575,7 @@ class MixedModelREML:
 
         with torch.no_grad():
             for i in range(max_iter):
-                score, ai, ll = self.ai_step(y, x, free_params, require_loglik=True)
+                score, ai, ll, _ = self.ai_step(y, x, free_params, require_loglik=True)
 
                 delta = torch.linalg.lstsq(ai, score.unsqueeze(-1)).solution.squeeze(-1)
 
