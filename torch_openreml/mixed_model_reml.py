@@ -1419,7 +1419,9 @@ class MixedModelREML:
                 A ``ValueError`` is raised when no fit exists.
 
         Returns:
-            torch.Tensor: Scalar restricted log-likelihood.
+            tuple: ``(loglik, method)``.  ``loglik`` is a scalar tensor with
+            the restricted log-likelihood, and ``method`` is the numerical
+            method that evaluated it, either ``"cform"`` or ``"marginal"``.
 
         Raises:
             RuntimeError: If ``method="cform"`` and CForm cannot handle the
@@ -1428,29 +1430,30 @@ class MixedModelREML:
         y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
         if isinstance(self.method, CForm):
-            return self.method.loglik(self, y, x, free_params)
+            return self.method.loglik(self, y, x, free_params), "cform"
 
         if isinstance(self.method, Marginal):
-            return self.method.loglik(self, y, x, free_params)
+            return self.method.loglik(self, y, x, free_params), "marginal"
 
         if self.method == "cform":
             if self._cform is None:
                 self._cform = CForm()
-            return self._cform.loglik(self, y, x, free_params)
+            return self._cform.loglik(self, y, x, free_params), "cform"
 
         if self.method == "marginal":
             if self._marginal is None:
                 self._marginal = Marginal()
-            return self._marginal.loglik(self, y, x, free_params)
+            return self._marginal.loglik(self, y, x, free_params), "marginal"
 
         if self._cform is None:
             self._cform = CForm()
         try:
-            return self._cform.loglik(self, y, x, free_params)
+            loglik = self._cform.loglik(self, y, x, free_params)
         except RuntimeError:
             if self._marginal is None:
                 self._marginal = Marginal()
-            return self._marginal.loglik(self, y, x, free_params)
+            return self._marginal.loglik(self, y, x, free_params), "marginal"
+        return loglik, "cform"
 
     def optimize(
         self,
@@ -1594,7 +1597,7 @@ class MixedModelREML:
                         continue
 
                     try:
-                        ll_new = self.loglik(y, x, theta_new)
+                        ll_new, _ = self.loglik(y, x, theta_new)
                     except RuntimeError:
                         eta_i *= eta_shrink
                         continue
@@ -1610,7 +1613,7 @@ class MixedModelREML:
                     grad = score / torch.clamp(torch.linalg.vector_norm(score), min=1.0)
                     theta_new, step = self.update(theta_old, grad, fallback_eta, lb, ub)
                     free_params = theta_new
-                    ll_new = self.loglik(y, x, free_params)
+                    ll_new, _ = self.loglik(y, x, free_params)
                     eta_used = float(fallback_eta)
                     eta = eta_max
                 else:
