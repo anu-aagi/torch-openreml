@@ -1566,9 +1566,12 @@ class MixedModelREML:
         Notes:
             The optimisation trace is stored in :attr:`history` with keys
             ``"free_params"``, ``"loglik"``, ``"score"``, ``"ai"``,
-            ``"delta"``, ``"update"``, ``"eta"`` and ``"accepted"``.
-            ``"accepted"`` is ``True`` only for a line-search-accepted Newton
-            step; gradient fallback steps are recorded with ``False``.
+            ``"delta"``, ``"update"``, ``"eta"``, ``"accepted"`` and
+            ``"method"``.  ``"accepted"`` is ``True`` only for a
+            line-search-accepted Newton step; gradient fallback steps are
+            recorded with ``False``.  ``"method"`` records, for each
+            iteration, the method that produced the AI step, either
+            ``"cform"`` or ``"marginal"``.
             The response ``y`` and design ``x`` are stored on the instance and
             are reused by the post-estimation methods (:meth:`blue`,
             :meth:`blup`, :meth:`predict`, :meth:`residual`, :meth:`loglik`,
@@ -1586,7 +1589,7 @@ class MixedModelREML:
         elif self._marginal is not None:
             self._marginal.reset()
 
-        self.history = {"free_params": [], "loglik": [], "score": [], "ai": [], "delta": [], "update": [], "eta": [], "accepted": []}
+        self.history = {"free_params": [], "loglik": [], "score": [], "ai": [], "delta": [], "update": [], "eta": [], "accepted": [], "method": []}
         self.check_update = check_update
         self.check_loglik = check_loglik
         self.tol_update = tol_update
@@ -1596,7 +1599,7 @@ class MixedModelREML:
 
         with torch.no_grad():
             for i in range(max_iter):
-                score, ai, ll, _ = self.ai_step(y, x, free_params, require_loglik=True)
+                score, ai, ll, ai_method = self.ai_step(y, x, free_params, require_loglik=True)
 
                 delta = torch.linalg.lstsq(ai, score.unsqueeze(-1)).solution.squeeze(-1)
 
@@ -1648,6 +1651,7 @@ class MixedModelREML:
                 self.history["update"].append(step)
                 self.history["eta"].append(eta_used)
                 self.history["accepted"].append(accepted)
+                self.history["method"].append(ai_method)
 
                 if verbose > 0:
                     print(
