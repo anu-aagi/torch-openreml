@@ -22,26 +22,32 @@
 ## Overview
 
 torch-openreml fits linear mixed-effects models using the Average Information REML (AI-REML)
-algorithm on a PyTorch backend. Covariance structures are specified through a modular system of
-matrices and operators, with automatic or manually specified gradients and optional parameter
-transformations for constrained estimation.
+algorithm on a PyTorch backend. It supports flexible specification of covariance structures
+through a modular system of matrices and operators, along with automatic or manual gradients and
+optional parameter transformations for constrained estimation.
 
-Unlike traditional mixed-model software, it does not provide a formula interface. Fixed- and
-random-effects design matrices and covariance structures are defined directly in code, so the
-library stays focused on the computational and optimisation backend rather than model
+Unlike traditional mixed-model software, it does not provide a formula interface. Instead, users
+define the fixed- and random-effects design matrices and covariance structures directly in code.
+The library is focused purely on the computational and optimisation backend rather than model
 specification syntax.
 
 ## Features
 
-- **Torch-based backend** — runs on CPU, GPU, and other available accelerators.
-- **AI-REML estimation engine** — variance components by quasi-Newton optimisation on the Average Information matrix.
-- **Extensible covariance structure** — composable matrices and operators, built-in or user-defined.
-- **Hybrid differentiation** — automatic differentiation or manually specified gradients.
-- **Composable parameter transformations** — chainable pipelines for flexible parameterisation.
+- **Torch-based backend** — built on PyTorch, running on CPU, GPU, and other available accelerators.
+- **AI-REML estimation engine** — variance component estimation using average information restricted maximum likelihood, with a Newton-type scoring method, Armijo backtracking, and a gradient fallback.
+- **Extensible covariance structure** — composable covariance structures and operators from built-in and user-defined components.
+- **Hybrid differentiation support** — automatic differentiation and manually specified gradients.
+- **Composable parameter transformations** — configurable, chainable transformation pipelines for flexible parameterisation.
 
 ## Installation
 
-Install the latest development version directly from GitHub:
+Install the released version from PyPI:
+
+```bash
+pip install torch-openreml
+```
+
+Or install the latest development version directly from GitHub:
 
 ```bash
 pip install git+https://github.com/anu-aagi/torch-openreml.git
@@ -51,83 +57,97 @@ pip install git+https://github.com/anu-aagi/torch-openreml.git
 
 ## Model
 
-The library assumes the standard linear mixed-effects model
+The library assumes the linear mixed-effects model
 
-$$y = X\beta + Zb + \varepsilon$$
+$$
+\mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \mathbf{Z}(\boldsymbol{\theta})\mathbf{b} + \boldsymbol{\varepsilon}
+$$
 
 with
 
-$$b \sim \mathcal{N}(0, G(\theta)), \qquad \varepsilon \sim \mathcal{N}(0, R(\theta)),$$
+$$
+\mathbf{b} \sim \mathcal{N}(\mathbf{0}, \mathbf{G}(\boldsymbol{\theta})), \qquad
+\boldsymbol{\varepsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{R}(\boldsymbol{\theta})),
+$$
 
-so that the marginal covariance of $y$ is
+so that the marginal covariance of $\mathbf{y}$ is
 
-$$V = Z G(\theta) Z^\top + R(\theta).$$
+$$
+\mathbf{V}(\boldsymbol{\theta}) = \mathbf{Z}(\boldsymbol{\theta})\mathbf{G}(\boldsymbol{\theta})\mathbf{Z}(\boldsymbol{\theta})^\top + \mathbf{R}(\boldsymbol{\theta}).
+$$
+
+A design may be a fixed tensor, as in the example below, or a parameterised `Matrix` whose free
+parameters are part of $\boldsymbol{\theta}$. Each random-effect term contributes its own design
+block and covariance, and $\mathbf{Z}(\boldsymbol{\theta})\mathbf{G}(\boldsymbol{\theta})\mathbf{Z}(\boldsymbol{\theta})^\top$
+is assembled from those blocks.
 
 ## Quick start
 
 The example below fits `yield` from the bundled `john_alpha` dataset — a resolvable alpha lattice
-trial — with a fixed effect for `rep`, a random intercept for `gen`, and a random `rep:block`
-interaction.
+trial — with an intercept, a fixed effect for `rep`, a random intercept for `gen`, and a random
+`rep:block` interaction.
 
 ```python
 import torch
-from torch_openreml import MarginalREML, blup
+from torch_openreml import MixedModelREML
 from torch_openreml.covariance import (
-    Augment, BlockDiagonal, DummyMatrix, IdentityMatrix,
-    KroneckerProduct, ScalarMatrix, Sum, CovariancePropagation,
+    Augment, DummyMatrix, IdentityMatrix, KroneckerProduct, ScalarMatrix,
 )
 from torch_openreml.example_data import john_alpha
+
+rep = john_alpha["rep"]
+block = john_alpha["block"]
+gen = john_alpha["gen"]
+n = len(john_alpha)
 
 y = torch.tensor(john_alpha["yield"].values)
 
 # Fixed effects X = [1 | rep], with the first replicate absorbed by the intercept.
-X = Augment(torch.ones(len(john_alpha), 1),
-            DummyMatrix(john_alpha["rep"], drop_first=True))()
+X = Augment(torch.ones(n, 1), DummyMatrix(rep, drop_first=True))()
 
-# Marginal covariance V = Z G Z^T + R, where Z = [gen | rep:block] is the
-# random-effect design, G = diag(gen, rep:block) has independent gen effects and
-# independent blocks within each replicate, and R = sigma2_e I is the residual.
-V = Sum(
-    random=CovariancePropagation(
-        Z=Augment(
-            Z_gen=DummyMatrix(john_alpha["gen"]),
-            Z_rep_block=DummyMatrix(john_alpha["rep"], john_alpha["block"]),
-        ),
-        G=BlockDiagonal(
-            G_gen=ScalarMatrix(john_alpha["gen"]),
-            G_rep_block=KroneckerProduct(
-                IdentityMatrix(john_alpha["rep"]),
-                ScalarMatrix(john_alpha["block"]),
-            ),
-        ),
-    ),
-    residual=ScalarMatrix(len(john_alpha)),
+# Each random-effect term is a (design, covariance) pair; the residual
+# covariance is supplied with R=. G_rep = I is fixed for identifiability.
+reml = MixedModelREML(
+    genotype=(DummyMatrix(gen), ScalarMatrix(gen)),
+    replicate_block=(DummyMatrix(rep, block), KroneckerProduct(
+        G_rep=IdentityMatrix(rep),
+        G_block=ScalarMatrix(block),
+    )),
+    R=ScalarMatrix(n),
 )
 
-# Zero starting values on the transformed scale: a unit variance for each component
-# (gen, rep:block, residual). Prints the fitted variances and the fixed effects.
-reml = MarginalREML(V)
-theta_hat, beta_hat, n_iter = reml.optimize(y, X, torch.zeros(3), verbose=1)
-print(V.build_params(theta_hat), beta_hat)
+print(reml)  # the marginal covariance assembled from those terms
 
-# BLUP of the random effects, jointly across all levels or for one component.
-tree = reml.tree()
-b_hat = blup(y, X, tree["random/Z"], tree["random/G"], tree["/"])
-gen_blup = blup(y, X, tree["random/Z/Z_gen"], tree["random/G/G_gen"], tree["/"])
-rep_block_blup = blup(y, X, tree["random/Z/Z_rep_block"], tree["random/G/G_rep_block"], tree["/"])
+# Optimise on the transformed scale (zeros mean unit variances here), then
+# map the estimates back to variance components.
+free_param_names, free_params = reml.optimize(y, X, torch.zeros(3), verbose=1)
+print(free_param_names)
+print(reml.build_params(free_params))
+
+# Post-estimation: BLUE of the fixed effects, BLUPs of the random effects.
+beta_hat = reml.blue()
+b_hat = reml.blup()
+gen_blup = reml.blup_per_term()["genotype"]
 ```
 
-Fitting is performed on the transformed parameter scale. V.build_params maps the estimates back to the original variance-component scale, with names given by V.free_param_names. reml.tree() evaluates the covariance structure at the final parameter estimates and returns the design and covariance matrices indexed by operand path.
+Fitting is performed on the transformed parameter scale. `build_params` maps the estimates back
+to the original variance-component scale, with names given by the model's free-parameter names
+(`['G/genotype/sigma^2', 'G/replicate_block/G_block/sigma^2', 'R/sigma^2']` in this example).
 
-The joint BLUP, b_hat, contains predictions for all random-effect levels, with genotype predictions followed by replicate-by-block predictions. The component-specific BLUPs, gen_blup and rep_block_blup, contain predictions for the genotype and replicate-by-block effects, respectively.
+The response and design are stored on the model by `optimize`, so the post-estimation methods can
+be called without repeating them. `blue` returns the fixed-effect estimates, `blup` returns one
+prediction per random-effect level (the 24 genotypes followed by the 18 replicate-by-block
+combinations), and `blup_per_term` splits the same predictions into a dict keyed by the term names
+supplied to the constructor. `cov_blue`, `var_blue`, `cov_blup`, `var_blup` and their per-term
+variants give the corresponding sampling covariances and variances.
 
 ## Documentation
 
 Full documentation: **https://torch-openreml.patrickli.org**
 
-- [Vignettes](https://torch-openreml.patrickli.org/vig) — worked examples, starting with the Marginal REML workflow.
+- [Vignettes](https://torch-openreml.patrickli.org/vig) — worked examples, including the mixed-model and marginal REML workflows.
 - [Technical Documentation](https://torch-openreml.patrickli.org/tech) — model formulation, REML and ML theory, score and AI matrix derivations.
-- [API Reference](https://torch-openreml.patrickli.org/api) — `MarginalREML`, covariance matrices, operators, transforms, utilities, and example datasets.
+- [API Reference](https://torch-openreml.patrickli.org/api) — `MixedModelREML`, `MarginalREML`, covariance matrices, operators, transforms, utilities, and example datasets.
 - [For R Users](https://torch-openreml.patrickli.org/r_user)
 - [Changelog](https://torch-openreml.patrickli.org/change_log)
 
