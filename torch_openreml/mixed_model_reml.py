@@ -237,6 +237,8 @@ class MixedModelREML:
         self._v = v
         self.history = None
         self.method = method
+        self._y = None
+        self._x = None
 
         if isinstance(method, CForm):
             self._cform = method
@@ -300,7 +302,7 @@ class MixedModelREML:
     def __repr__(self):
         return repr(self.V)
 
-    def ai_step(self, y, x, free_params, require_loglik=True):
+    def ai_step(self, y=None, x=None, free_params=None, require_loglik=True):
         r"""Evaluate one AI step with the selected method.
 
         The score and AI matrix are computed by
@@ -310,10 +312,13 @@ class MixedModelREML:
         cannot handle the model.
 
         Args:
-            y (torch.Tensor): Response vector of shape ``(n,)``.
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
-            free_params (torch.Tensor): Flat covariance-parameter tensor,
-                ordered as ``[free_params_Z, free_params_G, free_params_R]``.
+            y (torch.Tensor, optional): Response vector of shape ``(n,)``.
+                Default: the response stored by :meth:`optimize`.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
+            free_params (torch.Tensor, optional): Flat covariance-parameter
+                tensor, ordered as ``[free_params_Z, free_params_G,
+                free_params_R]``. Default: the last fitted iterate.
             require_loglik (bool, optional): Whether to evaluate the
                 restricted log-likelihood.  Default: ``True``.
 
@@ -322,6 +327,9 @@ class MixedModelREML:
             ``ai`` has shape ``(k, k)``, and ``loglik`` is a scalar tensor,
             or ``torch.nan`` when ``require_loglik`` is ``False``.
         """
+        y, x = self._post_xy(y, x)
+        free_params = self._post_free_params(free_params)
+
         kwargs = {"model": self, "y": y, "x": x, "free_params": free_params, "require_loglik": require_loglik}
 
         if isinstance(self.method, (CForm, Marginal)):
@@ -367,12 +375,61 @@ class MixedModelREML:
 
         raise ValueError("No fitted parameters available; pass free_params or call optimize() first.")
 
-    def blue(self, y, x, free_params=None):
+    def _post_xy(self, y, x):
+        r"""Resolve the response and fixed-effect design of a post-fit method.
+
+        Either both ``y`` and ``x`` are supplied, or both are omitted and the
+        training data stored by :meth:`optimize` is used.
+
+        Args:
+            y (torch.Tensor or None): Response vector, or ``None`` to use the
+                stored training response.
+            x (torch.Tensor or None): Fixed-effect design matrix, or ``None``
+                to use the stored training design.
+
+        Returns:
+            tuple: ``(y, x)``.
+
+        Raises:
+            ValueError: If only one of ``y`` and ``x`` is supplied, or when no
+                training data has been stored yet.
+        """
+        if y is None and x is None:
+            if self._y is None or self._x is None:
+                raise ValueError("No training data available; pass y and x or call optimize() first.")
+            return self._y, self._x
+        if y is None or x is None:
+            raise ValueError("Pass both `y` and `x`, or neither to use the training data stored by optimize().")
+        return y, x
+
+    def _post_x(self, x):
+        r"""Resolve the fixed-effect design of a post-fit method.
+
+        Args:
+            x (torch.Tensor or None): Fixed-effect design matrix, or ``None``
+                to use the stored training design.
+
+        Returns:
+            torch.Tensor: The design matrix.
+
+        Raises:
+            ValueError: When ``x`` is ``None`` and no training data has been
+                stored yet.
+        """
+        if x is None:
+            if self._x is None:
+                raise ValueError("No training data available; pass x or call optimize() first.")
+            return self._x
+        return x
+
+    def blue(self, y=None, x=None, free_params=None):
         r"""Best linear unbiased estimator of the fixed effects.
 
         Args:
-            y (torch.Tensor): Response vector of shape ``(n,)``.
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            y (torch.Tensor, optional): Response vector of shape ``(n,)``.
+                Default: the response stored by :meth:`optimize`.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters, or ``"last"`` / ``"best"`` to select a fitted
                 iterate. If omitted, the last fitted parameters are used.
@@ -396,10 +453,11 @@ class MixedModelREML:
                 reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.blue(y, x, torch.zeros(2))
         """
+        y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
         return blue(y, x, self.V(free_params))
 
-    def cov_blue(self, x, free_params=None):
+    def cov_blue(self, x=None, free_params=None):
         r"""Covariance matrix of the fixed-effect BLUE.
 
         The BLUE is :math:`\hat{\boldsymbol{\beta}}
@@ -416,7 +474,8 @@ class MixedModelREML:
         the covariance parameters.
 
         Args:
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters, or ``"last"`` / ``"best"`` to select a fitted
                 iterate. If omitted, the last fitted parameters are used.
@@ -439,10 +498,11 @@ class MixedModelREML:
                 reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.cov_blue(x, torch.zeros(2))
         """
+        x = self._post_x(x)
         free_params = self._post_free_params(free_params)
         return cov_blue(x, self.V(free_params))
 
-    def var_blue(self, x, free_params=None):
+    def var_blue(self, x=None, free_params=None):
         r"""Variances of the fixed-effect BLUE.
 
         This is the diagonal of :meth:`cov_blue`,
@@ -456,7 +516,8 @@ class MixedModelREML:
         the sampling variance of each fixed-effect estimate.
 
         Args:
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters, or ``"last"`` / ``"best"`` to select a fitted
                 iterate. If omitted, the last fitted parameters are used.
@@ -479,10 +540,11 @@ class MixedModelREML:
                 reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.var_blue(x, torch.zeros(2))
         """
+        x = self._post_x(x)
         free_params = self._post_free_params(free_params)
         return var_blue(x, self.V(free_params))
 
-    def c_inverse_blocks(self, x, free_params=None):
+    def c_inverse_blocks(self, x=None, free_params=None):
         r"""Blocks of the inverse of the mixed-model coefficient matrix.
 
         With the coefficient matrix
@@ -505,7 +567,8 @@ class MixedModelREML:
         random-effect predictions.
 
         Args:
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters, or ``"last"`` / ``"best"`` to select a fitted
                 iterate. If omitted, the last fitted parameters are used.
@@ -535,17 +598,20 @@ class MixedModelREML:
                 c11, c12, c21, c22 = reml.c_inverse_blocks(x, torch.zeros(2))
                 print(c11.shape, c12.shape, c21.shape, c22.shape)
         """
+        x = self._post_x(x)
         free_params = self._post_free_params(free_params)
         if self._cform is None:
             self._cform = CForm()
         return self._cform.c_inverse_blocks(self, x, free_params)
 
-    def marginal_predict(self, y, x, free_params=None):
+    def marginal_predict(self, y=None, x=None, free_params=None):
         r"""Marginal fitted values at ``free_params``.
 
         Args:
-            y (torch.Tensor): Response vector of shape ``(n,)``.
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            y (torch.Tensor, optional): Response vector of shape ``(n,)``.
+                Default: the response stored by :meth:`optimize`.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters, or ``"last"`` / ``"best"`` to select a fitted
                 iterate. If omitted, the last fitted parameters are used.
@@ -554,15 +620,18 @@ class MixedModelREML:
         Returns:
             torch.Tensor: Marginal fitted values of shape ``(n,)``.
         """
+        y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
         return marginal_predict(y, x, self.V(free_params))
 
-    def marginal_residual(self, y, x, free_params=None):
+    def marginal_residual(self, y=None, x=None, free_params=None):
         r"""Marginal residuals at ``free_params``.
 
         Args:
-            y (torch.Tensor): Response vector of shape ``(n,)``.
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            y (torch.Tensor, optional): Response vector of shape ``(n,)``.
+                Default: the response stored by :meth:`optimize`.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters, or ``"last"`` / ``"best"`` to select a fitted
                 iterate. If omitted, the last fitted parameters are used.
@@ -571,10 +640,11 @@ class MixedModelREML:
         Returns:
             torch.Tensor: Marginal residuals of shape ``(n,)``.
         """
+        y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
         return marginal_residual(y, x, self.V(free_params))
 
-    def blup(self, y, x, free_params=None):
+    def blup(self, y=None, x=None, free_params=None):
         r"""Best linear unbiased predictions of the random effects.
 
         .. math::
@@ -584,8 +654,10 @@ class MixedModelREML:
               (\symbf{y} - \symbf{X}\hat{\boldsymbol{\beta}}).
 
         Args:
-            y (torch.Tensor): Response vector of shape ``(n,)``.
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            y (torch.Tensor, optional): Response vector of shape ``(n,)``.
+                Default: the response stored by :meth:`optimize`.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters in model order, or ``"last"`` / ``"best"`` to
                 select a fitted iterate. If omitted, the last fitted
@@ -614,6 +686,7 @@ class MixedModelREML:
                 reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.blup(y, x, torch.zeros(2))
         """
+        y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
         if self._z is None:
             raise ValueError("Cannot compute BLUP: the model has no random-effect terms.")
@@ -627,7 +700,7 @@ class MixedModelREML:
         g = self._g(theta_g) if self._g is not None else None
         return blup(y, x, z, g, self.V(free_params))
 
-    def cov_blup(self, x, free_params=None):
+    def cov_blup(self, x=None, free_params=None):
         r"""Covariance matrix of the BLUPs.
 
         The BLUP is :math:`\hat{\symbf{b}}
@@ -648,7 +721,8 @@ class MixedModelREML:
         only on the design and the covariance parameters.
 
         Args:
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters in model order, or ``"last"`` / ``"best"`` to
                 select a fitted iterate. If omitted, the last fitted
@@ -676,6 +750,7 @@ class MixedModelREML:
                 reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.cov_blup(x, torch.zeros(2))
         """
+        x = self._post_x(x)
         free_params = self._post_free_params(free_params)
         if self._z is None:
             raise ValueError("Cannot compute the BLUP covariance: the model has no random-effect terms.")
@@ -689,7 +764,7 @@ class MixedModelREML:
         g = self._g(theta_g)
         return cov_blup(x, z, g, self.V(free_params))
 
-    def var_blup(self, x, free_params=None):
+    def var_blup(self, x=None, free_params=None):
         r"""Variances of the BLUPs.
 
         This is the diagonal of :meth:`cov_blup`, the sampling variance of
@@ -698,7 +773,8 @@ class MixedModelREML:
         parameters.
 
         Args:
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters in model order, or ``"last"`` / ``"best"`` to
                 select a fitted iterate. If omitted, the last fitted
@@ -726,9 +802,10 @@ class MixedModelREML:
                 reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.var_blup(x, torch.zeros(2))
         """
+        x = self._post_x(x)
         return torch.diagonal(self.cov_blup(x, free_params))
 
-    def blup_per_term(self, y, x, free_params=None):
+    def blup_per_term(self, y=None, x=None, free_params=None):
         r"""BLUPs split by random-effect term.
 
         The combined BLUP is computed once, then sliced into the
@@ -736,8 +813,10 @@ class MixedModelREML:
         factorization and one residual solve across all terms.
 
         Args:
-            y (torch.Tensor): Response vector of shape ``(n,)``.
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            y (torch.Tensor, optional): Response vector of shape ``(n,)``.
+                Default: the response stored by :meth:`optimize`.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters, or ``"last"`` / ``"best"`` to select a fitted
                 iterate. If omitted, the last fitted parameters are used.
@@ -771,6 +850,7 @@ class MixedModelREML:
                 )
                 reml.blup_per_term(y, x, torch.zeros(3))
         """
+        y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
 
         if self._z is None:
@@ -793,7 +873,7 @@ class MixedModelREML:
 
         return result
 
-    def cov_blup_per_term(self, x, free_params=None):
+    def cov_blup_per_term(self, x=None, free_params=None):
         r"""BLUP covariance matrices split by random-effect term.
 
         The combined BLUP covariance is computed once, then sliced into the
@@ -811,7 +891,8 @@ class MixedModelREML:
         :meth:`cov_blup` matrix.
 
         Args:
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters in model order, or ``"last"`` / ``"best"`` to
                 select a fitted iterate. If omitted, the last fitted
@@ -845,6 +926,7 @@ class MixedModelREML:
                 )
                 reml.cov_blup_per_term(x, torch.zeros(3))
         """
+        x = self._post_x(x)
         free_params = self._post_free_params(free_params)
 
         if self._z is None:
@@ -867,7 +949,7 @@ class MixedModelREML:
 
         return result
 
-    def var_blup_per_term(self, x, free_params=None):
+    def var_blup_per_term(self, x=None, free_params=None):
         r"""BLUP variances split by random-effect term.
 
         This is the diagonal of :meth:`cov_blup_per_term`,
@@ -883,7 +965,8 @@ class MixedModelREML:
         and shared across terms.
 
         Args:
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters in model order, or ``"last"`` / ``"best"`` to
                 select a fitted iterate. If omitted, the last fitted
@@ -917,20 +1000,23 @@ class MixedModelREML:
                 )
                 reml.var_blup_per_term(x, torch.zeros(3))
         """
+        x = self._post_x(x)
         return {
             name: torch.diagonal(block)
             for name, block in self.cov_blup_per_term(x, free_params).items()
         }
 
-    def predict(self, y, x, free_params=None):
+    def predict(self, y=None, x=None, free_params=None):
         r"""Conditional fitted values including random effects.
 
         For a model with no random-effect terms this reduces to
         :meth:`marginal_predict`.
 
         Args:
-            y (torch.Tensor): Response vector of shape ``(n,)``.
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            y (torch.Tensor, optional): Response vector of shape ``(n,)``.
+                Default: the response stored by :meth:`optimize`.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters in model order, or ``"last"`` / ``"best"`` to
                 select a fitted iterate. If omitted, the last fitted
@@ -955,6 +1041,7 @@ class MixedModelREML:
                 reml = MixedModelREML((z, ScalarMatrix(5)), R=ScalarMatrix(n))
                 reml.predict(y, x, torch.zeros(2))
         """
+        y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
         if self._z is None:
             return self.marginal_predict(y, x, free_params)
@@ -968,15 +1055,17 @@ class MixedModelREML:
         g = self._g(theta_g) if self._g is not None else None
         return conditional_predict(y, x, z, g, self.V(free_params))
 
-    def residual(self, y, x, free_params=None):
+    def residual(self, y=None, x=None, free_params=None):
         r"""Conditional residuals after removing fixed and random effects.
 
         For a model with no random-effect terms this reduces to
         :meth:`marginal_residual`.
 
         Args:
-            y (torch.Tensor): Response vector of shape ``(n,)``.
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            y (torch.Tensor, optional): Response vector of shape ``(n,)``.
+                Default: the response stored by :meth:`optimize`.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters in model order, or ``"last"`` / ``"best"`` to
                 select a fitted iterate. If omitted, the last fitted
@@ -1002,6 +1091,7 @@ class MixedModelREML:
                 reml.predict(y, x, torch.zeros(2))
                 reml.residual(y, x, torch.zeros(2))
         """
+        y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
         if self._z is None:
             return self.marginal_residual(y, x, free_params)
@@ -1182,12 +1272,14 @@ class MixedModelREML:
         updated = torch.clamp(free_params + delta * eta, min=lb, max=ub)
         return updated, updated - free_params
 
-    def loglik(self, y, x, free_params=None):
+    def loglik(self, y=None, x=None, free_params=None):
         r"""Evaluate the restricted log-likelihood with the selected method.
 
         Args:
-            y (torch.Tensor): Response vector of shape ``(n,)``.
-            x (torch.Tensor): Fixed-effect design matrix of shape ``(n, p)``.
+            y (torch.Tensor, optional): Response vector of shape ``(n,)``.
+                Default: the response stored by :meth:`optimize`.
+            x (torch.Tensor, optional): Fixed-effect design matrix of shape ``(n, p)``.
+                Default: the design stored by :meth:`optimize`.
             free_params (torch.Tensor or str, optional): Covariance
                 parameters, or ``"last"`` / ``"best"`` to select a fitted
                 iterate. If omitted, the last fitted parameters are used.
@@ -1200,6 +1292,7 @@ class MixedModelREML:
             RuntimeError: If ``method="cform"`` and CForm cannot handle the
                 model.
         """
+        y, x = self._post_xy(y, x)
         free_params = self._post_free_params(free_params)
         if isinstance(self.method, CForm):
             return self.method.loglik(self, y, x, free_params)
@@ -1322,11 +1415,17 @@ class MixedModelREML:
             ``"delta"``, ``"update"``, ``"eta"`` and ``"accepted"``.
             ``"accepted"`` is ``True`` only for a line-search-accepted Newton
             step; gradient fallback steps are recorded with ``False``.
+            The response ``y`` and design ``x`` are stored on the instance and
+            are reused by the post-estimation methods (:meth:`blue`,
+            :meth:`blup`, :meth:`predict`, :meth:`residual`, :meth:`loglik`,
+            and the covariance methods) when called without them.
         """
         eta = eta_max
         free_params = self.V.build_params(init_values, include_fixed=False, trans=False).detach()
         y = y.to(device=free_params.device, dtype=free_params.dtype)
         x = x.to(device=free_params.device, dtype=free_params.dtype)
+        self._y = y.detach()
+        self._x = x.detach()
 
         if isinstance(self.method, Marginal):
             self.method.reset()
@@ -1343,16 +1442,9 @@ class MixedModelREML:
 
         with torch.no_grad():
             for i in range(max_iter):
-                score, ai, ll = self.ai_step(
-                    y,
-                    x,
-                    free_params,
-                    require_loglik=True,
-                )
+                score, ai, ll = self.ai_step(y, x, free_params, require_loglik=True)
 
-                delta = torch.linalg.lstsq(
-                    ai, score.unsqueeze(-1)
-                ).solution.squeeze(-1)
+                delta = torch.linalg.lstsq(ai, score.unsqueeze(-1)).solution.squeeze(-1)
 
                 theta_old = free_params
                 eta_i = eta
@@ -1374,9 +1466,7 @@ class MixedModelREML:
                         eta_i *= eta_shrink
                         continue
 
-                    threshold = ll + armijo_c * eta_i * torch.dot(score, delta) - armijo_slack * torch.clamp(
-                        torch.abs(ll), min=1.0
-                    )
+                    threshold = ll + armijo_c * eta_i * torch.dot(score, delta) - armijo_slack * torch.clamp(torch.abs(ll), min=1.0)
                     if torch.isfinite(ll_new) and ll_new >= threshold:
                         accepted = True
                         break
@@ -1384,12 +1474,8 @@ class MixedModelREML:
                     eta_i *= eta_shrink
 
                 if not accepted:
-                    grad = score / torch.clamp(
-                        torch.linalg.vector_norm(score), min=1.0
-                    )
-                    theta_new, step = self.update(
-                        theta_old, grad, fallback_eta, lb, ub
-                    )
+                    grad = score / torch.clamp(torch.linalg.vector_norm(score), min=1.0)
+                    theta_new, step = self.update(theta_old, grad, fallback_eta, lb, ub)
                     free_params = theta_new
                     ll_new = self.loglik(y, x, free_params)
                     eta_used = float(fallback_eta)
