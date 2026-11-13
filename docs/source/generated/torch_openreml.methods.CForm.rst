@@ -16,6 +16,8 @@
    
       ~CForm.ai_step
       ~CForm.ai_step_from_tensors
+      ~CForm.c_inverse_blocks
+      ~CForm.c_inverse_blocks_from_tensors
       ~CForm.eligible
       ~CForm.loglik
       ~CForm.loglik_from_tensors

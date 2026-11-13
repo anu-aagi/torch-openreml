@@ -130,20 +130,22 @@ The model is specified as:
 
 .. math::
 
-    \mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \mathbf{Z}\mathbf{b} + \boldsymbol{\varepsilon}
+    \mathbf{y} = \mathbf{X}\boldsymbol{\beta} + \mathbf{Z}(\boldsymbol{\theta})\mathbf{b} + \boldsymbol{\varepsilon}
 
 with marginal covariance structure:
 
 .. math::
 
-    \mathrm{Var}(\mathbf{y}) = \mathbf{V} = \mathbf{Z}\mathbf{G}\mathbf{Z}^\top + \mathbf{R}
+    \mathrm{Var}(\mathbf{y}) = \mathbf{V}(\boldsymbol{\theta}) = \mathbf{Z}(\boldsymbol{\theta})\mathbf{G}(\boldsymbol{\theta})\mathbf{Z}(\boldsymbol{\theta})^\top + \mathbf{R}(\boldsymbol{\theta})
 
 and distributional assumptions:
 
 .. math::
 
-    \mathbf{b} \sim \mathcal{N}(\mathbf{0}, \mathbf{G}), \quad
-    \boldsymbol{\varepsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{R})
+    \mathbf{b} \sim \mathcal{N}(\mathbf{0}, \mathbf{G}(\boldsymbol{\theta})), \quad
+    \boldsymbol{\varepsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{R}(\boldsymbol{\theta}))
+
+A design may be a fixed tensor, as in the present model, or a parameterised :py:class:`Matrix <torch_openreml.covariance.Matrix>` whose free parameters are part of :math:`\boldsymbol{\theta}`.
 
 For the present model, which includes two random intercept components and their interaction, the covariance contribution from the random effects is expressed as:
 
@@ -246,7 +248,7 @@ Printing the model shows the marginal covariance it assembles from those terms:
 
     print(reml)
 
-The :py:meth:`optimize <torch_openreml.MixedModelREML.optimize>` method is then called with :math:`\mathbf{y}`, :math:`\mathbf{X}`, and an initial value for :math:`\boldsymbol{\theta}` (set to zeros in this example). The `verbose` argument controls the level of diagnostic output.
+The :py:meth:`optimize <torch_openreml.MixedModelREML.optimize>` method is then called with :math:`\mathbf{y}`, :math:`\mathbf{X}`, and an initial value for :math:`\boldsymbol{\theta}` (set to zeros in this example). The `verbose` argument controls the level of diagnostic output. The response and design are stored on the model, so the post-estimation methods below can be called without repeating them.
 
 Because the optimization is performed on the transformed parameter scale, the estimated parameters can be mapped back to variance components using :py:meth:`build_params <torch_openreml.MixedModelREML.build_params>`. The resulting values correspond to the variance components associated with the parameter names stored in :py:attr:`free_param_names <torch_openreml.covariance.Matrix.free_param_names>`.
 
@@ -266,11 +268,11 @@ With the variance components estimated, the fixed effects follow from generalize
 
     \hat{\boldsymbol{\beta}} = \left(\mathbf{X}^\top \mathbf{V}^{-1} \mathbf{X}\right)^{-1} \mathbf{X}^\top \mathbf{V}^{-1} \mathbf{y}
 
-The :py:meth:`blue <torch_openreml.MixedModelREML.blue>` method takes :math:`\mathbf{y}`, :math:`\mathbf{X}`, and the fitted parameter vector, and evaluates :math:`\mathbf{V}` at those parameters internally:
+The :py:meth:`blue <torch_openreml.MixedModelREML.blue>` method uses the stored :math:`\mathbf{y}` and :math:`\mathbf{X}` together with the fitted parameter vector, and evaluates :math:`\mathbf{V}` at those parameters internally:
 
 .. jupyter-execute::
 
-    beta_hat = reml.blue(y, X)
+    beta_hat = reml.blue()
     print(beta_hat)
 
 BLUP
@@ -288,14 +290,14 @@ Here, :math:`\mathbf{Z}` and :math:`\mathbf{G}` are assembled internally from th
 
 .. jupyter-execute::
 
-    b_hat = reml.blup(y, X)
+    b_hat = reml.blup()
     b_hat
 
 :py:meth:`blup_per_term <torch_openreml.MixedModelREML.blup_per_term>` splits the same predictions by random-effect term, returning a dict keyed by the term names supplied to the constructor. The random intercepts for ``genotype`` are then:
 
 .. jupyter-execute::
 
-    gen_blup = reml.blup_per_term(y, X)
+    gen_blup = reml.blup_per_term()
     print(gen_blup["genotype"])
 
 Documentation

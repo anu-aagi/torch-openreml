@@ -57,13 +57,10 @@ whose distinct values define the dimension.
     openreml <- import("torch_openreml", convert = FALSE)
     torch <- import("torch", convert = FALSE)
 
-    BlockDiagonal <- openreml$covariance$BlockDiagonal
     ScalarMatrix <- openreml$covariance$ScalarMatrix
     IdentityMatrix <- openreml$covariance$IdentityMatrix
     KroneckerProduct <- openreml$covariance$KroneckerProduct
-    CovariancePropagation <- openreml$covariance$CovariancePropagation
-    Sum <- openreml$covariance$Sum
-    MarginalREML <- openreml$MarginalREML
+    MixedModelREML <- openreml$MixedModelREML
 
     data <- agridat::john.alpha
     n <- nrow(data)
@@ -72,54 +69,55 @@ whose distinct values define the dimension.
     X <- model.matrix(~ rep, data = data) |>
         torch$tensor(dtype = torch$float32)
 
-    Z <- model.matrix(~ 0 + gen + block:rep, data = data) |>
-        torch$tensor(dtype = torch$float32)
-
-    V <- Sum(
-        random = CovariancePropagation(
-            Z = Z,
-            G = BlockDiagonal(
-                G_gen = ScalarMatrix(data$gen),
-                G_rep_block = KroneckerProduct(
-                    G_rep = IdentityMatrix(data$rep),
-                    G_block = ScalarMatrix(data$block)
-                )
-            )
-        ),
-        residual = ScalarMatrix(n)
-    )
-
-    fit_openreml <- MarginalREML(V)
-    result <- fit_openreml$optimize(y, X, torch$zeros(3L), verbose = 1L)
-
-    print(py_to_r(fit_openreml$get_free_params()$numpy()))
-    print(py_to_r(V$build_params(fit_openreml$get_free_params())$numpy()))
-    print(py_to_r(fit_openreml$get_fixed_effects()$numpy()))
-
-Random effects are predicted with the same best linear unbiased predictor (BLUP) as in the
-Python example. The joint design and covariance matrices are read back from the fitted
-model with :py:meth:`fit_openreml$tree <torch_openreml.MarginalREML.tree>`, which
-evaluates the structure at the estimated parameters and returns each node under its path:
-``"random/Z"`` and ``"random/G"`` hold :math:`\mathbf{Z}` and :math:`\mathbf{G}`, and the root
-``"/"`` holds :math:`\mathbf{V}`. Note that reticulate indexes Python objects from zero, so a dict
-entry is read with ``[[path]]`` as below.
-
-.. code-block:: R
-
-    tree <- fit_openreml$tree()
-
-    b_hat <- openreml$blup(y, X, tree[["random/Z"]], tree[["random/G"]], tree[["/"]])
-    print(py_to_r(b_hat$numpy()))
-
-The BLUPs of a single random-effect component follow the same pattern. Here the design matrix is
-a plain tensor built by ``model.matrix()``, so the columns of the ``gen`` term are built on their
-own, while its covariance is the ``"random/G/G_gen"`` node of the tree.
-
-.. code-block:: R
-
     Z_gen <- model.matrix(~ 0 + gen, data = data) |>
         torch$tensor(dtype = torch$float32)
-    gen_blup <- openreml$blup(y, X, Z_gen, tree[["random/G/G_gen"]], tree[["/"]])
+    Z_rep_block <- model.matrix(~ 0 + block:rep, data = data) |>
+        torch$tensor(dtype = torch$float32)
+
+    reml <- MixedModelREML(
+        genotype = list(Z_gen, ScalarMatrix(data$gen)),
+        replicate_block = list(
+            Z_rep_block,
+            KroneckerProduct(
+                G_rep = IdentityMatrix(data$rep),
+                G_block = ScalarMatrix(data$block)
+            )
+        ),
+        R = ScalarMatrix(n)
+    )
+    print(reml)
+
+Printing the model shows the marginal covariance it assembles from those terms.
+The ``optimize`` method is then called with ``y``, ``X``, and an initial value for the
+covariance parameters (zeros in this example), and the estimated parameters are mapped
+back to variance components using ``build_params()``:
+
+.. code-block:: R
+
+    result <- reml$optimize(y, X, torch$zeros(3L), verbose = 1L)
+    print(py_to_r(reml$build_params()$numpy()))
+
+The fixed effects follow from generalized least squares, the best linear unbiased estimate (BLUE):
+
+.. code-block:: R
+
+    print(py_to_r(reml$blue(y, X)$numpy()))
+
+The random effects are predicted with the best linear unbiased predictor (BLUP), one value per
+random-effect level. In this example the predictions correspond to the 24 genotypes followed by
+the 18 replicate-by-block combinations:
+
+.. code-block:: R
+
+    print(py_to_r(reml$blup(y, X)$numpy()))
+
+:py:meth:`blup_per_term <torch_openreml.MixedModelREML.blup_per_term>` splits the same
+predictions by random-effect term, returning a dict keyed by the term names supplied to the
+constructor. The random intercepts for ``gen`` are then:
+
+.. code-block:: R
+
+    gen_blup <- reml$blup_per_term(y, X)[["genotype"]]
     print(setNames(py_to_r(gen_blup$numpy()), levels(data$gen)))
 
 .. jupyter-execute::
