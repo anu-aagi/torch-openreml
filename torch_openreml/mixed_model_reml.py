@@ -105,8 +105,11 @@ class MixedModelREML:
       blocks and approximate traces.
 
     The method is selected by :attr:`method`, which is ``"auto"`` by
-    default.  ``"cform"`` and ``"marginal"`` force a particular method.
-    A configured :class:`~torch_openreml.methods.cform.CForm` or
+    default.  With ``"auto"`` CForm is used when the model is eligible for
+    it and Marginal otherwise; if an eligible CForm fails, a warning is
+    emitted and Marginal is used instead.  ``"cform"`` and ``"marginal"``
+    force a particular method.  A configured
+    :class:`~torch_openreml.methods.cform.CForm` or
     :class:`~torch_openreml.methods.marginal.Marginal` instance may also
     be supplied, for example ``Marginal(trace_approx="auto")``; the
     instance is stored on the model and reused across steps.
@@ -132,11 +135,13 @@ class MixedModelREML:
             random-effect terms, because the dimension cannot then be
             inferred.
         method: Numerical method used for score and average-information
-            evaluation.  ``"auto"`` (the default) tries
-            :class:`~torch_openreml.methods.cform.CForm` first and falls
-            back to :class:`~torch_openreml.methods.marginal.Marginal` when
-            CForm cannot handle the model; ``"cform"`` and ``"marginal"``
-            force one method; a configured
+            evaluation.  ``"auto"`` (the default) uses
+            :class:`~torch_openreml.methods.cform.CForm` when the model is
+            eligible for it and
+            :class:`~torch_openreml.methods.marginal.Marginal` otherwise; if
+            an eligible CForm fails, a warning is emitted and Marginal is
+            used instead.  ``"cform"`` and ``"marginal"`` force one method; a
+            configured
             :class:`~torch_openreml.methods.cform.CForm` or
             :class:`~torch_openreml.methods.marginal.Marginal` instance is
             stored on the model and reused across steps.  Any other value
@@ -308,8 +313,9 @@ class MixedModelREML:
         The score and AI matrix are computed by
         :class:`~torch_openreml.methods.cform.CForm` or
         :class:`~torch_openreml.methods.marginal.Marginal`.  With
-        ``method="auto"`` CForm is tried first and Marginal is used if CForm
-        cannot handle the model.
+        ``method="auto"`` CForm is used when the model is eligible for it and
+        Marginal otherwise; if an eligible CForm fails, a warning is emitted
+        and Marginal is used instead.
 
         Args:
             y (torch.Tensor, optional): Response vector of shape ``(n,)``.
@@ -355,6 +361,10 @@ class MixedModelREML:
             self._cform = CForm()
         if self._marginal is None:
             self._marginal = Marginal()
+
+        if not self._cform.eligible(self):
+            score, ai, ll = self._marginal.ai_step(**kwargs)
+            return score, ai, ll, "marginal"
 
         try:
             score, ai, ll = self._cform.ai_step(**kwargs)
@@ -1408,6 +1418,10 @@ class MixedModelREML:
     def loglik(self, y=None, x=None, free_params=None):
         r"""Evaluate the restricted log-likelihood with the selected method.
 
+        With ``method="auto"`` CForm is used when the model is eligible for
+        it and Marginal otherwise.  A CForm failure falls back to Marginal
+        silently, because the value is often evaluated at a trial point.
+
         Args:
             y (torch.Tensor, optional): Response vector of shape ``(n,)``.
                 Default: the response stored by :meth:`optimize`.
@@ -1447,11 +1461,15 @@ class MixedModelREML:
 
         if self._cform is None:
             self._cform = CForm()
+        if self._marginal is None:
+            self._marginal = Marginal()
+
+        if not self._cform.eligible(self):
+            return self._marginal.loglik(self, y, x, free_params), "marginal"
+
         try:
             loglik = self._cform.loglik(self, y, x, free_params)
         except RuntimeError:
-            if self._marginal is None:
-                self._marginal = Marginal()
             return self._marginal.loglik(self, y, x, free_params), "marginal"
         return loglik, "cform"
 
