@@ -56,15 +56,16 @@ was implemented. The "Gap" column is what the tests were missing; §5 records wh
 | 19 | `__repr__` / `_repr_indented` | Partial | ≥3-param ellipsis, 0-param omission, multi-line mode |
 | 20 | `_repr_value` | **Missing** | all four branches |
 | 21 | `_repr_dict` | **Missing** | — |
-| 22 | `map_theta_to_v` / `map_theta_to_dv` | **Stale** | removed from the class; `TestREMLInterface` fails |
+| 22 | `map_theta_to_v` / `map_theta_to_dv` | Removed | dropped with the removed `Matrix` API; `__call__` and `grad()` are the interface |
 | 23 | `cache` | **New** | added after this plan was implemented; §P-bis records what it must cover |
 | 24 | `enable_cache` / `disable_cache` | **New** | added after this plan was implemented; §P-ter records what they must cover |
 | 25 | `resolve_dim` | **New** | added after this plan was implemented; §S records what it must cover |
 | 26 | `manual_inverse` | **New** | added after this plan was implemented; §T records what it must cover |
 
-`TestREMLInterface` (2 tests) must be **deleted**: `map_theta_to_v` / `map_theta_to_dv` no longer exist on
-`Matrix` or anywhere in the package. Section I of the previous revision of this plan documented a removed
-interface and is dropped below.
+`TestREMLInterface` and its two tests were deleted with `map_theta_to_v` / `map_theta_to_dv`.
+Those methods no longer exist on `Matrix` or anywhere in the package; `__call__` and `grad()` are the
+interface. Section I of the previous revision of this plan documented the removed interface and is
+dropped below.
 
 ### 2.2 What Needs to Be Tested, Method by Method
 
@@ -704,11 +705,10 @@ pytest tests/covariance -q
 
 ## 4. Key Risks / Notes
 
-- **Two failing tests were stale, not regressions.** `TestREMLInterface::test_map_theta_to_v` and
-  `test_map_theta_to_dv` failed with `AttributeError`: both methods were removed from `Matrix` and
-  exist nowhere in the package. The class has been deleted. The same stale API still accounts for the
-  24 failures in the other covariance modules noted in `CLAUDE.md`; those are outside this plan's
-  scope, but they are the same root cause and the same one-line deletion.
+- **The removed REML interface is not tested.** `TestREMLInterface` and its two tests were deleted
+  with `map_theta_to_v` / `map_theta_to_dv`; those methods no longer exist on `Matrix` or anywhere in
+  the package, so `__call__` and `grad()` are the interface. The rest of the covariance suite was
+  cleaned up the same way, and `pytest tests` is green.
 - **The cache key is the parameter vector, and it must compare exactly.** Entries are keyed on the
   built parameter tensor, compared elementwise with `torch.equal` after the dtype and device guards.
   A key that summarises the values rather than comparing them is unsound here, in three ways: it
@@ -914,16 +914,17 @@ case could not be written as originally planned because the underlying behaviour
 assumption: the newline re-indentation in `_repr_value` only applies to a value whose `repr` contains a
 literal newline, so the test needed a vehicle whose `repr` does.
 
-The 24 failures elsewhere in `pytest tests/covariance` are the stale `map_theta_to_v` /
-`map_theta_to_dv` API documented in `CLAUDE.md`; none is in this module, and none was introduced here.
+The removed `map_theta_to_v` / `map_theta_to_dv` API documented in `CLAUDE.md` is now cleaned out of
+the tests; no test in this module references it.
 
 What the eleventh revision changed, and why:
 
-- **The method became opt-in.** `manual_inverse` was renamed to `manual_inverse` and the base class now
-  raises `NotImplementedError` instead of inverting `self(free_params)` numerically. Inverting a
-  matrix that has no closed form was always the slow generic path, and the name did not say so; the
-  explicit name plus the raise makes each closed form a deliberate override and keeps callers from
-  silently paying for a dense inversion. The section is correspondingly seven tests: the raise, the
-  message that names the numeric alternative, the raise winning over param validation, the numeric
-  route itself, override dispatch, the operators that inherit the raise, and `ThreeParamMatrix`
-  pinning the base. The value and gradient-flow tests went with the numeric default they tested.
+- **The inverse hook is new and opt-in.** `Matrix.manual_inverse` did not exist at 0.4.0. The base
+  class now raises `NotImplementedError` rather than inverting `self(free_params)` numerically;
+  subclasses with a closed form override it. Inverting a matrix with no closed form was always the
+  slow generic path, so the explicit name plus the raise makes each closed form a deliberate override
+  and keeps callers from silently paying for a dense inversion. The section is correspondingly seven
+  tests: the raise, the message that names the numeric alternative, the raise winning over param
+  validation, the numeric route itself, override dispatch, the operators that inherit the raise, and
+  `ThreeParamMatrix` pinning the base. The value and gradient-flow tests went with the numeric default
+  they tested. (The hook was never named `inverse`, so there is no rename to document.)

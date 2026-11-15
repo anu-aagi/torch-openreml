@@ -6,6 +6,11 @@ marginal covariance matrix :math:`\symbf{V}(\boldsymbol{\theta})`,
 these functions compute quantities from a fitted model.
 All inputs are ``torch.Tensor`` objects.
 
+For numerical stability, the routines that factorise
+:math:`\symbf{V}` add a small ridge :math:`10^{-6}\symbf{I}` before the
+factorisation. The value is fixed; pass an already-regularised
+:math:`\symbf{V}` if a different ridge is required.
+
 Functions:
     blue:
         Best linear unbiased estimator of the fixed effects

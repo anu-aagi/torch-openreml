@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 __pycache__
+
+tests/test_summary.md
