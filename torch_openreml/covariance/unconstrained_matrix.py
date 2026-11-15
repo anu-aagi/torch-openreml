@@ -95,6 +95,14 @@ class UnconstrainedMatrix(Matrix):
         }
         super().__init__((n, n), param_specs)
 
+        slot_count = n * (n + 1) // 2
+        if len(self.param_specs) != slot_count:
+            raise ValueError(
+                "UnconstrainedMatrix has one parameter per lower-triangular "
+                f"entry; expected {slot_count} parameter specs, got "
+                f"{len(self.param_specs)}."
+            )
+
     def __call__(self, free_params=None):
         tril_entries = self.build_params(free_params)
 

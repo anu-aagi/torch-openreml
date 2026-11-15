@@ -89,6 +89,14 @@ class LowerTriangularMatrix(Matrix):
         }
         super().__init__((n, m), param_specs)
 
+        slot_count = sum(min(i + 1, m) for i in range(n))
+        if len(self.param_specs) != slot_count:
+            raise ValueError(
+                "LowerTriangularMatrix has one parameter per lower-triangular "
+                f"entry; expected {slot_count} parameter specs, got "
+                f"{len(self.param_specs)}."
+            )
+
     def __call__(self, free_params=None):
         tril_entries = self.build_params(free_params)
 
