@@ -383,6 +383,8 @@ class CForm:
             z = model.Z(free_params_z)
         else:
             z = model.Z
+
+        z = z.to(device=free_params.device, dtype=free_params.dtype)
         g = model.G(free_params_g)
         r = model.R(free_params_r)
         n = r.shape[0]
@@ -546,8 +548,8 @@ class CForm:
             tuple: ``(score, ai, loglik)``, where ``score`` has
             shape ``(kz + kg + kr,)`` in ``[Z, G, R]`` order, ``ai`` has
             shape ``(kz + kg + kr, kz + kg + kr)``, and ``loglik`` is a
-            scalar tensor (``torch.nan`` when ``require_loglik`` is
-            ``False``).
+            scalar tensor, or ``torch.nan`` when ``require_loglik`` is
+            ``False``.
 
             Individual empty parameter blocks are supported by passing
             a zero-length first dimension, for example
