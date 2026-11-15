@@ -11,7 +11,7 @@ Provides a covariance matrix whose free parameters are its lower-triangular entr
 - `LowerTriangularMatrix` — free lower-triangular entries, zeros above the diagonal
 
 **Testing Goal:**
-Pin the parameter naming and ordering (`L_{i}_{j}`, row-major over the lower triangle), the rectangular `n × m` placement including zero-filling above the diagonal, the default `TransformIdentity()` transform and `1.0` default, the closed-form `manual_grad` (one unit entry per lower-triangular slot, filtered to free parameters) and its agreement with `auto_grad`, and the base-class dtype/device, cache, repr and `manual_inverse` contracts. The class previously had only incidental coverage in `tests/covariance/test_matrix.py`; the custom-spec parameter-count limitations are pinned here.
+Pin the parameter naming and ordering (`L_{i}_{j}`, row-major over the lower triangle), the rectangular `n × m` placement including zero-filling above the diagonal, the default `TransformIdentity()` transform and `1.0` default, the closed-form `manual_grad` (one unit entry per lower-triangular slot, filtered to free parameters) and its agreement with `auto_grad`, and the base-class dtype/device, cache, repr and `manual_inverse` contracts. The class previously had only incidental coverage in `tests/covariance/test_matrix.py`; the custom-spec parameter-count contract is enforced and tested here.
 
 ---
 
@@ -115,13 +115,14 @@ Pin the parameter naming and ordering (`L_{i}_{j}`, row-major over the lower tri
 - A one-parameter `(1, 1)` matrix prints the full spec without `...`
 - `repr_dict` exposes the shape tuple and the same `param_specs` object
 
-#### M. Parameter-Count Limitations
+#### M. Spec-Count Enforcement
 
-The default spec count always matches the number of lower-triangular slots, but a custom `param_specs` may not:
+`LowerTriangularMatrix` has one parameter per lower-triangular slot, and the constructor rejects any other count:
 
-- Too few parameters: `__call__` broadcasts the short vector over the lower-triangular slot list — a single parameter fills every lower slot — whereas `manual_grad` raises `IndexError: The shape of the mask [1] at index 0 does not match the shape of the indexed tensor [3] at index 0` because the free mask is shorter than the index list; `auto_grad` returns the broadcast-consistent Jacobian
-- Too many parameters: `__call__` raises `RuntimeError: shape mismatch: value tensor of shape [4] cannot be broadcast to indexing result of shape [3]`
-- The two-parameter mismatch case (`2 × 2` with one parameter) is recorded as a non-strict `xfail` for the manual-vs-auto shape equality, so the divergence is documented without blessing the `IndexError`
+- `(2, 2)` has three slots: one spec raises `ValueError: ... expected 3 parameter specs, got 1`; four specs raise `ValueError: ... expected 3 parameter specs, got 4`
+- `(4, 2)` has seven slots (rows of 1, 2, 2, 2): six specs are rejected and seven are accepted
+- A correctly sized custom surface keeps its names and order; fixed entries count toward the total, so three specs with one fixed still satisfy the check (three parameters, two free)
+- Mutating `param_specs` after construction is unsupported and bypasses the check
 
 ---
 
@@ -132,7 +133,7 @@ The default spec count always matches the number of lower-triangular slots, but 
 - Use the default `3 × 2` and `4 × 2` matrices for the ordering and rectangular-zero assertions, and `2 × 2` for the custom-spec and mixed cases
 - Place parameter values with distinct, non-symmetric magnitudes so a row/column transposition or a diagonal offset is visible; assert the exact zero pattern separately from the values
 - Cross-check `manual_grad` against `auto_grad` with `torch.allclose` on both square and rectangular shapes, and check the names list independently
-- Keep custom-spec count probing in one class (`...SpecCountLimitation`) and record the manual/auto divergence as a non-strict `xfail`
+- Keep spec-count enforcement in one class (`...SpecCount`); the constructor rejects too few and too many entries, and a rectangular shape pins the slot formula
 - Repeat the dtype/device matrix on every public method using the inline `cuda` → `mps` → `skip` pattern
 
 ### 3.2 Test Structure
@@ -180,7 +181,7 @@ class TestLowerTriangularMatrixCallValues:
         assert torch.all(result[1, 1:] == 0)
 ```
 
-The remaining classes are `TestLowerTriangularMatrixConstructor`, `...FixedParams`, `...CustomTransforms`, `...Grad`, `...BuildParams`, `...FreeParamsValidation`, `...DtypeAndDevice`, `...Intermediates`, `...Inverse`, `...Repr` and `...SpecCountLimitation`.
+The remaining classes are `TestLowerTriangularMatrixConstructor`, `...FixedParams`, `...CustomTransforms`, `...Grad`, `...BuildParams`, `...FreeParamsValidation`, `...DtypeAndDevice`, `...Intermediates`, `...Inverse`, `...Repr` and `...SpecCount`.
 
 ### 3.3 Test Execution
 
@@ -188,13 +189,13 @@ The remaining classes are `TestLowerTriangularMatrixConstructor`, `...FixedParam
 conda run -n torch-openreml python -m pytest tests/covariance/test_lower_triangular_matrix.py -q
 ```
 
-Expected: `231 passed, 1 xfailed`.
+Expected: `233 passed`.
 
 ---
 
 ## 4. Key Risks / Notes
 
-- **Custom spec count is not validated against the triangle.** `build_params` checks only the tensor length against `num_free_params`, so a short spec broadcasts silently in `__call__` and raises a masked `IndexError` in `manual_grad`, while a long spec raises `RuntimeError: shape mismatch`. `TestLowerTriangularMatrixSpecCountLimitation` pins all three behaviours; the manual/auto divergence is a non-strict `xfail`.
+- **Spec count is validated only at construction.** The constructor rejects a `param_specs` dict whose length differs from the number of lower-triangular slots, which removes the old silent broadcast and masked `IndexError`. Directly mutating `param_specs` afterwards still bypasses the check, so the invariant is documented as construction-time only.
 - **Ordering is row-major, not column-major.** `torch.tril_indices` returns row-major indices, and both `__call__` and `manual_grad` rely on that order matching `free_param_names`. A vector with distinct values catches a transposition; the strictly-increasing placement test is the load-bearing one.
 - **Rectangular shapes truncate the lower triangle.** For `m > n` the number of parameters saturates at the triangle size (not `n · m`), so a test that assumes one parameter per column is wrong; `(1, 4)` has one parameter and four columns of output.
 - **The default `TransformIdentity` preserves integer dtypes.** Unlike the exponential-transform classes, an `int64` parameter vector yields an `int64` matrix; the dtype tests assert that explicitly, and a custom exponential transform is used to cover the promotion path.
@@ -219,5 +220,5 @@ Expected: `231 passed, 1 xfailed`.
 | intermediates cache | 16 |
 | `manual_inverse` (base) | 6 |
 | repr | 7 |
-| Parameter-count limitation (1 xfail) | 4 |
-| **Total** | **232** |
+| Spec-count enforcement | 5 |
+| **Total** | **233** |

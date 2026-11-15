@@ -116,13 +116,14 @@ Pin the parameter naming and ordering (`sigma^2_{i}_{j}` over the lower triangle
 - `n = 1` has a single parameter and prints the full spec without `...`
 - `repr_dict` exposes the shape tuple and the same `param_specs` object
 
-#### M. Parameter-Count Limitations
+#### M. Spec-Count Enforcement
 
-The default spec count always matches the lower-triangle size, but a custom `param_specs` may not:
+`UnconstrainedMatrix` has `n(n+1)/2` lower-triangular slots, and the constructor rejects any other count:
 
-- Too few parameters: `__call__` broadcasts the short vector over the lower-triangular index list, so a single parameter fills every lower slot and the result is an all-ones symmetric matrix; `manual_grad` raises `IndexError: The shape of the mask [1] at index 0 does not match the shape of the indexed tensor [3] at index 0`; `auto_grad` returns the broadcast-consistent `(1, n, n)` Jacobian
-- Too many parameters: `__call__` raises `RuntimeError: shape mismatch: value tensor of shape [4] cannot be broadcast to indexing result of shape [3]`
-- The one-parameter `2 × 2` mismatch is recorded as a non-strict `xfail` for manual-vs-auto shape equality, so the divergence is documented without blessing the `IndexError`
+- `n = 2` has three slots: one spec raises `ValueError: ... expected 3 parameter specs, got 1`; four specs raise `ValueError: ... expected 3 parameter specs, got 4`
+- `n = 3` has six slots: five specs are rejected and six are accepted
+- A correctly sized custom surface keeps its names and order; fixed entries count toward the total (three specs with one fixed → three parameters, two free)
+- Mutating `param_specs` after construction is unsupported and bypasses the check
 
 ---
 
@@ -134,7 +135,7 @@ The default spec count always matches the lower-triangle size, but a custom `par
 - Assert symmetry and mirroring independently: check `result == result.T` and, for each lower-triangular parameter, check both `(i, j)` and `(j, i)` against the expected transformed value
 - Verify the two transform scales separately: diagonal `exp(2θ)`, off-diagonal raw `θ`; a single all-Identity custom spec is used when the intent is pure placement
 - Cross-check `manual_grad` against `auto_grad` with `torch.allclose` on all-free, mixed and custom-transform configurations, and check names independently
-- Keep custom-spec count probing in one class (`...SpecCountLimitation`) and record the manual/auto divergence as a non-strict `xfail`
+- Keep spec-count enforcement in one class (`...SpecCount`); the constructor rejects too few and too many entries, and `n = 3` pins the `n(n+1)/2` formula
 - Repeat the dtype/device matrix on every public method using the inline `cuda` → `mps` → `skip` pattern
 
 ### 3.2 Test Structure
@@ -181,7 +182,7 @@ class TestUnconstrainedMatrixCallValues:
         assert torch.allclose(result, torch.tensor([[1.0, 2.0], [2.0, 1.0]]))
 ```
 
-The remaining classes are `TestUnconstrainedMatrixConstructor`, `...FixedParams`, `...CustomTransforms`, `...Grad`, `...BuildParams`, `...FreeParamsValidation`, `...DtypeAndDevice`, `...Intermediates`, `...Inverse`, `...Repr` and `...SpecCountLimitation`.
+The remaining classes are `TestUnconstrainedMatrixConstructor`, `...FixedParams`, `...CustomTransforms`, `...Grad`, `...BuildParams`, `...FreeParamsValidation`, `...DtypeAndDevice`, `...Intermediates`, `...Inverse`, `...Repr` and `...SpecCount`.
 
 ### 3.3 Test Execution
 
@@ -189,7 +190,7 @@ The remaining classes are `TestUnconstrainedMatrixConstructor`, `...FixedParams`
 conda run -n torch-openreml python -m pytest tests/covariance/test_unconstrained_matrix.py -q
 ```
 
-Expected: `224 passed, 1 xfailed`.
+Expected: `226 passed`.
 
 ---
 
@@ -198,7 +199,7 @@ Expected: `224 passed, 1 xfailed`.
 - **Different transforms on the same matrix.** The diagonal uses `TransformExpPow2` and the off-diagonal uses `TransformIdentity`. Tests that forget this produce plausible-looking but wrong expectations (e.g. expecting a raw diagonal default `0.0` instead of the identity value `1.0`). The `build_params` default vector `[1, 0, 1, 0, 0, 1]` and the `2·exp(2θ)` diagonal gradient are the load-bearing assertions here.
 - **Symmetry can mask a missing mirror.** Checking only `result == result.T` passes for an all-zero matrix, and checking only `(i, j)` passes even if `(j, i)` is never written. Every value test therefore asserts both sides against the expected transformed value, with distinct magnitudes per parameter.
 - **Diagonal entries are written twice by the index pair.** `torch.tril_indices` yields `(i, i)` on the diagonal for both `i` and `j`, so the manual-gradient loop assigns the diagonal slice twice; the result is correct but the duplicate write means an off-by-one in the free mask can behave differently on diagonal versus off-diagonal parameters, which the mixed test (fixed diagonal) exercises.
-- **Custom spec count is not validated against the triangle.** A short spec broadcasts in `__call__` and raises a masked `IndexError` in `manual_grad`; a long spec raises `RuntimeError: shape mismatch`. `TestUnconstrainedMatrixSpecCountLimitation` pins all three; the manual/auto divergence is a non-strict `xfail`.
+- **Spec count is validated only at construction.** The constructor rejects a `param_specs` dict whose length differs from `n(n+1)/2`, which removes the old silent broadcast and masked `IndexError`. Directly mutating `param_specs` afterwards still bypasses the check, so the invariant is documented as construction-time only.
 - **Integer inputs are promoted by the exponential diagonal.** Unlike a pure-identity-transform matrix, `int64` parameters produce a float matrix; the dtype tests assert the promotion and that symmetry survives it.
 - **No closed-form inverse.** The absence of a `manual_inverse` override is part of the contract: `assert "manual_inverse" not in UnconstrainedMatrix.__dict__` guards future overrides.
 - **`torch.jit.script` deprecation warning.** `auto_grad` with the default `jacfwd` emits a `FutureWarning` on torch 2.14; it is harmless and does not fail the suite.
@@ -220,5 +221,5 @@ Expected: `224 passed, 1 xfailed`.
 | intermediates cache | 16 |
 | `manual_inverse` (base) | 6 |
 | repr | 7 |
-| Parameter-count limitation (1 xfail) | 4 |
-| **Total** | **225** |
+| Spec-count enforcement | 5 |
+| **Total** | **226** |

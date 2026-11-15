@@ -25,8 +25,8 @@ models small enough to check against explicit matrix formulas and
 `torch.autograd`, the stochastic trace behaviour under fixed seeds, the
 supplied-inverse branch, the `preprocess_input` jitter contract, dtype/device
 propagation, and agreement with the C-form method on a realistic `john_alpha`
-model. Where the implementation contradicts its docstring the test encodes
-the documented contract and is marked `xfail`.
+model. The implementation and its docstrings are now aligned; the tests
+encode the documented contract and there are no xfails.
 
 ---
 
@@ -48,12 +48,10 @@ the documented contract and is marked `xfail`.
 - A negative `exact_score_threshold` (`-1.0`, `-1e-9`) raises
   `ValueError("`exact_score_threshold` must be non-negative.")`
 - `reset()` clears `_last_score_norm`
-- Pinned limitation (`xfail(strict=False)`): the integer `1` is accepted by
-  `trace_approx=1` because the membership test uses `==`, although the
-  documented contract only allows `False`, `True` and `"auto"`
-- Pinned limitation (`xfail(strict=False)`): with `trace_approx=1` none of
-  the three `if` branches in `ai_step` runs and the call raises
-  `UnboundLocalError` instead of a `ValueError`
+- `trace_approx=0` and `trace_approx=1` are rejected at construction with
+  `ValueError("`trace_approx` must be False, True or 'auto'.")`; the check is
+  type-based, not equality-based, so numeric flags never reach `ai_step`
+- A rejected numeric flag is never stored on the instance
 
 #### B. Restricted Log-Likelihood
 
@@ -119,9 +117,9 @@ the documented contract and is marked `xfail`.
   with no jitter
 - `dv` has shape `(k, n, n)` — `(2, 4, 4)` for the two-parameter tiny model
 - `x` and `y` are cast to `free_params`' dtype
-- Pinned limitation (`xfail(strict=False)`): `ai_step` documents `ValueError`
-  for `model=None`, but only `loglik` checks for it, so the call raises
-  `AttributeError` from `preprocess_input`
+- `ai_step(None, ...)` raises the documented `AttributeError` from
+  `preprocess_input` (it dereferences `model` rather than converting the
+  error); `loglik(None, ...)` still raises its explicit `ValueError`
 
 #### F. dtype and Device Propagation
 
@@ -202,17 +200,14 @@ conda run -n torch-openreml python -m pytest tests/methods/test_marginal.py
 
 ## 4. Key Risks / Notes
 
-- **`trace_approx` validation is equality-based.** `trace_approx not in
-  (False, True, "auto")` accepts the integers `0` and `1`, but `ai_step`
-  dispatches with identity comparisons (`is True`, `is False`) and
-  `== "auto"`, so neither branch matches and `score` is unbound. Both the
-  loose constructor and the resulting `UnboundLocalError` are pinned with
-  `xfail(strict=False)`; a fix should make the constructor reject numeric
-  flags.
-- **`ai_step(None, ...)` raises `AttributeError`, not the documented
-  `ValueError`.** Only `loglik` guards against `model=None`; `ai_step` calls
-  `preprocess_input` directly. The documented contract is pinned with
-  `xfail(strict=False)`.
+- **`trace_approx` is type-checked.** The constructor accepts only `bool`
+  values and the exact string `"auto"`; `0` and `1` are rejected even though
+  they compare equal to `False`/`True`. This keeps the identity dispatch in
+  `ai_step` total and prevents the former `UnboundLocalError`.
+- **`ai_step(None, ...)` raises `AttributeError` by design.** Only `loglik`
+  guards against `model=None` and raises `ValueError`; `ai_step` calls
+  `preprocess_input` directly, which fails with `AttributeError` when it
+  dereferences `model`. The docstring documents that behaviour.
 - **The composite covariance always takes the jitter path.** `MarginalCovariance`
   does not override `manual_inverse`, so every model with a random-effect term
   gets `v + 1e-6 I` and the no-inverse kernel. The tests compute their
@@ -262,6 +257,4 @@ conda run -n torch-openreml python -m pytest tests/methods/test_marginal.py
 | John's alpha realistic case | 5 |
 | **Total** | **69** |
 
-Three of the 69 tests are expected to `xfail` (integer `trace_approx` in the
-constructor, the resulting `ai_step` crash, and `ai_step` with `model=None`),
-so a green run reports `66 passed, 3 xfailed`.
+All **69 collected tests pass**; there are no xfails.

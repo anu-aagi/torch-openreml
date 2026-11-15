@@ -15,11 +15,9 @@ Two implementation details shape the assertions:
   against the textbook expression in ``V`` with a ``1e-5`` tolerance, while
   identity tests that exercise two functions at once use ``1e-10`` because
   both sides see the same ridge.
-* ``blue`` and ``predict`` end in ``Tensor.squeeze()``.  As a result a single
-  fixed effect (``p == 1``) is returned by ``blue`` as a 0-d tensor rather
-  than the documented ``(p,)``, and ``marginal_predict`` / ``marginal_residual``
-  / ``blup`` then fail on ``X @ beta``.  Those contract violations are pinned
-  as non-strict xfails and reported in ``test_plan_post.md``.
+* ``blue`` and ``predict`` end in ``Tensor.squeeze(-1)``, so a single fixed
+  effect (``p == 1``) or a single observation (``n == 1``) keeps the documented
+  ``(p,)`` / ``(n,)`` shape instead of collapsing to 0-d.
 """
 
 import inspect
@@ -355,14 +353,6 @@ class TestBlueValues:
         # Assert: the value is the sample mean; only the documented shape is wrong.
         assert torch.allclose(beta.reshape(1), torch.tensor([2.5], dtype=torch.float64))
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "Library bug: blue() ends with .squeeze(), so p == 1 returns a 0-d "
-            "tensor instead of the documented (p,). This also makes "
-            "marginal_predict/marginal_residual/blup fail for any p == 1 model."
-        ),
-    )
     def test_single_fixed_effect_returns_1d(self):
         # Arrange
         y = torch.tensor([1.0, 2.0, 3.0, 4.0], dtype=torch.float64)
@@ -666,14 +656,6 @@ class TestMarginalValues:
         assert torch.allclose(fitted, torch.zeros(6, dtype=torch.float64), **EXACT)
         assert torch.allclose(residuals, y, **EXACT)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "Library bug: blue() squeezes a p == 1 coefficient vector to 0-d, "
-            "so marginal_predict raises RuntimeError at x @ beta for any "
-            "single-fixed-effect model."
-        ),
-    )
     def test_single_fixed_effect_predict(self):
         # Arrange
         y = torch.tensor([1.0, 2.0, 3.0, 4.0], dtype=torch.float64)
@@ -686,13 +668,6 @@ class TestMarginalValues:
         # Assert
         assert fitted.shape == (4,)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "Library bug: marginal_residual delegates to marginal_predict, "
-            "which raises RuntimeError for p == 1 because blue() returns 0-d."
-        ),
-    )
     def test_single_fixed_effect_residual(self):
         # Arrange
         y = torch.tensor([1.0, 2.0, 3.0, 4.0], dtype=torch.float64)
@@ -806,13 +781,6 @@ class TestBlupValues:
         assert random_effects.shape == (1,)
         assert torch.allclose(random_effects, expected, **FORMULA)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "Library bug: blup() calls marginal_residual(), which fails for "
-            "p == 1 because blue() squeezes the coefficient vector to 0-d."
-        ),
-    )
     def test_single_fixed_effect(self):
         # Arrange
         y = torch.tensor([1.0, 2.0, 3.0, 4.0], dtype=torch.float64)
@@ -1084,13 +1052,6 @@ class TestPredictResidualValues:
         assert residuals.shape == (1,)
         assert torch.allclose(residuals, torch.zeros(1, dtype=torch.float64), **EXACT)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "Library bug: predict() ends with .squeeze(), so n == 1 returns "
-            "a 0-d tensor instead of the documented (n,)."
-        ),
-    )
     def test_single_observation_predict_shape(self):
         # Arrange
         y = torch.tensor([2.0], dtype=torch.float64)

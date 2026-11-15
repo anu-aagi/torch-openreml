@@ -143,15 +143,18 @@ Pin the public surface and constructor validation, the design/covariance assembl
 - Per-term BLUPs have shapes `(3,)`, `(6,)`, `(24,)` and concatenate to the joint BLUP
 - `predict == X @ blue + Z @ blup`
 - `predict_new` accepts a dict with a subset of the random-effect terms
-- The canonical intercept-only fit (the documented example configuration) also converges with finite log-likelihood and positive variance components; its post-fit BLUE/BLUP are not asserted because of the `p == 1` squeeze bug (§4)
+- The canonical intercept-only fit (the documented example configuration) also converges with finite log-likelihood and positive variance components; its post-fit BLUE/BLUP are not asserted here; the one-column shape regressions are covered in `TestEdgeContractRegressions`
 
-#### N. Known API Gaps (non-strict xfails)
+#### N. Former API Gaps (fixed)
 
-- `blue` with a one-column `X` should return `(1,)`
-- `blup` with a one-column `X` should return `(q,)`
-- `predict_new` with a one-column `X` should return `(n_new,)`
-- `is_converged()` before a fit should return `False`
-- `ai_step(..., require_loglik=False)` should return a tensor `nan`
+- `blue` with a one-column `X` returns `(1,)`
+- `blup` with a one-column `X` returns `(q,)`
+- `predict_new` with a one-column `X` returns `(n_new,)`
+- `is_converged()` before a fit raises a `ValueError` asking the caller to run `optimize()` first
+
+`ai_step(..., require_loglik=False)` returns the documented `torch.nan`
+sentinel. Since `torch.nan` is a Python `float`, the skipped path differs in
+type from the computed scalar; that behaviour is asserted by a passing test.
 
 ---
 
@@ -162,7 +165,7 @@ Pin the public surface and constructor validation, the design/covariance assembl
 - A synthetic fixture (`_toy_data`) uses `n = 40`, 5 groups, `DummyMatrix` + `ScalarMatrix(5)` and `R = ScalarMatrix(40)`, with `torch.manual_seed(0)`; `_fit_toy` fits it at `max_iter=100`. The parameter names are `["G/sigma^2", "R/sigma^2"]`.
 - A two-term fixture (`_multi_term_model`) uses `rep` (3 levels) and `block` (6 levels) on `n = 60`, giving three free parameters.
 - The recovery fixture (`_recovery_data`) uses `n = 50`, 5 groups, `β = [2, -1]`, `u ~ N(0, 1)`, `e ~ 0.25 N(0, 1)`, and a hand-built dummy `Z`. Seed 0 is used because the intercept is noisier under other seeds; the tolerance is deliberately loose (`atol=0.3`, correlation `> 0.9`).
-- `john_alpha` uses `x = [1, row]` so that `p > 1`; the intercept-only configuration is fitted in its own test and only convergence/log-likelihood/variance components are asserted. This keeps the post-fit tests clear of the `p == 1` squeeze bug.
+- `john_alpha` uses `x = [1, row]` so that `p > 1`; the intercept-only configuration is fitted in its own test and only convergence/log-likelihood/variance components are asserted. The one-column `p == 1` shapes are covered separately in `TestEdgeContractRegressions`.
 - Expected values are algebraic identities or textbook formulas, not numbers copied from the implementation:
   - `predict = Xβ + Zb`, `residual = y - predict`, `marginal_predict = Xβ`.
   - `blue` vs GLS and `blup` vs `GZ'V⁻¹(y - Xβ)`, using `V(fitted_params) + 1e-6·I` to match the ridge inside `post.py`.
@@ -170,7 +173,7 @@ Pin the public surface and constructor validation, the design/covariance assembl
 - Tolerances: `atol=1e-5` for the algebraic identities and closed forms; `atol=1e-4` for the `john_alpha` decomposition (72 observations, float32); loose bounds for recovery.
 - Optimizer tests assert convergence, finiteness, monotone improvement and plausible variance components, never exact parameter values.
 - Device tests follow the suite convention: pick `cuda` → `mps` → `pytest.skip("no accelerator available")` inline, and build the matrices inside `with torch.device(device):`.
-- The five documented contract failures are marked `@pytest.mark.xfail(strict=False, reason=...)`; the suite stays green now and the tests become xpasses when the library is fixed. No library source or `pyproject.toml` is modified.
+- The former contract failures are ordinary passing tests now that the library fixes landed; no xfails remain in this module.
 
 ### 3.2 Test Structure
 
@@ -206,25 +209,25 @@ Result on 2026-11-15 (torch 2.14.0, Python 3.12.12, CPU + MPS):
 
 ```text
 108 tests collected
-103 passed, 5 xfailed in 3.32s
+108 passed in 3.32s
 ```
 
-All five xfails are the documented-contract failures listed in §4; there are no ordinary failures.
+All 108 tests pass; the former squeeze and pre-fit failures are covered as regressions.
 
 ---
 
 ## 4. Key Risks / Notes
 
-- **`p == 1` squeeze bug (confirmed, pinned with three xfails).** `post.blue` ends with `.squeeze()` (`torch_openreml/post.py:87`). With a one-column `X` it returns a 0-d tensor instead of `(p,)`. `blup` then fails in `marginal_residual` with `RuntimeError: both arguments to matmul need to be at least 1D, but they are 2D and 0D` (`post.py:174`); `marginal_predict`/`marginal_residual` and the per-term BLUP helpers fail the same way. `predict` itself does not go through `blue` and still works. `predict_new` fails separately with `IndexError: tuple index out of range` because it reads `beta.shape[0]`. The affected tests are `xfail(strict=False)`. The `john_alpha` post-fit tests therefore use `x = [1, row]`; the intercept-only test avoids the BLUE/BLUP accessors.
-- **`ai_step(require_loglik=False)` returns a Python `float` `nan`, not `torch.nan`.** The docstring promises a tensor. The test asserts `math.isnan` and the tensor contract is pinned as a non-strict xfail.
-- **`is_converged()` before a fit raises `TypeError: 'NoneType' object is not subscriptable`** instead of returning `False` (`len(self.history["loglik"])`). Pinned as a non-strict xfail.
+- **`p == 1` squeeze (fixed).** `post.blue` previously used `.squeeze()` (`torch_openreml/post.py:87`), collapsing a one-column BLUE to 0-d and breaking `blup`, `marginal_predict` and `predict_new`. It now uses `.squeeze(-1)`, so the `(p,)` contract holds; the former xfails are regression tests.
+- **`ai_step(require_loglik=False)` returns the `torch.nan` sentinel.** `torch.nan` is a Python `float`, so the skipped path intentionally differs in type from the computed scalar; `test_skipped_loglik_is_torch_nan` asserts `isinstance(loglik, float)` and `math.isnan(loglik)`.
+- **`is_converged()` before a fit raises `ValueError`.** The error message asks the caller to run `optimize()` first; this is documented in the method and pinned by `test_is_converged_before_a_fit_raises`.
 - **`get_free_params()` before a fit also raises `TypeError`** for the same reason. This is an API gap rather than a documented contract; it is recorded here but not pinned with a test.
 - **`ai_step` validates parameter length per term, not globally.** A length-3 vector for a two-parameter model raises `"Parameters must have length 1, got 2!"` (from the `G` build) rather than a model-level message. The test therefore matches the stable prefix `"Parameters must have length"`. `optimize` does raise the global `"Parameters must have length 2, got 3!"`, which is pinned.
 - **C-form fallback during optimisation.** `CForm` can fail its Cholesky factorisation at an intermediate iterate and fall back to `Marginal`, emitting `RuntimeWarning: CForm failed (...); falling back to Marginal.` This is expected behaviour (the estimator is designed to fall back), but it makes the reported backend per-iteration rather than constant. The tests assert `"cform"` only on converged fits where the fallback did not occur; a future test of an ill-conditioned fit should not assume a single backend.
 - **`john_alpha` block variance collapses to ~7e-13.** The block effect is effectively zero for this data, so the test asserts `0 <= block < 1` rather than a positive lower bound. The `rep` and `gen` components are stable and positive.
-- **`john_alpha` intercept-only fit works** and is the canonical example configuration; it converges and reports `"cform"`. Its BLUE/BLUP are not touched because of the `p == 1` squeeze bug.
+- **`john_alpha` intercept-only fit works** and is the canonical example configuration; it converges and reports `"cform"`, and its BLUE/BLUP now have the documented shapes.
 - **`V(int64 params)` raises `RuntimeError: expected m1 and m2 to have the same dtype...`** rather than promoting. The dtype tests cover `float32`/`float64` only; the integer case is an undocumented gap.
-- **No library changes.** The tests treat the current implementation as the contract and only pin behaviour that the docstrings/API promise. The five xfails are the only deviations.
+- **Library fixes are covered as regressions.** The tests document the current implementation and the repaired shape/error contracts; there are no xfails left in this module.
 - **Runtime.** The file runs in ~3.3 s, well under the ~60 s budget; the `john_alpha` fixture is module-scoped and fitted once.
 
 ---
@@ -246,10 +249,9 @@ All five xfails are the documented-contract failures listed in §4; there are no
 | Fixed/random-effect recovery | 4 |
 | dtype and device | 4 |
 | `john_alpha` example data | 7 |
-| Known API gaps (non-strict xfail) | 5 |
 | **Total** | **108** |
 
-Of the 108 collected tests, **5 are non-strict xfails** for the `p == 1` squeeze bug (`blue`, `blup`, `predict_new`), the `is_converged` pre-fit `TypeError`, and the tensor-`nan` contract of `ai_step`; **103 pass**.
+All **108 collected tests pass**; there are no xfails.
 
 Breakdown of the parametrised categories:
 

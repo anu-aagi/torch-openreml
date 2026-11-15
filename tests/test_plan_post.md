@@ -43,7 +43,7 @@ Pin the documented formulas on small hand-computable fixtures, the algebraic ide
 - Scale invariance in `V` (`blue(y, x, cV) == blue(y, x, V)` for `c > 0`)
 - Constant response recovers the intercept with a zero slope
 - Single fixed effect (`p = 1`): the value is the sample mean
-- Single fixed effect: the documented shape is `(p,)`, but the implementation returns 0-d (non-strict xfail, see §4)
+- Single fixed effect: shape is `(p,)`, i.e. `(1,)` (regression-tested after the `.squeeze(-1)` fix)
 - No fixed effects (`p = 0`) returns an empty `(0,)` tensor
 - Row permutation invariance of `(y, X, V)`
 
@@ -74,7 +74,7 @@ Pin the documented formulas on small hand-computable fixtures, the algebraic ide
 - `marginal_residual == y − marginal_predict`
 - Residual orthogonality to the design in the `V` metric (`X'V⁻¹e = 0`)
 - No fixed effects: prediction is zero and residual is `y`
-- `p = 1` prediction and residual: documented to work, but both raise because `blue` returns 0-d (non-strict xfails, see §4)
+- `p = 1` prediction and residual: shapes `(n,)` and values agree with `X @ blue` and `y - marginal_predict`
 
 #### F. `blup`
 
@@ -85,7 +85,7 @@ Pin the documented formulas on small hand-computable fixtures, the algebraic ide
 - No fixed effects: `G Z' V⁻¹ y`
 - Singular non-zero `G` (rank-one `ones(2, 2)`) is accepted and matches the formula — no `G` inversion is performed
 - Single random effect: `(1,)` shape and formula value
-- `p = 1`: documented to work, but raises through `marginal_residual` (non-strict xfail, see §4)
+- `p = 1`: works through `marginal_residual` and returns the formula value
 
 #### G. `cov_blup` / `var_blup`
 
@@ -109,7 +109,7 @@ Pin the documented formulas on small hand-computable fixtures, the algebraic ide
 - No fixed effects makes `predict` equal `Z @ blup`
 - `p = 1` prediction works (it does not go through `blue`), with the correct value
 - `n = 1` residual restores the `(1,)` shape by broadcasting
-- `n = 1` prediction returns 0-d instead of the documented `(n,)` (non-strict xfail, see §4)
+- `n = 1` prediction returns the documented `(1,)` (regression-tested after the `.squeeze(-1)` fix)
 
 #### I. Input Validation and Error Paths
 
@@ -175,17 +175,16 @@ Result on 2026-11-15 (torch 2.14.0, Python 3.12.12, CPU + MPS):
 
 ```text
 175 tests collected
-170 passed, 5 xfailed in 1.70s
+175 passed in 1.70s
 ```
 
-All five xfails are the documented-contract failures listed in §4; there are no ordinary failures.
+All 175 tests pass; the former squeeze failures are now fixed in `post.py` and covered as regressions.
 
 ---
 
 ## 4. Key Risks / Notes
 
-- **`p == 1` squeeze bug (confirmed, pinned with xfails).** `blue` ends with `matrix[r"\hat{\beta}"].squeeze()` (`post.py:87`). For a single fixed effect this returns a 0-d tensor instead of the documented `(p,)`. `marginal_predict` then raises `RuntimeError: both arguments to matmul need to be at least 1D, but they are 2D and 0D` at `x @ blue(...)`; `marginal_residual` and `blup` fail the same way (`blup` calls `marginal_residual`). `predict` itself does not go through `blue` and still works. The five affected tests are marked `@pytest.mark.xfail(strict=False, ...)` so the suite stays green now and the tests become xpasses if the library is fixed.
-- **`n == 1` squeeze bug (confirmed, pinned with xfail).** `predict` ends with `.squeeze()` (`post.py:387`), so a single observation returns a 0-d tensor instead of `(n,)`. `residual` restores `(1,)` through broadcasting, so only the prediction shape test is affected.
+- **`p == 1` / `n == 1` shapes (fixed).** `blue` previously ended with `.squeeze()` (`post.py:87`), collapsing a single-column estimate to 0-d and breaking `marginal_predict`, `marginal_residual` and `blup`; `predict` had the same problem at `post.py:387`. Both now use `.squeeze(-1)`, so the documented `(p,)` / `(n,)` shape is preserved, and the five former xfails run as ordinary regression tests.
 - **Undocumented ridge.** Every function factorises `V + 1e-6·I`, not `V`. This is not in the docstrings. Formula-level tests therefore use `1e-5` tolerances; tests that compare two library functions use `1e-10` because both sides see the same ridge. This is a documentation gap, not a correctness failure, and is not marked xfail.
 - **No validation of `V`'s shape/rank.** The docstring says `v` is `(n, n)`, but a 1-D tensor of length `n` silently broadcasts against `1e-6·eye(n)` and produces an `(n, n)` matrix. No test asserts a specific error for this because the contract only specifies the shape; noted as a robustness observation.
 - **Singular designs are not reliably detected.** An exactly collinear design such as `torch.ones(n, 2)` can still factorise because round-off leaves a tiny positive pivot; `blue` then returns a finite but meaningless estimate instead of raising. The error-path test uses a zero column (`X'V⁻¹X = diag(a, 0)`), which deterministically raises `LinAlgError`. This is a library robustness limitation, not a documented contract.
@@ -212,7 +211,7 @@ All five xfails are the documented-contract failures listed in §4; there are no
 | Dtype and device | 44 |
 | **Total** | **175** |
 
-Of the 175 collected tests, **5 are non-strict xfails** for the two squeeze bugs (`blue` `p = 1`, `marginal_predict`/`marginal_residual`/`blup` at `p = 1`, and `predict` at `n = 1`), leaving **170 passing tests**.
+All **175 collected tests pass**; there are no xfails.
 
 Breakdown of the parametrised categories:
 

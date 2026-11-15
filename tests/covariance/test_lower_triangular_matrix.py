@@ -1110,45 +1110,42 @@ class TestLowerTriangularMatrixRepr:
         assert repr(LowerTriangularMatrix(2, 2)).startswith("LowerTriangularMatrix(")
 
 
-class TestLowerTriangularMatrixSpecCountLimitation:
-    """A custom spec whose parameter count differs from the lower-triangle size.
+class TestLowerTriangularMatrixSpecCount:
+    """A custom spec must have one entry per lower-triangular slot.
 
-    ``LowerTriangularMatrix`` models one parameter per lower-triangular entry,
-    but nothing validates that a custom ``param_specs`` dict has one entry per
-    position. These tests pin the resulting behaviour.
+    ``LowerTriangularMatrix`` builds its parameter vector positionally and
+    assigns it to ``torch.tril_indices``. A mismatched count would otherwise
+    broadcast silently for one entry, or fail deep inside ``__call__`` /
+    ``manual_grad``. The constructor enforces the invariant; as with any
+    ``Matrix``, mutating ``param_specs`` after construction is unsupported.
     """
 
-    def one_param_matrix(self):
-        return LowerTriangularMatrix(2, 2, param_specs={"a": spec(default=1.0)})
+    def test_rejects_too_few_specs(self):
+        with pytest.raises(ValueError, match=r"expected 3 parameter specs, got 1"):
+            LowerTriangularMatrix(2, 2, param_specs={"a": spec(default=1.0)})
 
-    def four_param_matrix(self):
-        return LowerTriangularMatrix(2, 2, param_specs=custom_specs(["a", "b", "c", "d"]))
+    def test_rejects_too_many_specs(self):
+        with pytest.raises(ValueError, match=r"expected 3 parameter specs, got 4"):
+            LowerTriangularMatrix(2, 2, param_specs=custom_specs(["a", "b", "c", "d"]))
 
-    def test_too_few_params_constructs(self):
-        mat = self.one_param_matrix()
-        assert mat.num_params == 1
+    def test_rectangular_slot_count(self):
+        # (4, 2) has rows of 1, 2, 2, 2 lower entries = 7 slots.
+        with pytest.raises(ValueError, match=r"expected 7 parameter specs, got 6"):
+            LowerTriangularMatrix(4, 2, param_specs=custom_specs(list("abcdef")))
+        mat = LowerTriangularMatrix(4, 2, param_specs=custom_specs(list("abcdefg")))
+        assert mat.num_params == 7
 
-    def test_too_few_params_call_broadcasts_the_single_value(self):
-        mat = self.one_param_matrix()
-        assert torch.equal(mat(torch.tensor([1.0])), torch.tensor([[1.0, 0.0], [1.0, 1.0]]))
+    def test_accepts_a_full_custom_surface(self):
+        mat = LowerTriangularMatrix(2, 2, param_specs=custom_specs(["a", "b", "c"]))
+        assert mat.param_names == ["a", "b", "c"]
+        assert torch.equal(
+            mat(torch.tensor([1.0, 2.0, 3.0])),
+            torch.tensor([[1.0, 0.0], [2.0, 3.0]]),
+        )
 
-    def test_too_many_params_raise_on_call(self):
-        mat = self.four_param_matrix()
-        with pytest.raises(RuntimeError, match="shape mismatch"):
-            mat(torch.ones(4))
-
-    @pytest.mark.xfail(
-        reason=(
-            "manual_grad indexes the full tril index tensors with a free-parameter "
-            "mask of length num_params, so a spec with fewer parameters than "
-            "lower-triangular entries raises IndexError instead of returning the "
-            "documented (num_free_params, n, m) gradient that auto_grad produces"
-        ),
-        strict=False,
-    )
-    def test_too_few_params_manual_grad_shape_matches_auto_grad(self):
-        mat = self.one_param_matrix()
-        manual, manual_names = mat.manual_grad(torch.tensor([1.0]))
-        auto, auto_names = mat.auto_grad(torch.tensor([1.0]))
-        assert manual.shape == auto.shape
-        assert manual_names == auto_names
+    def test_fixed_specs_count_toward_the_total(self):
+        specs = custom_specs(["a", "b", "c"])
+        specs["b"]["fixed"] = True
+        mat = LowerTriangularMatrix(2, 2, param_specs=specs)
+        assert mat.num_params == 3
+        assert mat.num_free_params == 2

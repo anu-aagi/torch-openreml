@@ -23,7 +23,8 @@ the tensor-extraction contract of `preprocess_input`, dtype/device
 propagation, and agreement with the marginal method on a realistic
 `john_alpha` model. The implementation is treated as the specification only
 where it is self-consistent; where the source and docstring disagree the test
-encodes the documented contract and is marked `xfail`.
+encodes the documented contract; the former fixed-tensor dtype gap is now
+covered as a regression and there are no xfails.
 
 ---
 
@@ -131,10 +132,9 @@ encodes the documented contract and is marked `xfail`.
 - The model-aware entry point follows the free-parameter device; the test
   picks `cuda` → `mps` → `pytest.skip("no accelerator available")` inline and
   compares `device.type` because MPS reports `mps:0`
-- Pinned limitation (`xfail(strict=False)`): a fixed-tensor `Z` is not cast to
-  the free-parameter dtype, so float32 parameters with a float64 design raise
-  `RuntimeError: expected m1 and m2 to have the same dtype` instead of
-  following the parameters
+- A fixed-tensor `Z` is cast to the free-parameter dtype and device before
+  the first product, so float32 parameters with a float64 design work and
+  return float32 estimates
 
 #### G. Realistic John's Alpha Case
 
@@ -209,12 +209,11 @@ conda run -n torch-openreml python -m pytest tests/methods/test_cform.py
   AI path still call `torch.linalg.cholesky(r)` to obtain `logdet R`, so a
   non-positive-definite `R` fails even when `r_inv` is passed. This is pinned
   by `test_rejects_non_positive_definite_residual`.
-- **A fixed-tensor design does not follow the parameters' dtype.** `x` and
-  `y` are cast to `free_params`, but a plain tensor `Z` is passed through
-  unchanged, which raises a dtype mismatch at the first matrix product when
-  the two disagree. A `Matrix` design (`DummyMatrix`) does follow the
-  parameters, and that half of the contract is tested normally; the fixed
-  tensor half is `xfail(strict=False)` so a fix will not break the suite.
+- **Fixed-tensor designs follow the free parameters.** `x`, `y` and a plain
+  tensor `Z` are all cast to `free_params`' dtype and device in
+  `preprocess_input`; a `Matrix` design already followed through its
+  parameter tensor. The test covers the mixed-dtype fixed-`Z` case as a
+  regression.
 - **Eligibility checks only `V.num_free_params`.** A model whose only free
   parameter lives in a fixed-effect design still has `V.num_free_params > 0`
   and is eligible; a model with a known `G` and known `R` but a parameterised
@@ -254,5 +253,4 @@ conda run -n torch-openreml python -m pytest tests/methods/test_cform.py
 | John's alpha realistic case | 5 |
 | **Total** | **61** |
 
-One of the 61 tests is expected to `xfail` (fixed-tensor design dtype), so a
-green run reports `60 passed, 1 xfailed`.
+All **61 collected tests pass**; there are no xfails.

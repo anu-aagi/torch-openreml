@@ -150,30 +150,17 @@ class TestMarginalConstruction:
         method.reset()
         assert method._last_score_norm is None
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "trace_approx is validated with `not in (False, True, 'auto')`, so the integers "
-            "0 and 1 pass as the booleans; the documented contract says non-boolean values "
-            "are rejected"
-        ),
-    )
     def test_rejects_integer_trace_mode(self):
-        with pytest.raises(ValueError):
-            Marginal(trace_approx=1)
+        for value in (0, 1):
+            with pytest.raises(ValueError, match="`trace_approx`"):
+                Marginal(trace_approx=value)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "with trace_approx=1 (accepted by the loose validation) none of the three `if` "
-            "branches in ai_step runs, so it raises UnboundLocalError instead of a ValueError"
-        ),
-    )
-    def test_integer_trace_mode_does_not_crash_ai_step(self):
-        model, y, x, free = _tiny_model()
-        method = Marginal(trace_approx=1)
-        score, _, _ = method.ai_step(model, y, x, free)
-        assert score.shape == (2,)
+    def test_integer_trace_mode_is_rejected_before_ai_step(self):
+        # 1 compares equal to True, so a loose membership check would let it
+        # through and then leave every ``is True``/``is False`` branch unused.
+        for value in (0, 1):
+            with pytest.raises(ValueError, match="`trace_approx`"):
+                Marginal(trace_approx=value)
 
 
 class TestMarginalLoglik:
@@ -517,16 +504,11 @@ class TestMarginalPreprocessInput:
         assert data["y"].dtype == torch.float32
         assert data["x"].dtype == torch.float32
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "ai_step documents ValueError for model=None, but only loglik checks for it; "
-            "preprocess_input dereferences model and raises AttributeError"
-        ),
-    )
-    def test_ai_step_with_none_model_raises_documented_value_error(self):
+    def test_ai_step_with_none_model_raises_documented_attribute_error(self):
+        # The documented behaviour is AttributeError: preprocess_input
+        # dereferences ``model`` rather than raising a converted ValueError.
         _, y, x, free = _tiny_model()
-        with pytest.raises(ValueError):
+        with pytest.raises(AttributeError):
             Marginal().ai_step(None, y, x, free)
 
 

@@ -426,16 +426,15 @@ class TestEqualEntryMatrixBuildParams:
         assert torch.allclose(result["sigma^2"], torch.exp(torch.tensor(1.0)).reshape(1))
 
     def test_dict_output_contains_fixed_parameter(self):
-        mat = EqualEntryMatrix(3, param_specs=mixed_specs())
-        result = mat.build_params(torch.tensor([0.5]), out_format="dict")
-        assert list(result.keys()) == ["a", "b"]
-        assert torch.allclose(result["a"], torch.exp(torch.tensor(1.0)).reshape(1))
-        assert torch.allclose(result["b"], torch.exp(torch.tensor(2.0)).reshape(1))
+        mat = EqualEntryMatrix(3, param_specs=single_spec("v", fixed=True, default=0.5))
+        result = mat.build_params(torch.tensor([]), out_format="dict")
+        assert list(result.keys()) == ["v"]
+        assert torch.allclose(result["v"], torch.exp(torch.tensor(1.0)).reshape(1))
 
     def test_dict_output_without_fixed(self):
-        mat = EqualEntryMatrix(3, param_specs=mixed_specs())
+        mat = EqualEntryMatrix(3, param_specs=single_spec("v"))
         result = mat.build_params(torch.tensor([0.5]), include_fixed=False, out_format="dict")
-        assert list(result.keys()) == ["a"]
+        assert list(result.keys()) == ["v"]
 
     def test_accepts_dict_input(self):
         mat = EqualEntryMatrix(3)
@@ -489,13 +488,10 @@ class TestEqualEntryMatrixBuildParams:
         with pytest.raises(ValueError, match="1D tensor"):
             mat.build_params({"sigma^2": torch.zeros(1, 1)})
 
-    def test_rejects_dict_values_of_mixed_dtype(self):
-        mat = EqualEntryMatrix(3, param_specs=two_specs())
-        with pytest.raises(ValueError, match="All free parameters must share the same dtype and device"):
-            mat.build_params({
-                "a": torch.tensor([0.0], dtype=torch.float64),
-                "b": torch.tensor([0.0], dtype=torch.float32),
-            })
+    def test_rejects_dict_with_extra_key_for_custom_spec(self):
+        mat = EqualEntryMatrix(3, param_specs=single_spec("v"))
+        with pytest.raises(ValueError, match="Unexpected free parameters"):
+            mat.build_params({"v": torch.tensor([0.5]), "x": torch.tensor([1.0])})
 
 
 class TestEqualEntryMatrixFreeParamsValidation:
@@ -1032,90 +1028,38 @@ class TestEqualEntryMatrixRepr:
         assert repr(EqualEntryMatrix(2)).startswith("EqualEntryMatrix(")
 
 
-class TestEqualEntryMatrixMultiParamSpecLimitation:
-    """A multi-parameter spec constructs, but the class builds one shared value.
+class TestEqualEntryMatrixSpecCount:
+    """The class models one shared variance and accepts exactly one spec."""
 
-    These tests pin the limitation (and one latent gradient-shape bug) rather
-    than a supported configuration: ``EqualEntryMatrix`` models a single
-    variance replicated across all entries, so a two-parameter spec has no
-    well-defined ``sigma^2 * J`` result.
-    """
+    def test_rejects_two_free_specs(self):
+        with pytest.raises(ValueError, match="exactly one parameter spec"):
+            EqualEntryMatrix(3, param_specs=two_specs())
 
-    def test_two_free_params_construct(self):
-        mat = EqualEntryMatrix(3, param_specs=two_specs())
-        assert mat.num_params == 2
-        assert mat.num_free_params == 2
-        assert mat.param_names == ["a", "b"]
+    def test_rejects_one_free_one_fixed_spec(self):
+        with pytest.raises(ValueError, match="exactly one parameter spec"):
+            EqualEntryMatrix(3, param_specs=mixed_specs())
 
-    def test_mixed_params_construct(self):
-        mat = EqualEntryMatrix(3, param_specs=mixed_specs())
+    def test_rejects_three_specs(self):
+        specs = {
+            f"a{i}": {
+                "fixed": False,
+                "default": torch.tensor([0.0]),
+                "trans": TransformExpPow2(),
+            }
+            for i in range(3)
+        }
+        with pytest.raises(ValueError, match="exactly one parameter spec"):
+            EqualEntryMatrix(3, param_specs=specs)
+
+    def test_error_reports_the_received_count(self):
+        with pytest.raises(ValueError, match="got 2"):
+            EqualEntryMatrix(3, param_specs=two_specs())
+
+    def test_accepts_one_custom_spec(self):
+        mat = EqualEntryMatrix(3, param_specs=single_spec("v", default=0.5))
+        assert mat.param_names == ["v"]
         assert mat.num_free_params == 1
-        assert mat.num_fixed_params == 1
-        assert mat.free_param_names == ["a"]
-        assert mat.fixed_param_names == ["b"]
-
-    def test_build_params_returns_one_value_per_parameter(self):
-        mat = EqualEntryMatrix(3, param_specs=two_specs())
-        built = mat.build_params(torch.tensor([0.0, 0.5]))
-        assert built.shape == (2,)
-        assert torch.allclose(built, torch.tensor([1.0, torch.exp(torch.tensor(1.0))]))
-
-    def test_build_params_dict_keys_both_parameters(self):
-        mat = EqualEntryMatrix(3, param_specs=two_specs())
-        assert list(mat.build_params(torch.tensor([0.0, 0.5]), out_format="dict").keys()) == ["a", "b"]
-
-    def test_call_raises_on_two_free_params(self):
-        mat = EqualEntryMatrix(3, param_specs=two_specs())
-        with pytest.raises(RuntimeError, match="must match the size of tensor"):
-            mat(torch.tensor([0.0, 0.5]))
-
-    def test_call_raises_on_defaults(self):
-        mat = EqualEntryMatrix(3, param_specs=two_specs())
-        with pytest.raises(RuntimeError, match="must match the size of tensor"):
-            mat()
-
-    def test_call_raises_on_free_param_dict(self):
-        mat = EqualEntryMatrix(3, param_specs=two_specs())
-        with pytest.raises(RuntimeError, match="must match the size of tensor"):
-            mat(mat.free_param_defaults)
-
-    def test_call_raises_on_one_free_one_fixed_param(self):
-        mat = EqualEntryMatrix(3, param_specs=mixed_specs())
-        with pytest.raises(RuntimeError, match="must match the size of tensor"):
-            mat(torch.tensor([0.5]))
-
-    def test_auto_grad_is_defined_when_the_call_is(self):
-        mat = EqualEntryMatrix(2, param_specs=two_specs())
-        grad, names = mat.auto_grad(torch.tensor([0.0, 1.0]))
-        assert grad.shape == (2, 2, 2)
-        assert names == ["a", "b"]
-
-    def test_call_on_2x2_is_not_an_equal_entry_matrix(self):
-        # At this shape the (num_free_params,) vector broadcasts along the
-        # columns of J instead of raising: each transformed variance is
-        # repeated down its column and the matrix is no longer equal-entry.
-        mat = EqualEntryMatrix(2, param_specs=two_specs())
-        result = mat(torch.tensor([0.0, 1.0]))
-        expected = torch.full((2, 2), torch.exp(torch.tensor(2.0)))
-        expected[:, 0] = 1.0
-        assert torch.allclose(result, expected)
-        assert not torch.allclose(result, result[0, 0].expand(2, 2))
-
-    @pytest.mark.xfail(
-        reason=(
-            "EqualEntryMatrix.manual_grad multiplies the (num_free_params,) transform "
-            "gradient by the (n, m) all-ones matrix and only then unsqueezes, so a "
-            "two-parameter spec on a 2x2 matrix returns (1, 2, 2) while auto_grad "
-            "returns (2, 2, 2); the multi-parameter spec is outside the class's "
-            "single-variance model, so this is a latent shape-contract violation"
-        ),
-        strict=False,
-    )
-    def test_two_param_manual_grad_shape_matches_auto_grad(self):
-        mat = EqualEntryMatrix(2, param_specs=two_specs())
-        free_params = torch.tensor([0.0, 1.0])
-        manual, manual_names = mat.manual_grad(free_params)
-        auto, auto_names = mat.auto_grad(free_params)
-        assert manual.shape == (2, 2, 2)
-        assert torch.allclose(manual, auto)
-        assert manual_names == auto_names
+        assert torch.allclose(
+            mat(torch.tensor([0.5])),
+            torch.full((3, 3), torch.exp(torch.tensor(1.0))),
+        )

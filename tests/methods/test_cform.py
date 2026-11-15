@@ -582,14 +582,6 @@ class TestCFormDtypeAndDevice:
         assert ai.device.type == device.type
         assert loglik.device.type == device.type
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason=(
-            "CForm casts x and y to the free-parameter dtype but leaves a fixed-tensor Z "
-            "alone, so a float32 parameter tensor with a float64 design raises instead of "
-            "following the parameters"
-        ),
-    )
     def test_fixed_tensor_design_follows_free_parameter_dtype(self):
         model, y, x, _ = _tiny_model()
         free = torch.tensor(TINY_FREE, dtype=torch.float32)

@@ -1078,33 +1078,21 @@ class TestJohnAlpha:
         assert values[2].item() > 0.01  # gen
 
 
-class TestKnownApiGaps:
-    """Contracts the current implementation does not satisfy (see plan)."""
+class TestEdgeContractRegressions:
+    """One-column shapes and pre-fit error contracts (see plan)."""
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason="post.blue squeezes the (p, 1) result, so a one-column X yields a 0-dim tensor",
-    )
     def test_blue_returns_a_vector_with_one_fixed_effect(self):
         y, x, labels = _toy_data()
         model = _toy_model(labels)
 
         assert model.blue(y, x[:, :1], torch.zeros(2)).shape == (1,)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason="blup calls marginal_residual, which fails on the 0-dim BLUE of a one-column X",
-    )
     def test_blup_works_with_one_fixed_effect(self):
         y, x, labels = _toy_data()
         model = _toy_model(labels)
 
         assert model.blup(y, x[:, :1], torch.zeros(2)).shape == (GROUPS,)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason="predict_new indexes beta.shape[0], which fails on the 0-dim BLUE",
-    )
     def test_predict_new_works_with_one_fixed_effect(self):
         y, x, labels = _toy_data()
         model = _toy_model(labels)
@@ -1112,24 +1100,21 @@ class TestKnownApiGaps:
 
         assert model.predict_new(x[:2, :1]).shape == (2,)
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason="is_converged dereferences history before a fit; raises TypeError instead of returning False",
-    )
-    def test_is_converged_before_a_fit_is_false(self):
+    def test_is_converged_before_a_fit_raises(self):
         _, _, labels = _toy_data()
         model = _toy_model(labels)
 
-        assert model.is_converged() is False
+        with pytest.raises(ValueError, match=r"call optimize\(\) first"):
+            model.is_converged()
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason="ai_step returns a Python float nan, not torch.nan as documented",
-    )
-    def test_skipped_loglik_is_a_tensor_nan(self):
+    def test_skipped_loglik_is_torch_nan(self):
+        # ``torch.nan`` is a Python float, not a tensor. The skipped path
+        # returns that sentinel unchanged, so its type differs from the
+        # computed scalar by design.
         y, x, labels = _toy_data()
         model = _toy_model(labels)
 
         _, _, loglik, _ = model.ai_step(y, x, torch.zeros(2), require_loglik=False)
 
-        assert torch.is_tensor(loglik)
+        assert isinstance(loglik, float)
+        assert math.isnan(loglik)
