@@ -1380,7 +1380,16 @@ class MixedModelREML:
         A step is accepted only when both enabled checks pass: the change in
         log-likelihood is below ``tol_loglik`` and the largest absolute
         parameter update is below ``tol_update``.
+
+        Raises:
+            ValueError: If no fit has been run yet, i.e. ``history`` is
+                ``None``.  Call :meth:`optimize` before checking convergence.
         """
+        if self.history is None:
+            raise ValueError(
+                "is_converged() requires a fitted model; call optimize() first."
+            )
+
         if len(self.history["loglik"]) < 2:
             return False
 
