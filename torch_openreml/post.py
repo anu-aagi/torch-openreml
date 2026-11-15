@@ -84,7 +84,7 @@ def blue(y, x, v):
 
     matrix[r"\hat{\beta}"] = torch.cholesky_solve(matrix["X^T V^{-1} Y"], matrix["L_{X^T V^{-1} X}"])
 
-    return matrix[r"\hat{\beta}"].squeeze()
+    return matrix[r"\hat{\beta}"].squeeze(-1)
 
 def cov_blue(x, v):
     r"""
@@ -384,7 +384,7 @@ def predict(y, x, z, g, v):
 
     matrix["G"] = g
 
-    return (matrix[r"\hat{Y}"] + z @ (matrix["G"] @ (z.T @ matrix["V^{-1} e"]))).squeeze()
+    return (matrix[r"\hat{Y}"] + z @ (matrix["G"] @ (z.T @ matrix["V^{-1} e"]))).squeeze(-1)
 
 def residual(y, x, z, g, v):
     r"""
