@@ -145,9 +145,9 @@ variants give the corresponding sampling covariances and variances.
 
 Full documentation: **https://torch-openreml.patrickli.org**
 
-- [Vignettes](https://torch-openreml.patrickli.org/vig) — worked examples, including the mixed-model and marginal REML workflows.
+- [Vignettes](https://torch-openreml.patrickli.org/vig) — worked examples, including the mixed-model REML workflow.
 - [Technical Documentation](https://torch-openreml.patrickli.org/tech) — model formulation, REML and ML theory, score and AI matrix derivations.
-- [API Reference](https://torch-openreml.patrickli.org/api) — `MixedModelREML`, `MarginalREML`, covariance matrices, operators, transforms, utilities, and example datasets.
+- [API Reference](https://torch-openreml.patrickli.org/api) — `MixedModelREML`, covariance matrices, operators, transforms, utilities, and example datasets.
 - [For R Users](https://torch-openreml.patrickli.org/r_user)
 - [Changelog](https://torch-openreml.patrickli.org/change_log)
 
