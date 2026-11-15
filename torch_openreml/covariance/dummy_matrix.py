@@ -31,6 +31,10 @@ class DummyMatrix(Matrix):
 
     :meth:`__call__` follows the dtype and the device of its input; when it
     receives none, the PyTorch default dtype and device are used.
+
+    :meth:`transform` encodes new observations onto the same columns, so a
+    model fitted with this matrix can be predicted on categorical data it
+    did not see.
     """
 
     def __init__(self, *args, levels=None, lex_order=True, drop_first=False, drop_empty_cols=False):
@@ -168,6 +172,86 @@ class DummyMatrix(Matrix):
         """
         params = self.build_params(free_params, include_fixed=False, trans=False)
         return self._matrix.to(device=params.device, dtype=params.dtype).clone()
+
+    def transform(self, *args, dtype=None, device=None):
+        """
+        Build the design matrix of new observations from the fixed columns.
+
+        The columns are the ones fixed at initialisation, in the same order:
+        no new levels are learned. Each row is encoded by joining its factor
+        values with ``"⋈"`` and matching that key against :attr:`colnames`,
+        so the arguments must follow the same positional order, and the same
+        number of factors, as at initialisation.
+
+        A combination that does not match a column is left as an all-zero
+        row, and unlike the constructor no warning is emitted. That covers
+        unseen levels as well as the reference combination dropped by
+        ``drop_first``.
+
+        Args:
+            *args (list, tuple, or pandas.Series): Factor values of the new
+                observations, one sequence per factor, all of the same length.
+            dtype (torch.dtype, optional): Dtype of the result. Defaults to the
+                PyTorch default dtype.
+            device (torch.device, optional): Device of the result. Defaults to
+                the PyTorch default device.
+
+        Returns:
+            torch.Tensor: Design matrix of shape ``(n, num_columns)``, where
+                ``num_columns`` is the number of columns fixed at
+                initialisation.
+
+        Raises:
+            ValueError: If no arguments are provided, or if the arguments do
+                not have the same number of elements.
+            TypeError: If any argument is not a list, a tuple or a
+                pandas.Series.
+
+        Example:
+
+        .. jupyter-execute::
+
+            import torch
+            from torch_openreml.covariance import DummyMatrix
+
+            mat = DummyMatrix(["rep1", "rep2", "rep1"])
+            mat.colnames
+
+        .. jupyter-execute::
+
+            mat.transform(["rep2", "rep3"])
+
+        .. jupyter-execute::
+
+            mat.transform(["rep2", "rep3"], dtype=torch.float64, device="cpu")
+        """
+        if not args:
+            raise ValueError("At least one list of strings is required.")
+
+        for i, arg in enumerate(args):
+            if not isinstance(arg, (list, tuple, pd.Series)):
+                raise TypeError(f"Argument {i} must be a list, a tuple or a pandas.Series!")
+
+        args = [arg.to_list() if isinstance(arg, pd.Series) else arg for arg in args]
+
+        n = len(args[0])
+        for i, arg in enumerate(args):
+            if len(arg) != n:
+                raise ValueError(f"Argument {i} must have the same number of elements as other arguments!")
+
+        x = torch.zeros(
+            (n, len(self._colnames)),
+            dtype=dtype or torch.get_default_dtype(),
+            device=device,
+        )
+
+        index = {name: j for j, name in enumerate(self._colnames)}
+        for i, row in enumerate(zip(*args)):
+            j = index.get("⋈".join(row))
+            if j is not None:
+                x[i, j] = 1
+
+        return x
 
     @property
     def colnames(self):
