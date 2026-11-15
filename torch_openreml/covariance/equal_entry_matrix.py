@@ -95,6 +95,12 @@ class EqualEntryMatrix(Matrix):
         }
         super().__init__((n, m), param_specs)
 
+        if len(self.param_specs) != 1:
+            raise ValueError(
+                "EqualEntryMatrix models a single shared variance and requires "
+                f"exactly one parameter spec; got {len(self.param_specs)}."
+            )
+
     def __call__(self, free_params=None):
         sigma2 = self.build_params(free_params)
         device = sigma2.device
