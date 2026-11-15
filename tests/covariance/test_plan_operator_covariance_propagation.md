@@ -59,10 +59,9 @@ Ensure correct propagation of Z through G to produce V, correct gradient computa
 - `"z/sigma^2_0"`, `"g/sigma^2"` etc. depending on operand names
 - All Z params listed first, then G params (operand order)
 
-#### G. REML Interface
+#### G. Removed REML interface
 
-- `map_theta_to_v` returns Z @ G @ Z^T
-- `map_theta_to_dv` returns concatenated gradient
+The old `map_theta_to_v` / `map_theta_to_dv` methods no longer exist; `__call__` and `grad()` are the interface.
 
 ---
 
@@ -192,17 +191,6 @@ class TestCovariancePropagation:
         assert "z" in cache
         assert "g" in cache
 
-    def test_map_theta_to_v(self):
-        op = CovariancePropagation(z=IdentityMatrix(3), g=ScalarMatrix(3))
-        free_params = torch.tensor([0.0])
-        assert torch.allclose(op.map_theta_to_v(free_params), op(free_params))
-
-    def test_map_theta_to_dv(self):
-        op = CovariancePropagation(z=IdentityMatrix(3), g=ScalarMatrix(3))
-        free_params = torch.tensor([0.0])
-        expected, _ = op.grad(free_params)
-        assert torch.allclose(op.map_theta_to_dv(free_params), expected)
-
     def test_repr(self):
         op = CovariancePropagation(z=IdentityMatrix(3), g=ScalarMatrix(3))
         r = repr(op)
@@ -236,6 +224,5 @@ Do not need to execute.
 | `manual_grad` vs `auto_grad` | 2 |
 | All-fixed | 1 |
 | Intermediate caching | 1 |
-| REML interface | 2 |
 | repr | 1 |
-| **Total** | **16** |
+| **Total** | **14** |

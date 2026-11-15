@@ -234,3 +234,20 @@ class TestTransformExp10Specific:
 ### 3.3 Test Execution
 
 Don't need to execute any test.
+
+---
+
+## 4. Expected Test Count Summary
+
+| Category | Tests |
+|---|---|
+| Shared exponential behaviour (`TestExponentialTransforms`) | 48 |
+| `TransformExp` specifics | 2 |
+| `TransformExp2` specifics | 2 |
+| `TransformExp10` specifics | 3 |
+| `TransformChain` integration | 3 |
+| CUDA-only device tests (skipped without CUDA) | 9 |
+| **Total** | **67** |
+
+58 tests run on a CPU-only host; the nine `TestExponentialTransformsCUDA`
+tests are skipped when `torch.cuda.is_available()` is false.

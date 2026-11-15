@@ -108,17 +108,6 @@ class TestKroneckerProduct:
         assert "a" in cache
         assert "b" in cache
 
-    def test_map_theta_to_v(self):
-        op = KroneckerProduct(a=ScalarMatrix(2), b=ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.5])
-        assert torch.allclose(op.map_theta_to_v(free_params), op(free_params))
-
-    def test_map_theta_to_dv(self):
-        op = KroneckerProduct(a=ScalarMatrix(2), b=ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.5])
-        expected, _ = op.grad(free_params)
-        assert torch.allclose(op.map_theta_to_dv(free_params), expected)
-
     def test_manual_inverse_matches_inverse_of_call(self):
         op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
         free_params = torch.tensor([0.5, 0.0, 1.0])

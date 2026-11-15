@@ -75,9 +75,9 @@ Ensure correct construction of the geometric decay structure, correct manual gra
 - rho ≈ 1 (rho_free → +inf): check all entries ≈ σ²
 - n = 1 (trivial 1×1 case)
 
-#### H. REML Interface
+#### H. Removed REML interface
 
-- `map_theta_to_v` and `map_theta_to_dv` work correctly
+The old `map_theta_to_v` / `map_theta_to_dv` methods no longer exist; `__call__` and `grad()` are the interface.
 
 #### I. `manual_inverse(free_params)`
 
@@ -361,17 +361,6 @@ class TestAR1Matrix:
         torch.linalg.inv(mat(free_params)).sum().backward()
         assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-5)
 
-    def test_map_theta_to_v(self):
-        mat = AR1Matrix(4)
-        free_params = torch.tensor([0.0, 1.0])
-        assert torch.allclose(mat.map_theta_to_v(free_params), mat(free_params))
-
-    def test_map_theta_to_dv(self):
-        mat = AR1Matrix(4)
-        free_params = torch.tensor([0.0, 1.0])
-        expected, _ = mat.grad(free_params)
-        assert torch.allclose(mat.map_theta_to_dv(free_params), expected)
-
     def test_repr(self):
         mat = AR1Matrix(4)
         r = repr(mat)
@@ -408,7 +397,6 @@ Do not need to execute.
 | Both fixed | 1 |
 | Intermediate caching | 2 |
 | dtype | 1 |
-| REML interface | 2 |
 | repr | 1 |
 | `manual_inverse` | 18 |
-| **Total** | **47** |
+| **Total** | **45** |

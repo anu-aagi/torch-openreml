@@ -73,9 +73,9 @@ Ensure correct construction (unit diagonal, uniform off-diagonal), correlation r
 - No sigma^2 parameter — diagonal is always 1
 - V is cached directly (not assembled from sigma^2 * rho_mat)
 
-#### H. REML Interface
+#### H. Removed REML interface
 
-- `map_theta_to_v` and `map_theta_to_dv` work correctly
+The old `map_theta_to_v` / `map_theta_to_dv` methods no longer exist; `__call__` and `grad()` are the interface.
 
 #### I. `manual_inverse(free_params)`
 
@@ -345,17 +345,6 @@ class TestEquicorrelationMatrix:
         torch.linalg.inv(mat(free_params)).sum().backward()
         assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
 
-    def test_map_theta_to_v(self):
-        mat = EquicorrelationMatrix(3)
-        free_params = torch.tensor([1.0])
-        assert torch.allclose(mat.map_theta_to_v(free_params), mat(free_params))
-
-    def test_map_theta_to_dv(self):
-        mat = EquicorrelationMatrix(3)
-        free_params = torch.tensor([1.0])
-        expected, _ = mat.grad(free_params)
-        assert torch.allclose(mat.map_theta_to_dv(free_params), expected)
-
     def test_repr(self):
         mat = EquicorrelationMatrix(3)
         r = repr(mat)
@@ -390,7 +379,6 @@ Do not need to execute.
 | Fixed rho config | 3 |
 | Intermediate caching | 2 |
 | dtype | 1 |
-| REML interface | 2 |
 | repr | 1 |
 | `manual_inverse` | 16 |
-| **Total** | **46** |
+| **Total** | **44** |

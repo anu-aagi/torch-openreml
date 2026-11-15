@@ -207,15 +207,8 @@ Do not need to execute.
 
 ## 5. Expected Test Count Summary
 
-| Category | Tests | Parametrized |
-|---|---|---|
-| Constructor & repr | 3 | — |
-| Forward correctness | 3 | ×4 factors |
-| Forward shape | 1 | ×4 factors |
-| Inverse roundtrip | 1 | ×3 factors |
-| Inverse known values | 1 | — |
-| Gradient analytic | 2 | ×4 factors |
-| Gradient autograd | 1 | ×3 factors |
-| Dtype preservation | 2 | — |
-| Integration (chain) | 2 | — |
-| **Estimated total** | | **~40** |
+| Category | Tests |
+|---|---|
+| Core transform (`TestTransformPow`) | 35 |
+| `TransformChain` integration | 3 |
+| **Total** | **38** |

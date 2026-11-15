@@ -210,17 +210,6 @@ class TestCompoundSymmetricMatrix:
         free_params = torch.tensor([0.0, 0.0], dtype=torch.float64)
         assert mat(free_params).dtype == torch.float64
 
-    def test_map_theta_to_v(self):
-        mat = CompoundSymmetricMatrix(3)
-        free_params = torch.tensor([0.0, 0.0])
-        assert torch.allclose(mat.map_theta_to_v(free_params), mat(free_params))
-
-    def test_map_theta_to_dv(self):
-        mat = CompoundSymmetricMatrix(3)
-        free_params = torch.tensor([0.0, 0.0])
-        expected, _ = mat.grad(free_params)
-        assert torch.allclose(mat.map_theta_to_dv(free_params), expected)
-
     def test_manual_inverse_matches_inverse_of_call(self):
         mat = CompoundSymmetricMatrix(3)
         free_params = torch.tensor([0.4, 0.7])

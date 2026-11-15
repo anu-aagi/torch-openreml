@@ -57,10 +57,9 @@ Ensure correct Kronecker product construction, correct gradient computation via 
 - A fixed, B trainable
 - Both fixed
 
-#### G. REML Interface
+#### G. Removed REML interface
 
-- `map_theta_to_v` returns Kronecker product
-- `map_theta_to_dv` returns concatenated gradient
+The old `map_theta_to_v` / `map_theta_to_dv` methods no longer exist; `__call__` and `grad()` are the interface.
 
 #### H. `manual_inverse(free_params)`
 
@@ -208,17 +207,6 @@ class TestKroneckerProduct:
         assert "a" in cache
         assert "b" in cache
 
-    def test_map_theta_to_v(self):
-        op = KroneckerProduct(a=ScalarMatrix(2), b=ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.5])
-        assert torch.allclose(op.map_theta_to_v(free_params), op(free_params))
-
-    def test_map_theta_to_dv(self):
-        op = KroneckerProduct(a=ScalarMatrix(2), b=ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.5])
-        expected, _ = op.grad(free_params)
-        assert torch.allclose(op.map_theta_to_dv(free_params), expected)
-
     def test_manual_inverse_matches_inverse_of_call(self):
         op = KroneckerProduct(a=ScalarMatrix(2), b=DiagonalMatrix(2))
         free_params = torch.tensor([0.5, 0.0, 1.0])
@@ -327,7 +315,6 @@ Do not need to execute.
 | `manual_grad` vs `auto_grad` | 1 |
 | All-fixed | 1 |
 | Intermediate caching | 1 |
-| REML interface | 2 |
 | repr | 1 |
 | `manual_inverse` override | 11 |
-| **Total** | **28** |
+| **Total** | **26** |

@@ -80,9 +80,9 @@ Ensure correct matrix construction, correlation range enforcement via transform 
 - Transforms applied correctly
 - Correct param ordering (sigma^2 first, rho second)
 
-#### H. REML Interface
+#### H. Removed REML interface
 
-- `map_theta_to_v` and `map_theta_to_dv` work correctly
+The old `map_theta_to_v` / `map_theta_to_dv` methods no longer exist; `__call__` and `grad()` are the interface.
 
 #### I. `manual_inverse(free_params)`
 
@@ -360,17 +360,6 @@ class TestCompoundSymmetricMatrix:
         torch.linalg.inv(mat(free_params)).sum().backward()
         assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
 
-    def test_map_theta_to_v(self):
-        mat = CompoundSymmetricMatrix(3)
-        free_params = torch.tensor([0.0, 0.0])
-        assert torch.allclose(mat.map_theta_to_v(free_params), mat(free_params))
-
-    def test_map_theta_to_dv(self):
-        mat = CompoundSymmetricMatrix(3)
-        free_params = torch.tensor([0.0, 0.0])
-        expected, _ = mat.grad(free_params)
-        assert torch.allclose(mat.map_theta_to_dv(free_params), expected)
-
     def test_repr(self):
         mat = CompoundSymmetricMatrix(3)
         r = repr(mat)
@@ -409,7 +398,6 @@ Do not need to execute.
 | Both fixed | 1 |
 | Intermediate caching | 2 |
 | dtype | 1 |
-| REML interface | 2 |
 | repr | 1 |
 | `manual_inverse` | 18 |
-| **Total** | **46** |
+| **Total** | **44** |

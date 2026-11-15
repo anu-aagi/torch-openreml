@@ -258,18 +258,8 @@ Do not need to execute.
 
 ## 5. Expected Test Count Summary
 
-| Category | Tests | Parametrized |
-|---|---|---|
-| Constructor & repr | 3 | — |
-| Domain/codomain | 1 | — |
-| Forward correctness | 1 | ×5 pairs |
-| Forward shape | 1 | ×5 pairs |
-| Inverse roundtrip | 1 | ×5 pairs |
-| Inverse known values | 1 | — |
-| Gradient constant | 2 | — |
-| Gradient vs autograd | 1 | ×4 pairs |
-| Dtype preservation | 2 | — |
-| requires_grad preservation | 2 | — |
-| Edge cases (a=0) | 1 | — |
-| Integration (chain) | 3 | — |
-| **Estimated total** | | **~35** |
+| Category | Tests |
+|---|---|
+| Core transform (`TestTransformScaleShift`) | 31 |
+| `TransformChain` integration | 3 |
+| **Total** | **34** |

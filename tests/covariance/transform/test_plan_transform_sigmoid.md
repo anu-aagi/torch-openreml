@@ -270,14 +270,6 @@ Do not need to execute.
 
 | Category | Tests |
 |---|---|
-| Constructor & class attributes | 2 |
-| Forward correctness | 6 |
-| Forward shape | 1 |
-| Inverse roundtrip & correctness | 3 |
-| Inverse edge cases (0, 1, outside) | 3 |
-| Gradient analytic & properties | 5 |
-| Gradient vs autograd | 1 |
-| Dtype preservation | 2 |
-| requires_grad preservation | 2 |
-| Integration (chain) | 3 |
-| **Total** | **28** |
+| Core transform (`TestTransformSigmoid`) | 24 |
+| `TransformChain` integration | 3 |
+| **Total** | **27** |

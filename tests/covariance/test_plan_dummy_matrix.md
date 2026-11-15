@@ -107,6 +107,18 @@ Ensure correct construction from categorical variables, proper handling of level
 
 - Contains the class name and the shape, is a single line, and omits the empty `param_specs`
 
+#### L. `transform(*args, dtype=None, device=None)`
+
+- Encodes new observations onto the columns fixed at initialisation, in the training column order, whatever `levels`, `lex_order` and the drops produced
+- Row `i` is 1 in the column named by the "⋈" join of that row's factor values, and 0 elsewhere, so a round trip over the training data reproduces `__call__`'s matrix
+- A combination that does not match a column is an all-zero row, with no warning: an unseen level and the reference combination dropped by `drop_first` behave alike
+- A level present in `levels` but absent from the training data is still encoded, because its column exists
+- Result shape is `(n_new, p_trained)`; `transform` never changes `shape` or `colnames`, so new levels cannot widen the matrix
+- Accepts `list`, `tuple` and `pandas.Series` per factor, and a mix; empty input gives zero rows
+- Rejects no arguments (`ValueError`), a non-sequence argument (`TypeError`, naming its position), and unequal lengths (`ValueError`)
+- Returns a fresh tensor per call: mutating a result must not affect later calls
+- dtype defaults to the PyTorch default resolved at call time, and the `dtype`/`device` keywords override it
+
 ---
 
 ## 3. How to Test
@@ -158,6 +170,8 @@ class TestDummyMatrixEncoding:
 - **The intermediate cache is dead weight here**: `set_intermediates` returns early when `params` has length 0, and an empty tensor is the only valid input, so the cache can never hold a value. The tests assert the no-op rather than an unreachable populated state.
 - **Removed REML interface**: `map_theta_to_v` and `map_theta_to_dv` no longer exist on `Matrix`, so this module no longer tests a REML-specific mapping; `__call__` and `grad` are the interface.
 - **Not covered here**: operator integration (`Sum`, `BlockDiagonal`, `Augment` with an identity or dummy operand) is covered by the operator test modules, and these tests do not exercise a REML fit.
+- **`transform` matches the joined string, so factor order is a silent contract**: a permuted argument order produces keys that miss every column and therefore all-zero rows, with no warning; with overlapping level sets it can even hit a wrong-but-valid column (`DummyMatrix(["a", "b"], ["a", "b"])` swapped). The signature carries no arity guard, so the caller must pass the factors in the initialisation order — `transform` is positional by design, as the constructor is.
+- **`transform` cannot tell a dropped reference from an unseen level**: both produce an all-zero row, which is why it warns for neither. The constructor warns for unknown combinations only, and only because it knows the level product there.
 
 ---
 
@@ -169,10 +183,11 @@ class TestDummyMatrixEncoding:
 | Encoding, levels, ordering, drops, unknown combinations | 20 |
 | `colnames` | 5 |
 | `__call__` values, argument forms, freshness | 10 |
+| `transform` onto the fixed columns | 29 |
 | dtype & device resolution | 14 |
 | Free-parameter validation | 13 |
 | `build_params` | 12 |
 | `grad` / `auto_grad` / `manual_grad` / `trans_grad` | 20 |
 | Intermediate caching | 8 |
 | `repr` | 4 |
-| **Total** | **141** |
+| **Total** | **170** |

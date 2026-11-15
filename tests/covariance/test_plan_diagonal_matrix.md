@@ -76,10 +76,9 @@ Ensure correct diagonal construction, independent parameter handling (including 
 - Transforms applied correctly
 - Tensor and dict output formats
 
-#### H. REML Interface
+#### H. Removed REML interface
 
-- `map_theta_to_v` returns diagonal matrix
-- `map_theta_to_dv` returns gradient tensor
+The old `map_theta_to_v` / `map_theta_to_dv` methods no longer exist; `__call__` and `grad()` are the interface.
 
 #### I. `manual_inverse(free_params)`
 
@@ -329,17 +328,6 @@ class TestDiagonalMatrix:
         torch.linalg.inv(mat(free_params)).sum().backward()
         assert torch.allclose(closed_form_grad, free_params.grad, atol=1e-6)
 
-    def test_map_theta_to_v(self):
-        mat = DiagonalMatrix(3)
-        free_params = torch.tensor([0.0, 0.5, 1.0])
-        assert torch.allclose(mat.map_theta_to_v(free_params), mat(free_params))
-
-    def test_map_theta_to_dv(self):
-        mat = DiagonalMatrix(3)
-        free_params = torch.tensor([0.0, 0.5, 1.0])
-        expected, _ = mat.grad(free_params)
-        assert torch.allclose(mat.map_theta_to_dv(free_params), expected)
-
     def test_repr(self):
         mat = DiagonalMatrix(3)
         r = repr(mat)
@@ -372,7 +360,6 @@ Do not need to execute.
 | Custom transforms | 1 |
 | `build_params` | 2 |
 | dtype | 2 |
-| REML interface | 2 |
 | `manual_inverse` | 12 |
 | repr | 1 |
-| **Total** | **42** |
+| **Total** | **40** |

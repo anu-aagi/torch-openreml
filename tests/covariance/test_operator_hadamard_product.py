@@ -96,17 +96,6 @@ class TestHadamardProduct:
         assert "a" in cache
         assert "b" in cache
 
-    def test_map_theta_to_v(self):
-        op = HadamardProduct(a=ScalarMatrix(3), b=ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.0])
-        assert torch.allclose(op.map_theta_to_v(free_params), op(free_params))
-
-    def test_map_theta_to_dv(self):
-        op = HadamardProduct(a=ScalarMatrix(3), b=ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.5])
-        expected, _ = op.grad(free_params)
-        assert torch.allclose(op.map_theta_to_dv(free_params), expected)
-
     def test_repr(self):
         op = HadamardProduct(a=ScalarMatrix(3), b=ScalarMatrix(3))
         r = repr(op)

@@ -109,17 +109,6 @@ class TestBlockDiagonal:
         assert "row_offsets" in cache
         assert "col_offsets" in cache
 
-    def test_map_theta_to_v(self):
-        op = BlockDiagonal(ScalarMatrix(2), ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.0])
-        assert torch.allclose(op.map_theta_to_v(free_params), op(free_params))
-
-    def test_map_theta_to_dv(self):
-        op = BlockDiagonal(ScalarMatrix(2), ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.5])
-        expected, _ = op.grad(free_params)
-        assert torch.allclose(op.map_theta_to_dv(free_params), expected)
-
     def test_manual_inverse_matches_inverse_of_call(self):
         op = BlockDiagonal(ScalarMatrix(2), DiagonalMatrix(3))
         free_params = torch.tensor([0.5, 0.0, 0.5, 1.0])

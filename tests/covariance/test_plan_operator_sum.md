@@ -76,10 +76,9 @@ Ensure correct additive composition, correct parameter namespace management, cor
 - Free param ordering follows operand order
 - `free_param_index` correctly computed across operands
 
-#### I. REML Interface
+#### I. Removed REML interface
 
-- `map_theta_to_v` returns sum
-- `map_theta_to_dv` returns concatenated gradient
+The old `map_theta_to_v` / `map_theta_to_dv` methods no longer exist; `__call__` and `grad()` are the interface.
 
 ---
 
@@ -235,17 +234,6 @@ class TestSum:
         assert grad is None
         assert grad_names == []
 
-    def test_map_theta_to_v(self):
-        op = Sum(ScalarMatrix(3), ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.0])
-        assert torch.allclose(op.map_theta_to_v(free_params), op(free_params))
-
-    def test_map_theta_to_dv(self):
-        op = Sum(ScalarMatrix(3), ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.5])
-        expected, _ = op.grad(free_params)
-        assert torch.allclose(op.map_theta_to_dv(free_params), expected)
-
     def test_repr(self):
         op = Sum(a=ScalarMatrix(3), b=ScalarMatrix(3))
         r = repr(op)
@@ -277,6 +265,5 @@ Do not need to execute.
 | `build_operands` | 1 |
 | `build_params` | 2 |
 | `manual_grad` & `grad` | 5 |
-| REML interface | 2 |
 | repr | 1 |
-| **Total** | **21** |
+| **Total** | **19** |

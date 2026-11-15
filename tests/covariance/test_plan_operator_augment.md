@@ -138,3 +138,13 @@ Do not need to execute.
 - **Zero blocks are dropped, not zero-filled**: operands with no free parameters (`IdentityMatrix`, or a fixed tensor) contribute no rows to the gradient. With no trainable operand at all, `manual_grad` returns `(None, [])`.
 - **Caching and accelerator devices**: intermediates are keyed on a hash of the built parameters, which is unavailable on MPS, so device tests on that backend may `xfail`.
 - **Dtype and device resolution** is inherited from `Operator.build_operands`; see `test_plan_operator.md`.
+
+---
+
+## 5. Expected Test Count Summary
+
+| Category | Tests |
+|---|---|
+| Values and column layout | 9 |
+| Gradients | 8 |
+| **Total** | **17** |

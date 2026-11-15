@@ -68,10 +68,9 @@ Ensure correct block diagonal construction with operands of different sizes, cor
 - Cache hit on second call
 - Cache invalidated by `reset_intermediates`
 
-#### H. REML Interface
+#### H. Removed REML interface
 
-- `map_theta_to_v` returns block diagonal
-- `map_theta_to_dv` returns padded gradient
+The old `map_theta_to_v` / `map_theta_to_dv` methods no longer exist; `__call__` and `grad()` are the interface.
 
 #### I. `manual_inverse(free_params)`
 
@@ -230,17 +229,6 @@ class TestBlockDiagonal:
         assert "row_offsets" in cache
         assert "col_offsets" in cache
 
-    def test_map_theta_to_v(self):
-        op = BlockDiagonal(ScalarMatrix(2), ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.0])
-        assert torch.allclose(op.map_theta_to_v(free_params), op(free_params))
-
-    def test_map_theta_to_dv(self):
-        op = BlockDiagonal(ScalarMatrix(2), ScalarMatrix(3))
-        free_params = torch.tensor([0.0, 0.5])
-        expected, _ = op.grad(free_params)
-        assert torch.allclose(op.map_theta_to_dv(free_params), expected)
-
     def test_manual_inverse_matches_inverse_of_call(self):
         op = BlockDiagonal(ScalarMatrix(2), DiagonalMatrix(3))
         free_params = torch.tensor([0.5, 0.0, 0.5, 1.0])
@@ -374,7 +362,6 @@ Do not need to execute.
 | All-fixed | 1 |
 | Three operands | 1 |
 | Intermediate caching | 1 |
-| REML interface | 2 |
 | repr | 1 |
 | `manual_inverse` override | 15 |
-| **Total** | **32** |
+| **Total** | **30** |

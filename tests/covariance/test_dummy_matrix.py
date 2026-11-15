@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 import torch
@@ -313,6 +315,162 @@ class TestDummyMatrixCallValues:
         mat = DummyMatrix(["a", "b"])
         mat(torch.tensor([], dtype=torch.float64))
         assert mat.colnames == ["a", "b"]
+
+
+class TestDummyMatrixTransform:
+    """The matrix returned by ``transform`` for new observations."""
+
+    def test_single_factor_round_trip(self):
+        mat = DummyMatrix(["a", "b", "a"])
+        assert torch.equal(mat.transform(["a", "b", "a"]), mat())
+
+    def test_two_factor_round_trip(self):
+        mat = DummyMatrix(["a", "b", "a"], ["x", "y", "x"])
+        assert torch.equal(mat.transform(["a", "b", "a"], ["x", "y", "x"]), mat())
+
+    def test_two_factor_rows(self):
+        mat = DummyMatrix(["a", "b", "a"], ["x", "x", "y"])
+        result = mat.transform(["b", "a"], ["y", "x"])
+        expected = torch.tensor([
+            [0., 0., 0., 1.],
+            [1., 0., 0., 0.],
+        ])
+        assert torch.equal(result, expected)
+
+    def test_three_factor_rows(self):
+        mat = DummyMatrix(["a", "b"], ["x", "y"], ["p", "q"])
+        result = mat.transform(["b"], ["y"], ["q"])
+        assert tuple(result.shape) == (1, 8)
+        assert result[0, 7] == 1.0
+        assert result.sum() == 1.0
+
+    def test_result_shape_is_n_new_by_p_trained(self):
+        mat = DummyMatrix(["a", "b", "a"], ["x", "y", "x"])
+        result = mat.transform(["a", "b"], ["x", "y"])
+        assert tuple(result.shape) == (2, len(mat.colnames))
+
+    def test_column_order_is_training_order(self):
+        mat = DummyMatrix(["a", "b"], ["y", "x"], levels=[["b", "a"], ["y", "x"]], lex_order=False)
+        assert mat.colnames == ["b⋈y", "b⋈x", "a⋈y", "a⋈x"]
+        result = mat.transform(["a"], ["x"])
+        assert torch.equal(result, torch.tensor([[0., 0., 0., 1.]]))
+
+    def test_round_trip_reproduces_dropped_columns(self):
+        mat = DummyMatrix(["a", "b", "a"], levels=[["a", "b", "c"]], drop_empty_cols=True)
+        assert mat.colnames == ["a", "b"]
+        assert torch.equal(mat.transform(["a", "b", "a"]), mat())
+
+    def test_unknown_level_is_zero_row(self):
+        mat = DummyMatrix(["a", "b"])
+        result = mat.transform(["a", "new"])
+        assert torch.equal(result[0], torch.tensor([1., 0.]))
+        assert (result[1] == 0).all()
+
+    def test_unknown_level_emits_no_warning(self):
+        mat = DummyMatrix(["a", "b"])
+        with warnings.catch_warnings(record=True) as record:
+            warnings.simplefilter("always")
+            mat.transform(["new"])
+        assert not record
+
+    def test_dropped_reference_combination_is_zero_row(self):
+        mat = DummyMatrix(["a", "b", "c"], drop_first=True)
+        assert mat.colnames == ["b", "c"]
+        result = mat.transform(["a", "b", "c"])
+        expected = torch.tensor([
+            [0., 0.],
+            [1., 0.],
+            [0., 1.],
+        ])
+        assert torch.equal(result, expected)
+
+    def test_transform_does_not_change_colnames(self):
+        mat = DummyMatrix(["a", "b"])
+        mat.transform(["a", "c", "d"])
+        assert mat.colnames == ["a", "b"]
+        assert mat.shape == (2, 2)
+
+    def test_level_unused_in_training_can_still_be_encoded(self):
+        mat = DummyMatrix(["a", "b"], levels=[["a", "b", "c"]])
+        result = mat.transform(["c"])
+        assert mat.colnames == ["a", "b", "c"]
+        assert torch.equal(result, torch.tensor([[0., 0., 1.]]))
+
+    def test_accepts_pandas_series(self):
+        mat = DummyMatrix(["a", "b"], ["x", "y"])
+        result = mat.transform(pd.Series(["b"]), pd.Series(["x"]))
+        assert torch.equal(result, torch.tensor([[0., 0., 1., 0.]]))
+
+    def test_accepts_tuple(self):
+        mat = DummyMatrix(["a", "b"])
+        assert torch.equal(mat.transform(("b",)), torch.tensor([[0., 1.]]))
+
+    def test_accepts_no_observations(self):
+        mat = DummyMatrix(["a", "b"], ["x", "y"])
+        result = mat.transform([], [])
+        assert tuple(result.shape) == (0, len(mat.colnames))
+
+    def test_consecutive_calls_are_distinct_tensors(self):
+        mat = DummyMatrix(["a", "b"])
+        result = mat.transform(["a"])
+        result[0, 0] = 99.0
+        assert torch.equal(mat.transform(["a"]), torch.tensor([[1., 0.]]))
+
+    @pytest.mark.parametrize("arg", [np.array(["a"]), "ab", 1, None])
+    def test_rejects_non_sequence(self, arg):
+        mat = DummyMatrix(["a", "b"])
+        with pytest.raises(TypeError, match="must be a list, a tuple or a pandas.Series"):
+            mat.transform(arg)
+
+    def test_rejects_non_sequence_in_second_position(self):
+        mat = DummyMatrix(["a"], ["b"])
+        with pytest.raises(TypeError, match="Argument 1 must be a list"):
+            mat.transform(["a"], "b")
+
+    def test_rejects_unequal_lengths(self):
+        mat = DummyMatrix(["a"], ["b"])
+        with pytest.raises(ValueError, match="same number of elements"):
+            mat.transform(["a", "b"], ["x"])
+
+    def test_requires_at_least_one_argument(self):
+        mat = DummyMatrix(["a"])
+        with pytest.raises(ValueError, match="At least one list of strings"):
+            mat.transform()
+
+    @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+    def test_follows_dtype_argument(self, dtype):
+        mat = DummyMatrix(["a", "b"])
+        assert mat.transform(["a"], dtype=dtype).dtype == dtype
+
+    def test_default_dtype_when_omitted(self):
+        mat = DummyMatrix(["a", "b"])
+        assert mat.transform(["a"]).dtype == torch.get_default_dtype()
+
+    def test_default_dtype_follows_change_after_construction(self):
+        original = torch.get_default_dtype()
+        try:
+            torch.set_default_dtype(torch.float32)
+            mat = DummyMatrix(["a", "b"])
+            torch.set_default_dtype(torch.float64)
+            assert mat.transform(["a"]).dtype == torch.float64
+        finally:
+            torch.set_default_dtype(original)
+
+    def test_follows_device_argument(self):
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif torch.backends.mps.is_available():
+            device = "mps"
+        else:
+            pytest.skip("no accelerator available")
+        mat = DummyMatrix(["a", "b"])
+        result = mat.transform(["b"], device=device)
+        assert result.device.type == device
+        assert torch.equal(result.cpu(), torch.tensor([[0., 1.]]))
+
+    def test_cpu_device_argument_wins_over_default(self):
+        mat = DummyMatrix(["a", "b"])
+        assert mat.transform(["a"], device="cpu").device.type == "cpu"
 
 
 class TestDummyMatrixDtypeAndDevice:

@@ -108,17 +108,6 @@ class TestCovariancePropagation:
         assert "z" in cache
         assert "g" in cache
 
-    def test_map_theta_to_v(self):
-        op = CovariancePropagation(z=IdentityMatrix(3), g=ScalarMatrix(3))
-        free_params = torch.tensor([0.0])
-        assert torch.allclose(op.map_theta_to_v(free_params), op(free_params))
-
-    def test_map_theta_to_dv(self):
-        op = CovariancePropagation(z=IdentityMatrix(3), g=ScalarMatrix(3))
-        free_params = torch.tensor([0.0])
-        expected, _ = op.grad(free_params)
-        assert torch.allclose(op.map_theta_to_dv(free_params), expected)
-
     def test_repr(self):
         op = CovariancePropagation(z=IdentityMatrix(3), g=ScalarMatrix(3))
         r = repr(op)

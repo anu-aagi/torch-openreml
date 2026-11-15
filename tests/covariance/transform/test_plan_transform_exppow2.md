@@ -259,14 +259,6 @@ Do not need to execute.
 
 | Category | Tests |
 |---|---|
-| Constructor & class attributes | 2 |
-| Forward correctness & properties | 6 |
-| Forward shape | 1 |
-| Inverse roundtrip & correctness | 3 |
-| Inverse edge cases | 1 |
-| Gradient analytic & properties | 4 |
-| Gradient vs autograd | 1 |
-| Dtype preservation | 2 |
-| requires_grad preservation | 2 |
-| Integration (chain) | 3 |
-| **Total** | **25** |
+| Core transform (`TestTransformExpPow2`) | 21 |
+| `TransformChain` integration | 3 |
+| **Total** | **24** |
