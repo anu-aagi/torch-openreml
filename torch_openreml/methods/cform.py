@@ -1,6 +1,6 @@
-r"""Dense C-form REML score and average information for one random effect.
+r"""C-form REML score and average information for one random effect.
 
-This module implements the dense C-form of the average-information (AI)
+This module implements the C-form of the average-information (AI)
 REML algorithm for the linear mixed model
 
 .. math::
@@ -84,7 +84,7 @@ from torch_openreml.covariance import Matrix
 
 
 class CForm:
-    r"""Dense C-form REML score and AI for one random-effect block.
+    r"""C-form REML score and AI for one random-effect block.
 
     The class is stateless.  :meth:`ai_step` is the model-aware entry point:
     it extracts :math:`\symbf{Z}`, :math:`\symbf{G}`, :math:`\symbf{R}` and
@@ -103,13 +103,13 @@ class CForm:
     which give the fixed-effect covariance and the random-effect
     prediction-error covariance.
 
-    This implementation is for dense problems where the
-    :math:`n \times n` matrices fit in memory.  It has no sparse
-    factorisation or matrix-free path.
+    The implementation forms the :math:`n \times n` matrices explicitly,
+    so it is intended for problems where they fit in memory; there is no
+    sparse factorisation or matrix-free path.
     """
 
     def eligible(self, model):
-        """Whether ``model`` can use the dense C-form method."""
+        """Whether ``model`` can use the C-form method."""
         return (
             model is not None
             and model.Z is not None
