@@ -7,47 +7,21 @@ Changelog
 Breaking changes
 ~~~~~~~~~~~~~~~~
 
-* ``Matrix.inverse`` is now ``Matrix.manual_inverse``, and the base-class
-  implementation raises ``NotImplementedError`` instead of inverting
-  ``self(free_params)``. The method is an opt-in closed-form extension point:
-  the classes that define one (``ScalarMatrix``, ``DiagonalMatrix``,
-  ``IdentityMatrix``, ``EquicorrelationMatrix``, ``AR1Matrix``,
-  ``CompoundSymmetricMatrix`` and the structured operators) keep it, while a
-  matrix with no closed form now fails loudly instead of silently paying for a
-  dense inversion. Callers that relied on the generic behaviour should use
-  ``torch.linalg.inv(mat(free_params))``.
-* ``Operator.operands_inverse`` is now ``Operator.operands_manual_inverse``,
-  matching ``Matrix.manual_inverse``. It propagates ``NotImplementedError``
-  when an operand has no closed-form inverse, so ``BlockDiagonal``,
-  ``Product``, ``KroneckerProduct`` and ``Transpose`` no longer fall back to
-  a dense inversion of an operand.
-* ``Operator.tree`` and ``Operator.grad_tree`` each return a single dict now,
-  rather than a pair of dicts. ``tree`` maps a path to the matrix the node
-  evaluated to, and ``grad_tree`` to that node's ``(grad, grad_names)`` pair;
-  the per-node parameter slices they used to return alongside moved to
+* ``MarginalREML`` has been removed, and ``torch_openreml.marginal_reml`` no
+  longer exists. Its replacement is
+  :class:`~torch_openreml.mixed_model_reml.MixedModelREML`, which takes one or
+  more random-effect ``(design, covariance)`` terms and a keyword ``R`` for the
+  residual covariance, builds :math:`V = R + Z G Z^\top` with
+  :class:`~torch_openreml.covariance.operator_marginal_covariance.MarginalCovariance`,
+  and selects a numerical backend instead of taking a single ``v`` matrix.
+  Code that passed ``v`` to ``MarginalREML`` must be rewritten in this form;
+  the post-estimation functions in ``torch_openreml.post`` are unchanged.
+* ``Operator.call_tree`` is now ``Operator.tree``. It and
+  ``Operator.grad_tree`` each return a single dict now, rather than a pair of
+  dicts: ``tree`` maps a path to the matrix the node evaluated to, and
+  ``grad_tree`` to that node's ``(grad, grad_names)`` pair. The per-node
+  parameter slices they used to return alongside moved to
   ``free_param_tree``.
-* ``MarginalREML.optimize``'s first optional argument is now ``init_values``,
-  not ``theta``. The parameter holds the starting covariance parameters, which
-  the loop then updates, so the old name read as if it were the estimate; the
-  estimate is what ``optimize`` returns and what ``get_free_params`` reads
-  back.
-  Positional calls are unaffected, but callers passing ``theta=`` by keyword
-  must rename it. ``update`` keeps its ``theta`` argument, where the name does
-  mean an estimate.
-* ``MarginalREML.get_theta`` and ``MarginalREML.get_beta`` are now
-  ``get_free_params`` and ``get_fixed_effects``, and the ``history`` keys
-  ``"theta"`` and ``"beta"`` are now ``"free_params"`` and ``"fixed_effects"``.
-  The evaluation arguments of ``blue``, ``predict``, ``residual``, ``loglik``,
-  ``compute_v_dv``, ``ai_step`` and ``update`` use the same word,
-  ``free_params``, matching the covariance layer. ``delta`` and ``eta`` keep
-  their names: both are standard symbols for the AI increment and the step
-  size, and the history keys that hold them are unchanged.
-* ``MarginalREML.tree`` no longer takes a single ``theta``: it takes
-  ``free_params`` plus a keyword-only ``select``. ``tree()`` evaluates at the
-  final iterate, ``tree(free_params)`` at the values given,
-  ``tree(select="best")`` at the best iterate, and ``select=None`` at the
-  defaults. A string passed positionally now raises ``TypeError`` naming
-  ``select=`` as the replacement.
 
 Changes
 ~~~~~~~
@@ -61,10 +35,78 @@ Changes
   ``TypeError``, before anything is written. Previously every specification was
   assigned the value as given, so a tensor longer than one parameter was
   duplicated across specifications instead of split between them.
+* ``MixedModelREML.optimize`` names its starting covariance parameters
+  ``init_values`` rather than ``theta``; positional calls are unaffected, but
+  ``theta=`` must be renamed. ``update`` keeps its ``theta`` argument, where
+  the name does mean an estimate.
+* ``MixedModelREML.optimize`` converts ``y`` and ``x`` to the dtype and device
+  of the initial covariance parameters once, then stores the converted tensors
+  for the post-fit methods, instead of repeating the conversion inside every
+  step.
+* ``MixedModelREML.optimize`` uses a relative Armijo slack
+  (``armijo_slack=1e-7``) in its sufficient-increase test, so a step within
+  floating-point noise is accepted. Set ``armijo_slack=0`` for strict Armijo.
+* ``MixedModelREML.history`` records the backend that produced each AI step
+  under ``"method"``, alongside ``free_params``, ``loglik``, ``score``, ``ai``,
+  ``delta``, ``update``, ``eta`` and ``accepted``. ``ai_step`` and ``loglik``
+  return the method with their numerical result.
 
 New features
 ~~~~~~~~~~~~
 
+* ``MixedModelREML``, the new frontend for linear mixed models. Each
+  random-effect term is a ``(design, covariance)`` pair; ``R=`` supplies the
+  residual covariance and defaults to a ``ScalarMatrix`` whose dimension is
+  inferred from a random-effect design. Free parameters are ordered as
+  ``[Z, G, R]`` and exposed with namespaced names. ``method=`` accepts
+  ``"auto"`` (the default), ``"cform"``, ``"marginal"``, or a configured
+  ``CForm`` / ``Marginal`` instance; ``"auto"`` uses ``CForm`` when the model
+  is eligible and falls back to ``Marginal`` with a warning if CForm fails.
+  ``optimize`` runs AI-REML with Armijo backtracking, and ``build_params``,
+  ``tree``, ``c_inverse_blocks`` and ``get_free_params`` expose the fitted
+  structure.
+* ``torch_openreml.methods`` with the two public numerical backends:
+  :class:`~torch_openreml.methods.cform.CForm` for dense, invertible ``G`` and
+  ``R`` and :class:`~torch_openreml.methods.marginal.Marginal` for the general
+  ``V``-based case, including multiple random-effect blocks and approximate
+  traces. Both expose score, average-information and restricted
+  log-likelihood; ``Marginal`` adds the ``trace_approx`` controls.
+* ``MixedModelREML`` post-fit quantities: ``blue``, ``cov_blue``, ``var_blue``,
+  ``blup``, ``cov_blup``, ``var_blup``, ``blup_per_term``,
+  ``cov_blup_per_term``, ``var_blup_per_term``, ``marginal_predict``,
+  ``marginal_residual``, ``predict``, ``predict_new``, ``residual`` and
+  ``loglik``. They reuse the response and design stored by ``optimize`` when
+  ``y`` and ``x`` are omitted, and accept ``free_params="last"`` or
+  ``"best"``. ``predict_new`` predicts at new rows from already-built design
+  matrices, with ``z`` given as a full matrix, a list per term, or a dict
+  keyed by term name.
+* ``post.cov_blue`` and ``post.var_blue``, and ``post.cov_blup`` and
+  ``post.var_blup``, the sampling covariance and variance of the fixed-effect
+  estimates and random-effect predictions. ``cov_blue`` is the ``C11`` block
+  of the inverse coefficient matrix and ``cov_blup`` uses
+  :math:`G Z^\top P Z G`, which needs only ``V`` to be invertible.
+* ``KnownMatrix``, wrapping a fixed two-dimensional tensor as a ``Matrix`` with
+  no free parameters. It follows the parameter tensor's dtype and device when
+  one is supplied, and precomputes the inverse for a square, invertible matrix.
+* ``MarginalCovariance``, an operator with exactly three named operands,
+  ``Z``, ``G`` and ``R``, evaluating :math:`R + Z G Z^\top`. It validates the
+  design and covariance shapes and namespaces parameters as ``Z/...``,
+  ``G/...`` and ``R/...``; it is the operator ``MixedModelREML`` builds.
+* ``Matrix.manual_inverse``, the opt-in closed-form inversion hook. The base
+  implementation raises ``NotImplementedError``, so a matrix without a closed
+  form fails loudly; concrete implementations exist for ``ScalarMatrix``,
+  ``IdentityMatrix``, ``DiagonalMatrix``, ``EquicorrelationMatrix``,
+  ``AR1Matrix``, ``CompoundSymmetricMatrix``, ``Adapter`` and ``KnownMatrix``.
+  ``Operator.operands_manual_inverse`` is the corresponding operator hook and
+  propagates ``NotImplementedError`` when an operand has no closed form, with
+  implementations for ``BlockDiagonal``, ``Product``, ``KroneckerProduct``,
+  ``Transpose`` and ``Inverse``.
+* ``Matrix.resolve_dim``, letting these matrix constructors take a list, tuple
+  or ``pandas.Series`` of levels instead of an integer dimension; the dimension
+  is the number of distinct levels. It is used by ``ScalarMatrix``,
+  ``IdentityMatrix``, ``DiagonalMatrix``, ``AR1Matrix``,
+  ``CompoundSymmetricMatrix``, ``EquicorrelationMatrix``, ``EqualEntryMatrix``,
+  ``LowerTriangularMatrix`` and ``UnconstrainedMatrix``.
 * ``Adapter.manual_inverse``, forwarding its mapped parameters to the
   adaptee's ``manual_inverse``, so a reparameterised matrix keeps the
   adaptee's closed form instead of falling back to a dense inversion.
@@ -81,16 +123,12 @@ New features
   input tensor and the remaining entries are views of it, while fixed tensor
   operands get ``None``. It evaluates no operand, so it is the cheap way to
   inspect how a composite splits its parameters between operands.
-* ``MarginalREML.tree``, evaluating the fitted covariance structure at a
+* ``MixedModelREML.tree``, evaluating the fitted covariance structure at a
   parameter estimate and returning the same path-keyed dict as
   ``Operator.tree``, the root ``"/"`` holding :math:`V(\theta)` itself. It
-  takes a ``free_params`` tensor or dict, and a keyword-only ``select`` that
-  chooses the optimisation iterate when ``free_params`` is omitted —
-  ``"last"`` for the final iterate (the default) or any other selector for the
-  iterate with the highest log-likelihood, so ``reml.tree()`` works straight
-  after ``optimize()``, while ``select=None`` evaluates at the free-parameter
-  defaults. When ``v`` is a plain matrix rather than an operator, the tree is
-  the root entry alone.
+  takes a ``free_params`` tensor or dict, or the selectors ``"last"`` and
+  ``"best"``; ``tree()`` uses the last fitted iterate. When ``v`` is a plain
+  matrix rather than an operator, the tree is the root entry alone.
 * ``DummyMatrix.transform``, building the design matrix of new observations
   from the columns fixed at initialisation: each row is one-hot in the column
   named by the ``"⋈"`` join of its factor values, and a combination with no
@@ -98,26 +136,79 @@ New features
   ``drop_first`` — is an all-zero row. New levels therefore cannot widen the
   matrix, which makes the result the ``z`` block that
   ``MixedModelREML.predict_new`` expects. It takes ``dtype`` and ``device``
-  keywords, defaulting to the PyTorch defaults, and warns for nothing, since
-  it cannot tell a dropped reference from an unseen level.
+  keywords, defaulting to the PyTorch defaults, and emits no warning, since it
+  cannot tell a dropped reference from an unseen level.
+
+Bug fixes
+~~~~~~~~~
+
+* ``post.blue``, ``post.blup`` and ``post.predict`` now keep at least one
+  dimension: they end in ``.squeeze(-1)`` instead of ``.squeeze()``, so a
+  single fixed effect, a single random effect or a single observation returns
+  the documented ``(p,)`` / ``(q,)`` / ``(n,)`` shape rather than a 0-d
+  tensor. This also fixes the downstream ``marginal_predict``,
+  ``marginal_residual`` and ``blup`` failures for those cases.
+* ``MixedModelREML.is_converged`` now raises ``ValueError`` with an explanatory
+  message when called before ``optimize()``, instead of leaking a ``TypeError``
+  from a ``None`` history.
+* ``MixedModelREML.optimize`` keeps ``delta`` one-dimensional when the model
+  has one covariance parameter, instead of a 0-d tensor.
+* ``Operator.build_params(..., out_format="dict")`` now returns one-element
+  tensors keyed by the names that match ``include_fixed``; previously it
+  returned 0-d scalars and always used the free-parameter names.
+* ``AR1Matrix`` computes the correlation derivative without dividing by a
+  clamped ``rho``, which previously replaced ``|rho| < 1e-6`` and produced a
+  wrong gradient at ``rho == 0``.
+* ``Marginal`` now rejects ``trace_approx`` values other than ``True``,
+  ``False`` or ``"auto"``. Previously ``0`` and ``1`` passed validation and
+  then matched no dispatch branch, ending in ``UnboundLocalError``.
+* ``CForm`` casts a fixed-tensor (or zero-parameter ``Matrix``) ``Z`` to the
+  free parameters' dtype and device, so a float32 design with float64
+  parameters no longer fails in matmul.
+* ``EqualEntryMatrix``, ``LowerTriangularMatrix`` and ``UnconstrainedMatrix``
+  now validate the size of a custom ``param_specs`` at construction.
+  ``EqualEntryMatrix`` requires exactly one spec, so a multi-parameter surface
+  is rejected instead of producing a broadcast ``(1, n, m)`` gradient. The two
+  lower-triangular classes require one spec per slot: short custom surfaces
+  previously broadcast silently and then failed inside ``manual_grad`` with a
+  masked ``IndexError``, while long ones raised ``RuntimeError`` from the
+  assignment.
 
 Documentation
 ~~~~~~~~~~~~~
 
-* The documentation and the demos read the covariance tree from the fitted
-  model with ``reml.tree()``, which evaluates at the final iterate, rather than
-  calling ``V.tree(theta_hat)``. The R examples use ``fit_openreml$tree()`` and
-  index the returned dict directly instead of unpacking the old pair.
-* Added a planning document for ``MarginalREML.tree`` and a ``walk`` section to
-  the ``Operator`` planning document.
+* Updated the API, README, R-user guide and examples for ``MixedModelREML``,
+  the ``methods`` backends, ``manual_inverse`` and the path-keyed ``tree``
+  output. The API reference gained the ``methods`` page and the
+  ``KnownMatrix``, ``MarginalCovariance`` and post-fit covariance entries; the
+  old ``MarginalREML`` vignette moved to ``docs/archive/``. The R examples now
+  use ``MixedModelREML`` with ``build_params()``, ``blue()``, ``blup()`` and
+  ``blup_per_term()``.
+* ``Marginal.ai_step`` now documents the ``AttributeError`` raised when
+  ``model`` is ``None``; the previous docstring claimed ``ValueError``. It also
+  states that ``require_loglik=False`` returns the ``torch.nan`` sentinel.
+* The ``post`` module and API page now document the fixed ``1e-6 * I`` ridge
+  added before factorising ``V``; the behaviour itself is unchanged.
 
 Testing
 ~~~~~~~
 
-* Added ``tests/test_marginal_reml.py`` for ``MarginalREML.tree``, and a
-  ``TestOperatorWalk`` class to the ``Operator`` tests.
-* Added a ``TestDummyMatrixTransform`` class to the ``DummyMatrix`` tests, and
-  a ``transform`` section to its planning document.
+* Added ``tests/test_mixed_model_reml.py``, ``tests/methods/test_cform.py`` and
+  ``tests/methods/test_marginal.py``, with matching planning documents, for the
+  new estimator and both numerical backends.
+* Added dedicated tests and plans for ``param``, ``post``, ``KnownMatrix``,
+  ``Gram``, ``MarginalCovariance``, ``EqualEntryMatrix``,
+  ``LowerTriangularMatrix`` and ``UnconstrainedMatrix``.
+* Added dedicated tests and plans for the ``Inverse``, ``Product``, ``Stack``
+  and ``Transpose`` operators, and plans for ``Adapter`` and ``SimpleMatrix``.
+  Expanded the matrix and operator tests for ``manual_inverse``,
+  ``resolve_dim``, ``tree``, ``walk``, ``free_param_tree`` and the distributed
+  ``set_param_specs`` form, and removed the obsolete ``map_theta_to_v`` /
+  ``map_theta_to_dv`` tests.
+* Expanded the suite to cover every exported module: each test module now has
+  a matching ``test_plan_<module>.md``, and ``tests/test_summary.md`` records
+  the per-module status. The default pytest path is now the whole ``tests``
+  tree rather than only ``tests/covariance``.
 
 0.4.0-alpha (2026-10-05)
 ------------------------
