@@ -14,14 +14,14 @@ required.
 .. autosummary::
    :toctree: ../generated
 
-   torch_openreml.blue
-   torch_openreml.cov_blue
-   torch_openreml.var_blue
-   torch_openreml.blup
-   torch_openreml.cov_blup
-   torch_openreml.var_blup
-   torch_openreml.marginal_predict
-   torch_openreml.marginal_residual
-   torch_openreml.predict
-   torch_openreml.residual
-   torch_openreml.loglik
+   torch_openreml.post.blue
+   torch_openreml.post.cov_blue
+   torch_openreml.post.var_blue
+   torch_openreml.post.blup
+   torch_openreml.post.cov_blup
+   torch_openreml.post.var_blup
+   torch_openreml.post.marginal_predict
+   torch_openreml.post.marginal_residual
+   torch_openreml.post.predict
+   torch_openreml.post.residual
+   torch_openreml.post.loglik

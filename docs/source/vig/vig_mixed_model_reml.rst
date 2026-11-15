@@ -719,8 +719,8 @@ The BLUP of the random effects is
     = \mathbf{G}\mathbf{Z}^\top\mathbf{V}^{-1}
       \left(\mathbf{y} - \mathbf{X}\widehat{\boldsymbol{\beta}}\right),
 
-with covariance :math:`\operatorname{Var}(\widehat{\mathbf{b}})
-= \mathbf{G}\mathbf{Z}^\top\mathbf{P}\mathbf{Z}\mathbf{G}`.
+with covariance
+:math:`\operatorname{Var}(\widehat{\mathbf{b}}) = \mathbf{G}\mathbf{Z}^\top\mathbf{P}\mathbf{Z}\mathbf{G}`.
 
 `blup(y=None, x=None, free_params=None)`
     Random-effect predictions of shape ``(q,)``.
@@ -783,9 +783,10 @@ Predictions
     y_marginal
 
 `predict(y=None, x=None, free_params=None)`
-    Conditional fitted values :math:`\mathbf{X}\widehat{\boldsymbol{\beta}}
-    + \mathbf{Z}\widehat{\mathbf{b}}`.  For a model with no random-effect
-    terms this reduces to ``marginal_predict``.
+    Conditional fitted values
+    :math:`\mathbf{X}\widehat{\boldsymbol{\beta}} + \mathbf{Z}\widehat{\mathbf{b}}`.
+    For a model with no random-effect terms this reduces to
+    ``marginal_predict``.
 
 .. jupyter-execute::
 
@@ -831,8 +832,8 @@ Residuals
 ~~~~~~~~~
 
 `marginal_residual(y=None, x=None, free_params=None)`
-    Marginal residuals :math:`\mathbf{y} -
-    \mathbf{X}\widehat{\boldsymbol{\beta}}`.
+    Marginal residuals
+    :math:`\mathbf{y} - \mathbf{X}\widehat{\boldsymbol{\beta}}`.
 
 .. jupyter-execute::
 
@@ -840,8 +841,8 @@ Residuals
     e_marginal
 
 `residual(y=None, x=None, free_params=None)`
-    Conditional residuals :math:`\mathbf{y} -
-    \mathbf{X}\widehat{\boldsymbol{\beta}} - \mathbf{Z}\widehat{\mathbf{b}}`.
+    Conditional residuals
+    :math:`\mathbf{y} - \mathbf{X}\widehat{\boldsymbol{\beta}} - \mathbf{Z}\widehat{\mathbf{b}}`.
     For a model with no random-effect terms this reduces to
     ``marginal_residual``.
 

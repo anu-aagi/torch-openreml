@@ -428,11 +428,12 @@ def loglik(y, x, v):
             \symbf{y}^\top \symbf{P} \symbf{y}
         \right)
 
-    where :math:`\symbf{P} = \symbf{V}^{-1} - \symbf{V}^{-1}\symbf{X}
-    (\symbf{X}^\top\symbf{V}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{V}^{-1}`
-    is the projection matrix. The quadratic :math:`\symbf{y}^\top \symbf{P}
-    \symbf{y}` is evaluated as :math:`\hat{\symbf{e}}^\top \symbf{V}^{-1}
-    \hat{\symbf{e}}`, with :math:`\hat{\symbf{e}}` the marginal residuals.
+    where
+    :math:`\symbf{P} = \symbf{V}^{-1} - \symbf{V}^{-1}\symbf{X}(\symbf{X}^\top\symbf{V}^{-1}\symbf{X})^{-1}\symbf{X}^\top\symbf{V}^{-1}`
+    is the projection matrix. The quadratic
+    :math:`\symbf{y}^\top \symbf{P} \symbf{y}` is evaluated as
+    :math:`\hat{\symbf{e}}^\top \symbf{V}^{-1} \hat{\symbf{e}}`, with
+    :math:`\hat{\symbf{e}}` the marginal residuals.
 
     Args:
         y (torch.Tensor): Response vector of shape ``(n,)``.

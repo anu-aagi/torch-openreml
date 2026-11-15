@@ -357,8 +357,7 @@ class Marginal:
 
         This branch factors ``v`` once and applies :math:`\symbf{V}^{-1}`
         and the projection through Cholesky solves.  The exact trace uses
-        :math:`\operatorname{tr}(\symbf{V}^{-1}\dot{\symbf{V}})
-        - \operatorname{tr}(\symbf{H}\dot{\symbf{V}})`; the approximate
+        :math:`\operatorname{tr}(\symbf{V}^{-1}\dot{\symbf{V}}) - \operatorname{tr}(\symbf{H}\dot{\symbf{V}})`; the approximate
         branch estimates the two terms separately with the two-term Hutch++
         estimator used by the legacy marginal implementation.
 

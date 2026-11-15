@@ -102,13 +102,10 @@ class CovariancePropagation(Operator):
         Applies the product rule to :math:`\\symbf{V} = \\symbf{Z} \\symbf{G} \\symbf{Z}^\\top`:
 
         - With respect to :math:`\\theta_{\\symbf{Z}}`:
-          :math:`\\frac{\\partial \\symbf{V}}{\\partial \\theta} =
-          \\frac{\\partial \\symbf{Z}}{\\partial \\theta} \\symbf{G} \\symbf{Z}^\\top +
-          \\symbf{Z} \\symbf{G} \\frac{\\partial \\symbf{Z}^\\top}{\\partial \\theta}`
+          :math:`\\frac{\\partial \\symbf{V}}{\\partial \\theta} = \\frac{\\partial \\symbf{Z}}{\\partial \\theta} \\symbf{G} \\symbf{Z}^\\top + \\symbf{Z} \\symbf{G} \\frac{\\partial \\symbf{Z}^\\top}{\\partial \\theta}`
           (two terms because :math:`\\symbf{Z}` appears twice).
         - With respect to :math:`\\theta_{\\symbf{G}}`:
-          :math:`\\frac{\\partial \\symbf{V}}{\\partial \\theta} =
-          \\symbf{Z} \\frac{\\partial \\symbf{G}}{\\partial \\theta} \\symbf{Z}^\\top`
+          :math:`\\frac{\\partial \\symbf{V}}{\\partial \\theta} = \\symbf{Z} \\frac{\\partial \\symbf{G}}{\\partial \\theta} \\symbf{Z}^\\top`
           (linear in :math:`\\symbf{G}`).
 
         Per-operand Jacobians from

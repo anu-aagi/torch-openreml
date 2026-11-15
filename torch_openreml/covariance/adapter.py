@@ -132,8 +132,7 @@ class Adapter(Matrix):
         closed form.
 
         The adapter is
-        :math:`\\symbf{V}(\\boldsymbol{\\theta}) =
-        \\symbf{V}_{\\text{adaptee}}\\!\\big(f(\\boldsymbol{\\theta})\\big)`,
+        :math:`\\symbf{V}(\\boldsymbol{\\theta}) = \\symbf{V}_{\\text{adaptee}}\\!\\big(f(\\boldsymbol{\\theta})\\big)`,
         so its inverse is
 
         .. math::

@@ -477,9 +477,9 @@ class MixedModelREML:
     def cov_blue(self, x=None, free_params=None):
         r"""Covariance matrix of the fixed-effect BLUE.
 
-        The BLUE is :math:`\hat{\boldsymbol{\beta}}
-        = (\symbf{X}^{\top}\symbf{V}^{-1}\symbf{X})^{-1}
-          \symbf{X}^{\top}\symbf{V}^{-1}\symbf{y}`, so its covariance is
+        The BLUE is
+        :math:`\hat{\boldsymbol{\beta}} = (\symbf{X}^{\top}\symbf{V}^{-1}\symbf{X})^{-1} \symbf{X}^{\top}\symbf{V}^{-1}\symbf{y}`,
+        so its covariance is
 
         .. math::
 
@@ -720,18 +720,17 @@ class MixedModelREML:
     def cov_blup(self, x=None, free_params=None):
         r"""Covariance matrix of the BLUPs.
 
-        The BLUP is :math:`\hat{\symbf{b}}
-        = \symbf{G}\symbf{Z}^{\top}\symbf{P}\symbf{y}`, so its covariance is
+        The BLUP is
+        :math:`\hat{\symbf{b}} = \symbf{G}\symbf{Z}^{\top}\symbf{P}\symbf{y}`,
+        so its covariance is
 
         .. math::
 
             \operatorname{Var}(\hat{\symbf{b}})
             = \symbf{G}\symbf{Z}^{\top}\symbf{P}\symbf{Z}\symbf{G},
 
-        with :math:`\symbf{P} = \symbf{V}^{-1}
-        - \symbf{V}^{-1}\symbf{X}
-          (\symbf{X}^{\top}\symbf{V}^{-1}\symbf{X})^{-1}
-          \symbf{X}^{\top}\symbf{V}^{-1}`.
+        with
+        :math:`\symbf{P} = \symbf{V}^{-1} - \symbf{V}^{-1}\symbf{X}(\symbf{X}^{\top}\symbf{V}^{-1}\symbf{X})^{-1}\symbf{X}^{\top}\symbf{V}^{-1}`.
         This is equal to :math:`\symbf{G} - \symbf{C}_{22}`, but it only
         requires :math:`\symbf{V}` to be invertible, not :math:`\symbf{G}`.
         The covariance does not depend on the response :math:`\symbf{y}`,
