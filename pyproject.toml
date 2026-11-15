@@ -33,4 +33,4 @@ Issues = "https://github.com/anu-aagi/torch-openreml/issues"
 namespaces = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests/covariance"]
+testpaths = ["tests"]
