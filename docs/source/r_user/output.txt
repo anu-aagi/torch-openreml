@@ -24,7 +24,7 @@ MarginalCovariance(
 [  7] ∥∇∥:       0.0001, ∥Δ∥: 0.0000, η: 1.00, ∥Δᶜ∥: 0.0000, accepted: True , log 𝓛:  16.8157
 [  8] ∥∇∥:       0.0001, ∥Δ∥: 0.0000, η: 0.02, ∥Δᶜ∥: 0.0000, accepted: True , log 𝓛:  16.8157
 
-[∇: score, Δ: 𝐉⁻¹∇, η: learning rate, Δᶜ: clip(𝛉 + ηΔ, lb, ub) - 𝛉, 𝓛: restricted likelihood]
+[∇: score, Δ: 𝐉⁻¹∇, η: step length, Δᶜ: clip(𝛉 + ηΔ, lb, ub) - 𝛉, 𝓛: restricted likelihood]
 
 ✓ Converged at iteration 8, total time: 0.02s
 

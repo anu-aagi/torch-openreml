@@ -91,6 +91,15 @@ New features
   after ``optimize()``, while ``select=None`` evaluates at the free-parameter
   defaults. When ``v`` is a plain matrix rather than an operator, the tree is
   the root entry alone.
+* ``DummyMatrix.transform``, building the design matrix of new observations
+  from the columns fixed at initialisation: each row is one-hot in the column
+  named by the ``"⋈"`` join of its factor values, and a combination with no
+  column — an unseen level, or the reference combination dropped by
+  ``drop_first`` — is an all-zero row. New levels therefore cannot widen the
+  matrix, which makes the result the ``z`` block that
+  ``MixedModelREML.predict_new`` expects. It takes ``dtype`` and ``device``
+  keywords, defaulting to the PyTorch defaults, and warns for nothing, since
+  it cannot tell a dropped reference from an unseen level.
 
 Documentation
 ~~~~~~~~~~~~~
@@ -107,6 +116,8 @@ Testing
 
 * Added ``tests/test_marginal_reml.py`` for ``MarginalREML.tree``, and a
   ``TestOperatorWalk`` class to the ``Operator`` tests.
+* Added a ``TestDummyMatrixTransform`` class to the ``DummyMatrix`` tests, and
+  a ``transform`` section to its planning document.
 
 0.4.0-alpha (2026-10-05)
 ------------------------
