@@ -1078,9 +1078,10 @@ class MixedModelREML:
         This method only consumes materialised tensors: it does not encode
         factors or construct the incidence matrix of new data. Build ``x``
         and each ``z`` block in the training column order, then pass them
-        here. A single new observation is just a one-row batch. The
-        random-effect contribution uses the BLUPs computed from the stored
-        training data by :meth:`blup`.
+        here. A single new observation is just a one-row batch. For a
+        ``DummyMatrix`` block, ``DummyMatrix.transform`` does that encoding
+        onto the training columns. The random-effect contribution uses the
+        BLUPs computed from the stored training data by :meth:`blup`.
 
         Args:
             x (torch.Tensor): Fixed-effect design matrix of shape
@@ -1492,7 +1493,7 @@ class MixedModelREML:
         eta_max=1.0,
         eta_min=1e-10,
         fallback_eta=1e-3,
-        armijo_slack=1e-8,
+        armijo_slack=1e-7,
     ):
         r"""Run the AI-REML optimisation loop with Armijo backtracking.
 
@@ -1555,7 +1556,7 @@ class MixedModelREML:
             fallback_eta (float, optional): Step length for the normalized
                 gradient fallback.  Default: ``1e-3``.
             armijo_slack (float, optional): Relative numerical slack in the
-                Armijo test.  Default: ``1e-8``.
+                Armijo test.  Default: ``1e-7``.
 
         Returns:
             tuple: ``(free_param_names, free_params)``, where
@@ -1666,7 +1667,7 @@ class MixedModelREML:
                     if verbose > 0:
                         print(
                             "\n[\u2207: score, \u0394: \U0001D409\u207B\u00B9\u2207, "
-                            "\u03B7: learning rate, \u0394\u1D9C: "
+                            "\u03B7: step length, \u0394\u1D9C: "
                             "clip(\U0001D6C9 + \u03B7\u0394, lb, ub) - \U0001D6C9, "
                             "\U0001D4DB: restricted likelihood]"
                         )
