@@ -107,7 +107,10 @@ class Marginal:
         Raises:
             ValueError: If an option is outside its valid range.
         """
-        if trace_approx not in (False, True, "auto"):
+        if not (
+            isinstance(trace_approx, bool)
+            or (isinstance(trace_approx, str) and trace_approx == "auto")
+        ):
             raise ValueError("`trace_approx` must be False, True or 'auto'.")
         if not 0.0 <= subspace_fraction <= 1.0:
             raise ValueError("`subspace_fraction` must lie in [0, 1].")
@@ -276,7 +279,10 @@ class Marginal:
             ``require_loglik`` is ``False``.
 
         Raises:
-            ValueError: If ``model`` is ``None``.
+            AttributeError: If ``model`` is ``None``.  This is the error
+                raised by ``preprocess_input`` when it dereferences
+                ``model.V``; it is documented rather than converted so the
+                low-level failure mode is explicit.
         """
         n = y.shape[0]
         tensor_dict = self.preprocess_input(model, y, x, free_params)
@@ -338,8 +344,8 @@ class Marginal:
         Returns:
             tuple: ``(score, ai, loglik)``, where ``score`` has shape
             ``(k,)``, ``ai`` has shape ``(k, k)``, and ``loglik`` is a
-            scalar tensor (``torch.nan`` when ``require_loglik`` is
-            ``False``).
+            scalar tensor, or ``torch.nan`` when ``require_loglik`` is
+            ``False``.
         """
 
         if v_inv is None:
@@ -378,8 +384,8 @@ class Marginal:
 
         Returns:
             tuple: ``(score, ai, loglik)``.  ``score`` has shape ``(k,)``,
-            ``ai`` has shape ``(k, k)``, and ``loglik`` is a scalar tensor
-            (``torch.nan`` when ``require_loglik`` is ``False``).
+            ``ai`` has shape ``(k, k)``, and ``loglik`` is a scalar tensor, or
+            ``torch.nan`` when ``require_loglik`` is ``False``.
         """
         if dv.shape[0] == 0:
             raise ValueError("dv must have at least one parameter; got dv.shape[0] == 0.")
@@ -508,8 +514,8 @@ class Marginal:
 
         Returns:
             tuple: ``(score, ai, loglik)``.  ``score`` has shape ``(k,)``,
-            ``ai`` has shape ``(k, k)``, and ``loglik`` is a scalar tensor
-            (``torch.nan`` when ``require_loglik`` is ``False``).
+            ``ai`` has shape ``(k, k)``, and ``loglik`` is a scalar tensor, or
+            ``torch.nan`` when ``require_loglik`` is ``False``.
         """
         if dv.shape[0] == 0:
             raise ValueError("dv must have at least one parameter; got dv.shape[0] == 0.")
