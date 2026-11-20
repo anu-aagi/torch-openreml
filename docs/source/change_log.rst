@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.0.0 (unreleased)
+1.0.0 (2026-11-20)
 ------------------
 
 This is the first stable release, and it follows ``0.4.0-alpha`` directly. The

@@ -8,7 +8,7 @@
 
 <p>
   <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version 1.0.0">
-  <img src="https://img.shields.io/pypi/v/torch-openreml?include_prereleases" alt="PyPI version">
+  <img src="https://img.shields.io/pypi/v/torch-openreml" alt="PyPI version">
   <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="GPL-3.0">
   <img src="https://img.shields.io/badge/python-%3E%3D3.10-blue" alt="Python >=3.10">
   <img src="https://img.shields.io/badge/pytorch-%3E%3D2.0-orange" alt="PyTorch >=2.0">

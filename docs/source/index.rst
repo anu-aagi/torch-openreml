@@ -39,11 +39,11 @@
    <p>
      <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version 1.0.0">
      <a href="https://pypi.org/project/torch-openreml/">
-       <img src="https://img.shields.io/pypi/v/torch-openreml?include_prereleases" alt="PyPI version">
+       <img src="https://img.shields.io/pypi/v/torch-openreml" alt="PyPI version">
      </a>
      <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="GPL-3.0 License">
      <a href="https://www.python.org/">
-       <img src="https://img.shields.io/badge/python-3.12-blue" alt="Python 3.12">
+       <img src="https://img.shields.io/badge/python-%3E%3D3.10-blue" alt="Python >=3.10">
      </a>
      <a href="https://pytorch.org/">
        <img src="https://img.shields.io/badge/pytorch-%3E%3D2.0-orange" alt="PyTorch">
