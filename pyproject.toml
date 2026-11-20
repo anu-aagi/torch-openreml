@@ -8,7 +8,8 @@ version = "1.0.0"
 description = "PyTorch-based AI-REML estimation for linear mixed models"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "GPL-3.0-only"}
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
 authors = [
     {name = "Weihao (Patrick) Li", email = "patrick.li@anu.edu.au"},
 ]
@@ -28,6 +29,9 @@ Homepage = "https://torch-openreml.patrickli.org"
 Documentation = "https://torch-openreml.patrickli.org/api"
 Repository = "https://github.com/anu-aagi/torch-openreml.git"
 Issues = "https://github.com/anu-aagi/torch-openreml/issues"
+
+[tool.setuptools]
+include-package-data = false
 
 [tool.setuptools.packages.find]
 namespaces = false
