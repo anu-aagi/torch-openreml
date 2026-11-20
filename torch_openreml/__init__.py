@@ -4,4 +4,4 @@ import torch_openreml.utils
 import torch_openreml.covariance
 import torch_openreml.example_data
 
-__version__ = "1.0.0-beta"
+__version__ = "1.0.0"
