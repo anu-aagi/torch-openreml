@@ -1,13 +1,14 @@
 Changelog
 =========
 
-1.0.0-beta (unreleased)
------------------------
+1.0.0 (unreleased)
+------------------
 
-This is the first beta, and it follows ``0.4.0-alpha`` directly. The jump to
-1.0.0 marks that the interface below — ``MixedModelREML`` together with the
-``methods`` backends — is the shape the package is intended to keep; it is a
-beta rather than a final release because that interface may still change.
+This is the first stable release, and it follows ``0.4.0-alpha`` directly. The
+jump to 1.0.0 marks that the interface below — ``MixedModelREML`` together with
+the ``methods`` backends — is the shape the package intends to keep: later
+releases stay backward compatible with it, and breaking changes are reserved
+for a major version.
 
 Breaking changes
 ~~~~~~~~~~~~~~~~

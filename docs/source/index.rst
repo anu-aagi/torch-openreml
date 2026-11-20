@@ -37,7 +37,7 @@
 .. raw:: html
 
    <p>
-     <img src="https://img.shields.io/badge/dev-1.0.0--beta-blue" alt="Development version 1.0.0-beta">
+     <img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version 1.0.0">
      <a href="https://pypi.org/project/torch-openreml/">
        <img src="https://img.shields.io/pypi/v/torch-openreml?include_prereleases" alt="PyPI version">
      </a>
@@ -48,7 +48,6 @@
      <a href="https://pytorch.org/">
        <img src="https://img.shields.io/badge/pytorch-%3E%3D2.0-orange" alt="PyTorch">
      </a>
-     <img src="https://img.shields.io/badge/status-beta-yellow" alt="Beta">
    </p>
 
 .. container:: project-meta
