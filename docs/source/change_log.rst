@@ -1,8 +1,13 @@
 Changelog
 =========
 
-0.4.1-alpha (unreleased)
-------------------------
+1.0.0-beta (unreleased)
+-----------------------
+
+This is the first beta, and it follows ``0.4.0-alpha`` directly. The jump to
+1.0.0 marks that the interface below — ``MixedModelREML`` together with the
+``methods`` backends — is the shape the package is intended to keep; it is a
+beta rather than a final release because that interface may still change.
 
 Breaking changes
 ~~~~~~~~~~~~~~~~
@@ -129,6 +134,17 @@ New features
   takes a ``free_params`` tensor or dict, or the selectors ``"last"`` and
   ``"best"``; ``tree()`` uses the last fitted iterate. When ``v`` is a plain
   matrix rather than an operator, the tree is the root entry alone.
+* ``torch_openreml.example_data.fa_met``, the simulated FA(2)
+  multi-environment trial used by the factor-analysis vignette, shipped as
+  ``torch_openreml/example_data/data/fa_met.csv`` and read into a DataFrame.
+  The genotype and environment labels are read as strings, preserving the
+  zero-padding that ``DummyMatrix``'s lexicographic ordering relies on, and
+  the ``genetic`` column holds the latent effects that generated the yields.
+* ``torch_openreml.example_data.fa_met_params``, the generating values of that
+  trial (environment means, FA(2) loadings and uniquenesses, residual
+  variance), shipped as
+  ``torch_openreml/example_data/data/fa_met_params.json`` and read into a
+  dict.
 * ``DummyMatrix.transform``, building the design matrix of new observations
   from the columns fixed at initialisation: each row is one-hot in the column
   named by the ``"⋈"`` join of its factor values, and a combination with no
@@ -184,6 +200,18 @@ Documentation
   old ``MarginalREML`` vignette moved to ``docs/archive/``. The R examples now
   use ``MixedModelREML`` with ``build_params()``, ``blue()``, ``blup()`` and
   ``blup_per_term()``.
+* Added a factor-analysis vignette,
+  ``docs/source/vig/vig_factor_analysis.rst``, which loads a simulated FA(2)
+  multi-environment trial, fits it with ``MixedModelREML``, and checks the
+  recovery of the covariance, the random effects and the environment means.
+  A second part refits the same model on an unbalanced version of the trial,
+  in which each genotype is grown in only three of the six environments, and
+  compares the recovery, the untested-cell BLUPs and the factor-count choice.
+  The trial is shipped as ``torch_openreml/example_data/data/fa_met.csv`` and
+  exposed as ``torch_openreml.example_data.fa_met``, with the latent effects
+  in its ``genetic`` column; the generating values are shipped as
+  ``fa_met_params.json`` and exposed as
+  ``torch_openreml.example_data.fa_met_params``.
 * ``Marginal.ai_step`` now documents the ``AttributeError`` raised when
   ``model`` is ``None``; the previous docstring claimed ``ValueError``. It also
   states that ``require_loglik=False`` returns the ``torch.nan`` sentinel.
@@ -196,6 +224,11 @@ Testing
 * Added ``tests/test_mixed_model_reml.py``, ``tests/methods/test_cform.py`` and
   ``tests/methods/test_marginal.py``, with matching planning documents, for the
   new estimator and both numerical backends.
+* Extended ``tests/example_data`` with checks on the shipped ``fa_met`` trial
+  and ``fa_met_params``: 1200 observations, two replicates per
+  genotype-by-environment cell, zero-padded string labels, the documented
+  dtypes, a ``genetic`` column constant within each cell, and the generating
+  values.
 * Added dedicated tests and plans for ``param``, ``post``, ``KnownMatrix``,
   ``Gram``, ``MarginalCovariance``, ``EqualEntryMatrix``,
   ``LowerTriangularMatrix`` and ``UnconstrainedMatrix``.
