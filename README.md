@@ -7,12 +7,12 @@
 # torch-openreml
 
 <p>
-  <img src="https://img.shields.io/badge/dev-0.4.1--alpha-blue" alt="Development version 0.4.1-alpha">
+  <img src="https://img.shields.io/badge/dev-1.0.0--beta-blue" alt="Development version 1.0.0-beta">
   <img src="https://img.shields.io/pypi/v/torch-openreml?include_prereleases" alt="PyPI version">
   <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="GPL-3.0">
   <img src="https://img.shields.io/badge/python-%3E%3D3.10-blue" alt="Python >=3.10">
   <img src="https://img.shields.io/badge/pytorch-%3E%3D2.0-orange" alt="PyTorch >=2.0">
-  <img src="https://img.shields.io/badge/status-experimental-yellow" alt="Experimental">
+  <img src="https://img.shields.io/badge/status-beta-yellow" alt="Beta">
 </p>
 
 **torch-openreml** is a PyTorch-based library for AI-REML estimation of linear mixed models.
