@@ -1,4 +1,8 @@
+import json
+
 import pandas as pd
+
+from importlib.resources import files
 
 john_alpha_data = [
 (1,"R1","B1","G11",4.1172,1,1),
@@ -77,3 +81,20 @@ john_alpha_data = [
 
 john_alpha = pd.DataFrame(john_alpha_data, columns=["plot","rep","block","gen","yield","row","col"])
 john_alpha = john_alpha.astype({"yield": "float32"})
+
+
+# The simulated FA(2) multi-environment trial from the factor-analysis vignette.
+# The labellings are zero-padded, so they are read as strings to keep the
+# lexicographic order that ``DummyMatrix`` relies on.
+fa_met = pd.read_csv(
+    files("torch_openreml.example_data").joinpath("data", "fa_met.csv"),
+    dtype={"genotype": str, "environment": str},
+)
+
+# The generating values of the simulated trial, kept separate from the
+# observations because they are the truth the vignette checks against.
+fa_met_params = json.loads(
+    files("torch_openreml.example_data")
+    .joinpath("data", "fa_met_params.json")
+    .read_text()
+)
