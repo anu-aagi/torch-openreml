@@ -49,6 +49,13 @@ Changes
   of the initial covariance parameters once, then stores the converted tensors
   for the post-fit methods, instead of repeating the conversion inside every
   step.
+* ``MixedModelREML.optimize`` replaces the fixed ``eta`` step of
+  ``MarginalREML.optimize`` with Armijo backtracking. The AI direction is
+  unchanged; the step starts at ``eta_max`` and is multiplied by
+  ``eta_shrink`` after each rejected candidate until the log-likelihood
+  increases sufficiently, with a small gradient-ascent step when no candidate
+  qualifies. This keeps the fit stable when the score or AI matrix is
+  inaccurate.
 * ``MixedModelREML.optimize`` uses a relative Armijo slack
   (``armijo_slack=1e-7``) in its sufficient-increase test, so a step within
   floating-point noise is accepted. Set ``armijo_slack=0`` for strict Armijo.
