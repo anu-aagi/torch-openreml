@@ -226,7 +226,7 @@ The logarithmic parameterization ensures that the variance components remain pos
     X = Augment(torch.ones(n, 1), DummyMatrix(rep, drop_first=True))()
 
 MixedModelREML Optimizer
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Once the random-effect terms have been specified, they are passed to :py:class:`MixedModelREML <torch_openreml.MixedModelREML>` as ``(design, covariance)`` pairs, and the residual covariance is supplied with the keyword ``R =``:
 
