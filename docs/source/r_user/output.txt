@@ -26,7 +26,7 @@ MarginalCovariance(
 
 [∇: score, Δ: 𝐉⁻¹∇, η: step length, Δᶜ: clip(𝛉 + ηΔ, lb, ub) - 𝛉, 𝓛: restricted likelihood]
 
-✓ Converged at iteration 8, total time: 0.02s
+✓ Converged at iteration 8, total time: 0.03s
 
 [1] 0.14290200 0.07021844 0.08161712
 [1]  4.5182447  0.2978498 -0.4140421
