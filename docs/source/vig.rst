@@ -8,6 +8,7 @@ Vignettes
 
    vig/vig_mixed_model_reml
    vig/vig_matrix
+   vig/vig_operator
    vig/vig_random_intercept
    vig/vig_random_slope
    vig/vig_known_covariance
